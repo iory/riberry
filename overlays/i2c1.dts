@@ -8,6 +8,7 @@
 
                 __overlay__ {
                         status = "okay";
+                        clock-frequency = < 0xf4240 >;
                         pinctrl-0 = < 0xffffffff 0xffffffff >;
                         pinctrl-names = "default";
                 };
