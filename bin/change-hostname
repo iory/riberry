@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Get the directory where the script is located
+SCRIPT_DIR=$(dirname "$0")
+
+# Set the paths to the adjective and noun files relative to the script location
+ADJECTIVES_FILE="$SCRIPT_DIR/../dict/adjectives.txt"
+NOUNS_FILE="$SCRIPT_DIR/../dict/nouns.txt"
+
+# Set the new hostname by combining a random adjective and noun
+new_hostname=$(shuf -n 1 "$ADJECTIVES_FILE")-$(shuf -n 1 "$NOUNS_FILE")
+
+# Create a backup of the /etc/hosts file
+sudo cp /etc/hosts /etc/hosts.backup
+
+# Change the hostname in the /etc/hosts file
+sudo sed -i.backup "s/127.0.1.1.*/127.0.1.1\t$new_hostname/" /etc/hosts
+
+# Create a backup of the /etc/hostname file
+sudo cp /etc/hostname /etc/hostname.backup
+
+# Overwrite /etc/hostname with the new hostname
+echo $new_hostname | sudo tee /etc/hostname
+
+# Apply the new hostname to the system
+sudo hostnamectl set-hostname $new_hostname
+
+echo "Hostname has been changed to $new_hostname."
