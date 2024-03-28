@@ -53,6 +53,15 @@ def enable_systemd_services(symlinks, dry_run=False):
                 print(f"Enabled systemd service: {item}")
 
 
+def execute_dtc_command(dry_run, output_path, source_dts):
+    if dry_run:
+        print(f"Dry-run: Would execute 'dtc' command to create device tree blob at '{output_path}' from '{source_dts}'.")
+    else:
+        dtc_command = ['dtc', '-@', '-I', 'dts', '-O', 'dtb', '-o', output_path, source_dts]
+        subprocess.run(dtc_command)
+        print(f"Executed 'dtc' command to create device tree blob at '{output_path}' from '{source_dts}'.")
+
+
 def main(dry_run):
     if os.geteuid() != 0:
         print("This script must be run as root.")
@@ -75,14 +84,16 @@ def main(dry_run):
 
     enable_systemd_services(added_symlinks, dry_run=dry_run)
 
-    if dry_run is not True:
-        print(f"Dry-run: Would execute 'dtc' command to create device tree blob.")
-        subprocess.run(
-            ['dtc', '-I', 'dts', '-O', 'dtb', '-o', '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m1-gpioh-6-gpioh-7.dtbo', './overlays/i2c1.dts']
-        )
-        print("Executed 'dtc' command to create device tree blob.")
-    else:
-        print(f"Dry-run: Would execute 'dtc' command to create device tree blob but skipping due to dry-run.")
+    execute_dtc_command(
+        False,
+        '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m1-gpioh-6-gpioh-7.dtbo',
+        './overlays/i2c1.dts'
+    )
+    execute_dtc_command(
+        False,
+        '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-gpio-line-names.dtbo',
+        './overlays/meson-g12a-gpio-line-names.dts'
+    )
 
     if dry_run:
         print("Dry-run mode: No changes were made.")
