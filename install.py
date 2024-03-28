@@ -75,6 +75,15 @@ def main(dry_run):
 
     enable_systemd_services(added_symlinks, dry_run=dry_run)
 
+    if dry_run is not True:
+        print(f"Dry-run: Would execute 'dtc' command to create device tree blob.")
+        subprocess.run(
+            ['dtc', '-I', 'dts', '-O', 'dtb', '-o', '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m1-gpioh-6-gpioh-7.dtbo', './overlays/i2c1.dts']
+        )
+        print("Executed 'dtc' command to create device tree blob.")
+    else:
+        print(f"Dry-run: Would execute 'dtc' command to create device tree blob but skipping due to dry-run.")
+
     if dry_run:
         print("Dry-run mode: No changes were made.")
     else:
