@@ -1,0 +1,11 @@
+verbosity=7
+console=ttyAML0,115200
+overlay_prefix=meson
+rootfstype=ext4
+fdtfile=amlogic/meson-g12a-radxa-zero.dtb
+overlays=meson-g12a-i2c-ee-m3-gpioa-14-gpioa-15 meson-g12a-gpio-line-names meson-g12a-i2c-ee-m1-gpioh-6-gpioh-7 meson-g12a-uart-ao-b-on-gpioao-2-gpioao-3
+rootuuid=a1d6d1b5-7219-4126-8ecd-e5cf6265cfc6
+initrdsize=0xfe96a7
+kernelversion=5.10.69-12-amlogic-g98700611d064
+initrdimg=initrd.img-5.10.69-12-amlogic-g98700611d064
+kernelimg=vmlinuz-5.10.69-12-amlogic-g98700611d064

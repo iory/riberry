@@ -1,0 +1,43 @@
+<launch>
+
+  <arg name="raw_audio_topic" default="/audio" doc="Name of audio topic captured from microphone" />
+  <arg name="dummy_audio_topic" default="/dummy_audio" doc="Dummy audio" />
+  <arg name="audio_topic" default="/audio" doc="Name of audio topic captured from microphone" />
+  <arg name="depth" default="16" doc="Bit depth of audio topic and microphone. '$ pactl list short sinks' to check your hardware" />
+  <arg name="sample_rate" default="16000" doc="Frame rate of audio topic and microphone. '$ pactl list short sinks' to check your hardware"/>
+  <arg name="device" default="bluealsa:DEV=64:B7:08:8A:14:16,PROFILE=a2dp" doc="Card and device number of microphone (e.g. hw:0,0). you can check card number and device number by '$ arecord -l', then uses hw:[card number],[device number]" />
+  <arg name="n_channel" default="1" doc="Number of channels of audio topic and microphone. '$ pactl list short sinks' to check your hardware" />
+  <arg name="sound_play_respawn" default="true" />
+  <arg name="dynamic_energy_ratio" default="1.0" />
+  <arg name="namespace" default="robot_a" />
+
+  <group ns="$(arg namespace)" >
+    <node name="audio_publisher"
+          pkg="riberry_startup" type="i2c_audio_publisher.py"
+          output="screen"
+          respawn="true">
+      <remap from="/audio" to="/$(arg namespace)/audio" />
+    </node>
+
+    <node name="speak_to_light"
+          pkg="riberry_startup" type="speak_to_light.py"
+          output="screen"
+          respawn="true">
+    </node>
+
+    <include file="$(find ros_speech_recognition)/launch/speech_recognition.launch" >
+      <arg name="n_channel" value="$(arg n_channel)" />
+      <arg name="depth" value="$(arg depth)" />
+      <arg name="sample_rate" value="$(arg sample_rate)" />
+      <arg name="audio_topic" value="/$(arg namespace)$(arg audio_topic)" />
+      <arg name="launch_sound_play" value="false" />
+      <arg name="launch_audio_capture" value="false" />
+      <arg name="voice_topic" value="speech_to_text" />
+      <arg name="device" value="$(arg device)" />
+      <arg name="language" value="ja-JP" />
+      <arg name="continuous" value="true" />
+      <arg name="dynamic_energy_ratio" value="$(arg dynamic_energy_ratio)" />
+    </include>
+  </group>
+
+</launch>

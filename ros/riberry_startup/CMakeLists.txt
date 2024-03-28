@@ -6,9 +6,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
-find_package(OpenCV REQUIRED)
-message("OPENCV ${OpenCV_VERSION} FOUND")
-
 # catkin_python_setup()
 
 catkin_package(
