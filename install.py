@@ -64,8 +64,8 @@ def execute_dtc_command(dry_run, output_path, source_dts):
         print(f"Executed 'dtc' command to create device tree blob at '{output_path}' from '{source_dts}'.")
 
 
-def main(dry_run):
-    if os.geteuid() != 0:
+def main(dry_run=False, enable_oneshot=False):
+    if dry_run is False and os.geteuid() != 0:
         print("This script must be run as root.")
         sys.exit(1)
 
@@ -78,12 +78,19 @@ def main(dry_run):
     create_symlinks(bin_source_dir, bin_target_dir, dry_run=dry_run)
 
     if dry_run is False:
+        os.makedirs('/usr/local/dict', 0o777, exist_ok=True)
+    create_symlinks('./dict', '/usr/local/dict', dry_run=dry_run)
+
+    if dry_run is False:
         os.makedirs('/etc/opt/riberry', 0o777, exist_ok=True)
     create_symlinks('./etc/opt/riberry', '/etc/opt/riberry', dry_run=dry_run)
 
     added_symlinks = create_symlinks('./ros/riberry_startup/systemd',
                                      systemd_target_dir, dry_run=dry_run)
     added_symlinks += create_symlinks(systemd_source_dir, systemd_target_dir, dry_run=dry_run)
+    if enable_oneshot:
+        added_symlinks += create_symlinks(
+            './systemd/oneshot', '/etc/systemd/system', dry_run=dry_run)
 
     enable_systemd_services(added_symlinks, dry_run=dry_run)
 
@@ -107,6 +114,8 @@ def main(dry_run):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Install script with dry-run option.")
     parser.add_argument("--dry-run", action="store_true", help="Run the script in dry-run mode to display the operations without making any changes.")
+    parser.add_argument("--enable-oneshot", action="store_true",
+                        help="Enable the oneshot services like a resize-helper and change-hostname-helper.")
 
     args = parser.parse_args()
-    main(args.dry_run)
+    main(args.dry_run, args.enable_oneshot)
