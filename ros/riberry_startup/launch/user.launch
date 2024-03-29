@@ -1,0 +1,8 @@
+<launch>
+
+  <arg name="namespace" default="robot_a" />
+
+  <group ns="$(arg namespace)" >
+  </group>
+
+</launch>
