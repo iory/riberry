@@ -20,7 +20,7 @@ sudo reboot
 You can use the dry-run option to see which scripts will be installed without actually installing them:
 
 ```
-sudo ./install.py --dry-run
+./install.py --dry-run
 ```
 
 When distributing images, it's necessary to adjust the disk size among other parameters initially due to writing to an SD card.
