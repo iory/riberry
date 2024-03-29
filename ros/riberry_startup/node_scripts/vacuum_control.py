@@ -1,32 +1,26 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 from std_msgs.msg import Int16, Empty
 
 class VacuumControl(object):
-    def __init__(self, vacuum_threshold=80, namespace=''):
+    def __init__(self, vacuum_threshold=80):
         # Use Radxa's ADC value as vacuum pressure value
         self.vacuum_threshold = vacuum_threshold
         rospy.loginfo('Differental pressure threshold: {}'.format(
             self.vacuum_threshold))
         # Use pump and pressure sensor
-        self.pub_on = rospy.Publisher(
-            namespace+'/pump_on', Empty, queue_size=1)
-        self.pub_off = rospy.Publisher(
-            namespace+'/pump_off', Empty, queue_size=1)
-        rospy.Subscriber(
-            namespace+'/vacuum_pressure', Int16, self.pressure_cb)
+        self.pub_on = rospy.Publisher('pump_on', Empty, queue_size=1)
+        self.pub_off = rospy.Publisher('pump_off', Empty, queue_size=1)
+        rospy.Subscriber('vacuum_pressure', Int16, self.pressure_cb)
         # Control vacuum state
-        self.vacuum = True
-        rospy.Subscriber(
-            namespace+'/vacuum_on', Empty, self.on_cb)
-        rospy.Subscriber(
-            namespace+'/vacuum_off', Empty, self.off_cb)
+        self.vacuum = False
+        rospy.Subscriber('vacuum_on', Empty, self.on_cb)
+        rospy.Subscriber('vacuum_off', Empty, self.off_cb)
         # Calibate pressure
         self.pressure_samples = []
         self.atm_pressure = None
-        rospy.Subscriber(
-            namespace+'/calibrate_pressure', Empty, self.calibrate)
+        rospy.Subscriber('calibrate_pressure', Empty, self.calibrate)
 
     def calibrate(self, msg):
         self.pressure_samples = []
