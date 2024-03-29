@@ -13,18 +13,20 @@ def is_regular_file(filename):
 def create_symlinks(source_dir, target_dir, dry_run=False):
     added_symlinks = []
     for item in os.listdir(source_dir):
-        if is_regular_file(item):
-            source_path = os.path.join(source_dir, item)
-            target_path = os.path.join(target_dir, item)
-            if os.path.isfile(source_path):
-                if dry_run:
-                    print(f"Dry-run: Would create symlink: {target_path} -> {source_path}")
-                else:
-                    if os.path.lexists(target_path):
-                        os.remove(target_path)
-                    os.symlink(osp.abspath(source_path), osp.abspath(target_path))
-                    print(f"Created symlink: {target_path} -> {source_path}")
-                    added_symlinks.append(target_path)
+        source_path = os.path.join(source_dir, item)
+        if not (osp.isfile(source_path) and
+                is_regular_file(item)):
+            continue
+        target_path = os.path.join(target_dir, item)
+        if os.path.isfile(source_path):
+            if dry_run:
+                print(f"Dry-run: Would create symlink: {target_path} -> {source_path}")
+            else:
+                if os.path.lexists(target_path):
+                    os.remove(target_path)
+                os.symlink(osp.abspath(source_path), osp.abspath(target_path))
+                print(f"Created symlink: {target_path} -> {source_path}")
+                added_symlinks.append(target_path)
     return added_symlinks
 
 
@@ -75,7 +77,8 @@ def main(dry_run):
     copy_files('./boot', '/boot', dry_run=dry_run)
     create_symlinks(bin_source_dir, bin_target_dir, dry_run=dry_run)
 
-    os.makedirs('/etc/opt/riberry', 0o777, exist_ok=True)
+    if dry_run is False:
+        os.makedirs('/etc/opt/riberry', 0o777, exist_ok=True)
     create_symlinks('./etc/opt/riberry', '/etc/opt/riberry', dry_run=dry_run)
 
     added_symlinks = create_symlinks('./ros/riberry_startup/systemd',
@@ -85,12 +88,12 @@ def main(dry_run):
     enable_systemd_services(added_symlinks, dry_run=dry_run)
 
     execute_dtc_command(
-        False,
+        dry_run,
         '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m1-gpioh-6-gpioh-7.dtbo',
         './overlays/i2c1.dts'
     )
     execute_dtc_command(
-        False,
+        dry_run,
         '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-gpio-line-names.dtbo',
         './overlays/meson-g12a-gpio-line-names.dts'
     )
