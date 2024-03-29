@@ -1,0 +1,31 @@
+<launch>
+
+  <arg name="namespace" default="robot_a" />
+
+  <group ns="$(arg namespace)" >
+    <!-- Switch pump via rostopic (/pump_on and /pump_off) -->
+    <node name="pump_switcher"
+          pkg="riberry_startup" type="pump_switcher.py"
+          output="screen"
+          respawn="true">
+    </node>
+
+    <!-- Publish vacuum pressure topic (/vacuum_pressure) -->
+    <node name="vacuum_pressure"
+          pkg="riberry_startup" type="vacuum_pressure.py"
+          output="screen"
+          respawn="true">
+    </node>
+
+    <!-- Keep adsorption state based on vacuum pressure -->
+    <!-- Enabled by /vacuum_on, disabled by /vacuum_off -->
+    <!-- This node internally call /pump_on and /pump_off -->
+    <node name="vacuum_control"
+          pkg="riberry_startup" type="vacuum_control.py"
+          output="screen"
+          respawn="true">
+    </node>
+
+  </group>
+
+</launch>
