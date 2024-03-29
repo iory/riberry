@@ -1,0 +1,27 @@
+<launch>
+
+  <arg name="loop_rate" default="500" doc="Hertz of imu." />
+  <arg name="frame_id" default="mpu6886_frame" />
+  <arg name="namespace" default="" />
+
+  <group if="$(eval len(arg('namespace')) > 0)" ns="$(arg namespace)" >
+    <node name="imu_publisher"
+          pkg="riberry_startup" type="mpu6886_imu_publisher_node" >
+      <rosparam subst_value="true">
+        loop_rate: $(arg loop_rate)
+        frame_id: $(arg frame_id)
+      </rosparam>
+    </node>
+  </group>
+
+  <group unless="$(eval len(arg('namespace')) > 0)">
+    <node name="imu_publisher"
+          pkg="riberry_startup" type="mpu6886_imu_publisher_node" >
+      <rosparam subst_value="true">
+        loop_rate: $(arg loop_rate)
+        frame_id: $(arg frame_id)
+      </rosparam>
+    </node>
+  </group>
+
+</launch>
