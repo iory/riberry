@@ -43,3 +43,9 @@ add_executable(i2c_audio_publisher src/i2c_audio_publisher.cpp)
 target_link_libraries(i2c_audio_publisher
   ${catkin_LIBRARIES}
 )
+
+add_executable(imu_filter src/imu_filter.cpp)
+target_link_libraries(imu_filter
+  ${catkin_LIBRARIES}
+  m # include <math.h>
+)
