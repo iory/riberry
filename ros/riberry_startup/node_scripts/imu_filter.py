@@ -3,6 +3,7 @@ import rospy
 import numpy as np
 from sensor_msgs.msg import Imu
 
+# Deprecated. Use src/imu_filter.cpp.
 # Mainly Copied from https://www.utsbox.com/?page_id=523
 
 class BiQuadFilter:
