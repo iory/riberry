@@ -20,6 +20,7 @@ if(GCC_VERSION VERSION_LESS 9.4.0 AND (CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR C
 endif()
 
 find_package(catkin REQUIRED COMPONENTS
+  audio_common_msgs
   roscpp
   sensor_msgs
   std_msgs
@@ -30,10 +31,15 @@ include_directories(
 )
 
 catkin_package(
-  CATKIN_DEPENDS roscpp sensor_msgs std_msgs
+  CATKIN_DEPENDS audio_common_msgs roscpp sensor_msgs std_msgs
 )
 
 add_executable(mpu6886_imu_publisher_node src/mpu6886_imu_publisher_node.cpp)
 target_link_libraries(mpu6886_imu_publisher_node
+  ${catkin_LIBRARIES}
+)
+
+add_executable(i2c_audio_publisher src/i2c_audio_publisher.cpp)
+target_link_libraries(i2c_audio_publisher
   ${catkin_LIBRARIES}
 )

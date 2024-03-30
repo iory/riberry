@@ -9,11 +9,11 @@
   <arg name="n_channel" default="1" doc="Number of channels of audio topic and microphone. '$ pactl list short sinks' to check your hardware" />
   <arg name="sound_play_respawn" default="true" />
   <arg name="dynamic_energy_ratio" default="1.0" />
-  <arg name="namespace" default="robot_a" />
+  <arg name="namespace" default="" />
 
-  <group ns="$(arg namespace)" >
+  <group if="$(eval len(arg('namespace')) > 0)" ns="$(arg namespace)" >
     <node name="audio_publisher"
-          pkg="riberry_startup" type="i2c_audio_publisher.py"
+          pkg="riberry_startup" type="i2c_audio_publisher"
           output="screen"
           respawn="true">
       <remap from="/audio" to="/$(arg namespace)/audio" />
@@ -30,6 +30,35 @@
       <arg name="depth" value="$(arg depth)" />
       <arg name="sample_rate" value="$(arg sample_rate)" />
       <arg name="audio_topic" value="/$(arg namespace)$(arg audio_topic)" />
+      <arg name="launch_sound_play" value="false" />
+      <arg name="launch_audio_capture" value="false" />
+      <arg name="voice_topic" value="speech_to_text" />
+      <arg name="device" value="$(arg device)" />
+      <arg name="language" value="ja-JP" />
+      <arg name="continuous" value="true" />
+      <arg name="dynamic_energy_ratio" value="$(arg dynamic_energy_ratio)" />
+    </include>
+  </group>
+
+  <group unless="$(eval len(arg('namespace')) > 0)">
+    <node name="audio_publisher"
+          pkg="riberry_startup" type="i2c_audio_publisher"
+          output="screen"
+          respawn="true">
+      <remap from="/audio" to="/audio" />
+    </node>
+
+    <node name="speak_to_light"
+          pkg="riberry_startup" type="speak_to_light.py"
+          output="screen"
+          respawn="true">
+    </node>
+
+    <include file="$(find ros_speech_recognition)/launch/speech_recognition.launch" >
+      <arg name="n_channel" value="$(arg n_channel)" />
+      <arg name="depth" value="$(arg depth)" />
+      <arg name="sample_rate" value="$(arg sample_rate)" />
+      <arg name="audio_topic" value="$(arg audio_topic)" />
       <arg name="launch_sound_play" value="false" />
       <arg name="launch_audio_capture" value="false" />
       <arg name="voice_topic" value="speech_to_text" />
