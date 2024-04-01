@@ -44,10 +44,11 @@ void initialize_sensor(int fd, uint8_t accel_fs_sel, uint8_t gyro_fs_sel) {
 }
 
 // Function to read sensor data
-bool read_sensor_data(int fd, int16_t& accel_x, int16_t& accel_y, int16_t& accel_z, int16_t& gyro_x, int16_t& gyro_y, int16_t& gyro_z) {
+bool read_sensor_data(int fd, int16_t& accel_x, int16_t& accel_y, int16_t& accel_z, int16_t& gyro_x, int16_t& gyro_y, int16_t& gyro_z, double wait_msec_to_read) {
     uint8_t reg_addr = ACCEL_XOUT_H;
     uint8_t buf[14];
     if (write(fd, &reg_addr, 1) != 1) return false;
+    usleep(wait_msec_to_read * 1000);
     if (read(fd, buf, 14) != 14) return false;
 
     // Extract accelerometer data
@@ -70,6 +71,7 @@ int main(int argc, char **argv) {
     std::string i2c_device, frame_id;
     int mpu6886_addr, queue_size;
     double loop_rate_hz;
+    double wait_msec_to_read;
 
     // Retrieve parameters or set default values using the private node handle
     nh_private.param<std::string>("i2c_device", i2c_device, "/dev/i2c-1");
@@ -77,6 +79,7 @@ int main(int argc, char **argv) {
     nh_private.param("mpu6886_addr", mpu6886_addr, 0x68);
     nh_private.param("queue_size", queue_size, 1);
     nh_private.param("loop_rate", loop_rate_hz, 500.0);
+    nh_private.param("wait_msec_to_read", wait_msec_to_read, 1.0);
 
     // Get the node's namespace
     std::string full_namespace = ros::this_node::getNamespace();
@@ -121,7 +124,7 @@ int main(int argc, char **argv) {
     ros::Rate loop_rate(loop_rate_hz); // Publishing rate in Hz
     while (ros::ok()) {
         int16_t accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
-        if (read_sensor_data(fd, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z)) {
+        if (read_sensor_data(fd, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, wait_msec_to_read)) {
             imu_msg.header.stamp = ros::Time::now();
 
             // Populate the IMU message
