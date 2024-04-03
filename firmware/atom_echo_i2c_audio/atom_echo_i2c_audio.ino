@@ -16,7 +16,7 @@ constexpr int CONFIG_I2S_DATA_IN_PIN = 23;
 constexpr i2s_port_t SPEAK_I2S_NUMBER = I2S_NUM_0;
 constexpr int MODE_MIC = 0;
 constexpr int MODE_SPK = 1;
-constexpr int I2S_SAMPLE_RATE = 16000;
+constexpr int I2S_SAMPLE_RATE = 8000;
 constexpr int I2S_BUFFER_COUNT = 4;
 constexpr int I2S_BUFFER_SIZE = 1000;
 
@@ -154,8 +154,8 @@ void loop() {
 void requestEvent() {
     while (ringBuffer.available() > 0) {
         uint16_t value = ringBuffer.read();
+        value = value / 256;
         WireSlave.write((uint8_t)(value & 0xFF));
-        WireSlave.write((uint8_t)((value >> 8) & 0xFF));
     }
 }
 
