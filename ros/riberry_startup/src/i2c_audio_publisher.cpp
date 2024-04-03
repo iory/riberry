@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
   int buffer_size;
   int i2c_addr;
 
-  private_nh.param<std::string>("i2c_device", i2c_device, "/dev/i2c-1");
+  private_nh.param<std::string>("i2c_device", i2c_device, "/dev/i2c-3");
   private_nh.param("buffer_size", buffer_size, 4096);
   private_nh.param("i2c_addr", i2c_addr, 0x41);
 
