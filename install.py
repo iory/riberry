@@ -101,6 +101,11 @@ def main(dry_run=False, enable_oneshot=False):
     )
     execute_dtc_command(
         dry_run,
+        '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m3-gpioa-14-gpioa-15.dtbo',
+        './overlays/i2c3.dts'
+    )
+    execute_dtc_command(
+        dry_run,
         '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-gpio-line-names.dtbo',
         './overlays/meson-g12a-gpio-line-names.dts'
     )

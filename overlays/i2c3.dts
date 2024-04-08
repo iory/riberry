@@ -1,0 +1,21 @@
+/dts-v1/;
+
+/ {
+        compatible = "radxa,zero\0amlogic,g12a";
+
+        fragment@0 {
+                target = < 0xffffffff >;
+
+                __overlay__ {
+                        status = "okay";
+                        pinctrl-0 = < 0xffffffff 0xffffffff >;
+                        pinctrl-names = "default";
+                };
+        };
+
+        __fixups__ {
+                i2c3 = "/fragment@0:target:0";
+                i2c3_sck_a_pins = "/fragment@0/__overlay__:pinctrl-0:0";
+                i2c3_sda_a_pins = "/fragment@0/__overlay__:pinctrl-0:4";
+        };
+};
