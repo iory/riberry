@@ -205,6 +205,20 @@ int WireUnpacker::read() {
   return value;
 }
 
+
+void convertAndPack(const std::vector<uint8_t>& input, std::vector<uint8_t>& result) {
+  result.clear();
+  for(auto byte : input) {
+    int8_t signedByte = static_cast<int8_t>(byte);
+    int16_t shifted = signedByte * 256;
+    uint8_t highByte = static_cast<uint8_t>((shifted >> 8) & 0xFF);
+    uint8_t lowByte = static_cast<uint8_t>(shifted & 0xFF);
+
+    result.push_back(lowByte);
+    result.push_back(highByte);
+  }
+}
+
 int main(int argc, char **argv) {
   ros::init(argc, argv, "i2c_audio_publisher");
   ros::NodeHandle nh;
@@ -234,6 +248,7 @@ int main(int argc, char **argv) {
   }
 
   std::vector<uint8_t> rxBuffer(buffer_size);
+  std::vector<uint8_t> convertedPayload;
 
   uint8_t write_buf[5] = {2, 1, 5, 0, 4};
 
@@ -252,9 +267,10 @@ int main(int argc, char **argv) {
     unpacker.reset();
     unpacker.write_data_list(rxBuffer);
     std::vector<uint8_t> payload = unpacker.getPayload();
-    if (!payload.empty()) {
+    convertAndPack(payload, convertedPayload);
+    if (!convertedPayload.empty()) {
       audio_common_msgs::AudioData audio_msg;
-      audio_msg.data = payload;
+      audio_msg.data = convertedPayload;
       pub.publish(audio_msg);
     }
     ros::spinOnce();

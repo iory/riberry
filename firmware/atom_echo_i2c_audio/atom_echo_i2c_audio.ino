@@ -22,13 +22,16 @@ constexpr int I2S_BUFFER_SIZE = 1000;
 
 uint8_t buffer[I2S_BUFFER_SIZE];
 size_t transBytes;
+int16_t previous_x = 0;
+int16_t previous_y = 0;
+int16_t tmp_x;
 
 TaskHandle_t i2sTaskHandle = NULL;
 
 class RingBuffer {
 public:
     RingBuffer(int size) : size(size), readIdx(0), writeIdx(0) {
-        buffer = new uint16_t[size];
+        buffer = new int8_t[size];
     }
 
     ~RingBuffer() {
@@ -41,19 +44,19 @@ public:
         return size + diff;
     }
 
-    void write(uint16_t value) {
+    void write(int8_t value) {
         buffer[writeIdx] = value;
         writeIdx = (writeIdx + 1) % size;
     }
 
-    uint16_t read() {
-        uint16_t value = buffer[readIdx];
+    int8_t read() {
+        int8_t value = buffer[readIdx];
         readIdx = (readIdx + 1) % size;
         return value;
     }
 
 private:
-    uint16_t* buffer;
+    int8_t* buffer;
     int size;
     volatile int readIdx;
     volatile int writeIdx;
@@ -109,7 +112,20 @@ void i2sTask(void* parameter) {
         i2s_read(I2S_NUM_0, (char*)buffer, I2S_BUFFER_SIZE, &transBytes, portMAX_DELAY);
         for (int i = 0; i < transBytes; i += 2) {
             uint16_t* val = (uint16_t*)&buffer[i];
-            ringBuffer.write(*val);
+
+            // Process the 12-bit audio sample, adjust and scale it to 16-bit range
+            int16_t p = (((0x0fff - (*val & 0x0fff)) * 16) - 0x8000);
+            int16_t tmp_x = p;
+
+            /* https://stackoverflow.com/questions/77383602/do-these-two-dc-filter-algorithms-achieve-the-same-thing-and-is-one-better */
+            /* apply DC filter */
+            p = p - previous_x + 0.995 * previous_y;
+            previous_y = p;
+            previous_x = tmp_x;
+
+            // Scale the result down to fit into an 8-bit signed integer by right-shifting 8 bits
+            p = p >> 8;
+            ringBuffer.write((uint8_t)p);
         }
     }
 }
@@ -153,9 +169,8 @@ void loop() {
 
 void requestEvent() {
     while (ringBuffer.available() > 0) {
-        uint16_t value = ringBuffer.read();
-        value = value / 256;
-        WireSlave.write((uint8_t)(value & 0xFF));
+        int8_t value = ringBuffer.read();
+        WireSlave.write((uint8_t)value);
     }
 }
 
