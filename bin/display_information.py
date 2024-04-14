@@ -6,7 +6,7 @@ import time
 
 import board
 import busio
-
+from colorama import Fore
 from i2c_for_esp32 import WirePacker
 
 
@@ -94,9 +94,20 @@ class DisplayInformation(object):
             pass
 
     def display_information(self):
-        ip_str = '{}:\n{}'.format(socket.gethostname(), get_ip_address())
-        master_str = 'ROS_MASTER:\n{}'.format(get_ros_master_ip())
-        battery_str = 'Bat:{}%'.format(get_battery())
+        ip_str = '{}:\n{}{}{}'.format(
+            socket.gethostname(), Fore.YELLOW, get_ip_address(), Fore.RESET)
+        master_str = 'ROS_MASTER:\n' + Fore.RED + '{}'.format(
+            get_ros_master_ip()) + Fore.RESET
+        battery = get_battery()
+        if battery is None:
+            battery_str = 'Bat: None'
+        else:
+            if battery <= 20:
+                battery_str = 'Bat: {}{}%{}'.format(
+                    Fore.RED, battery, Fore.RESET)
+            else:
+                battery_str = 'Bat: {}{}%{}'.format(
+                    Fore.GREEN, battery, Fore.RESET)
         charging = battery_charging()
         if charging is True:
             battery_str += '+'
