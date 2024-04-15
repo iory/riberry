@@ -111,6 +111,13 @@ def main(dry_run=False, enable_oneshot=False):
     )
 
     if dry_run:
+        print("Dry-run: No install python libraries.")
+    else:
+        username = os.getlogin()
+        command = f'sudo -u {username} pip3 install -r requirements.txt'
+        subprocess.run(command, shell=True)
+
+    if dry_run:
         print("Dry-run mode: No changes were made.")
     else:
         print("Installation completed.")
