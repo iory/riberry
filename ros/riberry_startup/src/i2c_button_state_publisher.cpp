@@ -344,7 +344,9 @@ int main(int argc, char **argv) {
     unpacker.write_data_list(rxBuffer);
     std::vector<uint8_t> payload = unpacker.getPayload();
     if (payload.size() != 1) {
-      ROS_ERROR("Failed to read button state");
+      // This error occurs frequently, but after several attempts,
+      // the button value becomes readable, so throttle the output.
+      ROS_ERROR_THROTTLE(60.0, "Failed to read button state");
       continue;
     }
     std_msgs::Int32 button_state_msg;
