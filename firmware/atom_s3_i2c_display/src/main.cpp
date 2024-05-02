@@ -41,13 +41,6 @@ enum ButtonState {
 };
 ButtonState currentButtonState = NOT_CHANGED;
 
-void ButtonTask(void *parameter) {
-  while (true) {
-    btn.tick();
-    vTaskDelay(pdMS_TO_TICKS(10));
-  }
-}
-
 static void handleClick() {
   currentButtonState = SINGLE_CLICK;
 }
@@ -81,6 +74,34 @@ static void handleLongPressEnd() {
   currentButtonState = RELEASED;
 }
 
+void ButtonTask(void *parameter) {
+  btn.setClickMs(200);  // Timeout used to distinguish single clicks from double clicks. (msec)
+  btn.attachClick(handleClick);
+  btn.attachDoubleClick(handleDoubleClick);
+  btn.attachMultiClick(handleMultiClick);
+  btn.attachLongPressStart(handleLongPress);
+  btn.attachLongPressStop(handleLongPressEnd);// Initialize last receive time
+
+  while (true) {
+    btn.tick();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
+
+
+void I2CTask(void *parameter) {
+  bool success = WireSlave.begin(SDA_PIN, SCL_PIN, I2C_SLAVE_ADDR);
+  if (!success) {
+    M5.Lcd.println("I2C slave init failed");
+    while (1) delay(100);
+  }
+  WireSlave.onReceive(receiveEvent);
+  WireSlave.onRequest(requestEvent);
+  while (true) {
+    WireSlave.update();
+    delay(1);  // let I2C and other ESP32 peripherals interrupts work
+  }
+}
 
 uint16_t colorMap(int code, bool isBackground = false) {
     if (isBackground) {
@@ -148,43 +169,15 @@ void setup() {
     M5.Lcd.setRotation(1);
     M5.Lcd.setTextSize(1.5);
 
-    // Determine the target serial type
-    if (target_serial_type == "serial1") {
-        M5.Lcd.println("Wait for UART input.");
-        M5.Lcd.println("Baud rate = 1000000,");
-        M5.Lcd.println("SERIAL_8N1, 1, 2.");
-        delay(500);
-        Serial1.begin(1000000, SERIAL_8N1, 1, 2);
-        target_serial = &Serial1;
-    } else if (target_serial_type == "i2c") {
-        M5.Lcd.println("Wait for I2C input.");
-        char log_msg[50];
-        sprintf(log_msg, "I2C address \x1b[33m0x%02x\x1b[39m", I2C_SLAVE_ADDR);
-        printColorText(log_msg);
+    M5.Lcd.println("Wait for I2C input.");
+    char log_msg[50];
+    sprintf(log_msg, "I2C address \x1b[33m0x%02x\x1b[39m", I2C_SLAVE_ADDR);
+    printColorText(log_msg);
 
-        bool success = WireSlave.begin(SDA_PIN, SCL_PIN, I2C_SLAVE_ADDR);
-        if (!success) {
-            M5.Lcd.println("I2C slave init failed");
-            while (1) delay(100);
-        }
-        WireSlave.onReceive(receiveEvent);
-        WireSlave.onRequest(requestEvent);
-    } else {
-        M5.Lcd.fillScreen(M5.Lcd.color565(0, 0, 0));
-        M5.Lcd.setCursor(0, 0);
-        M5.Lcd.println("invalid target_serial_type.");
-        while (true) delay(100);
-    }
     lastReceiveTime = millis();
 
-    btn.setClickMs(200);  // Timeout used to distinguish single clicks from double clicks. (msec)
-    btn.attachClick(handleClick);
-    btn.attachDoubleClick(handleDoubleClick);
-    btn.attachMultiClick(handleMultiClick);
-    btn.attachLongPressStart(handleLongPress);
-    btn.attachLongPressStop(handleLongPressEnd);// Initialize last receive time
-
-    xTaskCreatePinnedToCore(ButtonTask, "Button Task", 2048, NULL, 25, NULL, 0);
+    xTaskCreatePinnedToCore(I2CTask, "I2C Task", 2048, NULL, 24, NULL, 0);
+    xTaskCreatePinnedToCore(ButtonTask, "Button Task", 2048, NULL, 24, NULL, 1);
 }
 
 void loop() {
@@ -193,30 +186,6 @@ void loop() {
         M5.Lcd.setCursor(0, 0);
         M5.Lcd.println("No data received.");
         delay(500);  // Show message for a short time
-    }
-    if (target_serial_type == "i2c") {
-        WireSlave.update();
-        delay(1);  // let I2C and other ESP32 peripherals interrupts work
-    } else {
-        String str;
-        if (target_serial->available() > 0) {
-            lastReceiveTime = millis();  // Update the last received time
-            // Clear display
-            M5.Lcd.fillScreen(M5.Lcd.color565(0, 0, 0));
-            M5.Lcd.setCursor(0, 0);
-            unpacker.reset();
-            int incoming_byte = target_serial->read();
-            while (incoming_byte != -1 || !unpacker.available()) {
-                unpacker.write(incoming_byte);
-                incoming_byte = target_serial->read();
-            }
-            while (unpacker.available()) {
-                str += (char)unpacker.read();
-            }
-            // Draw
-            M5.Lcd.println(str);
-        }
-        delay(1000);
     }
 }
 
