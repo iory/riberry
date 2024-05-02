@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
   int i2c_addr;
 
   private_nh.param<std::string>("i2c_device", i2c_device, "/dev/i2c-1");
-  private_nh.param("buffer_size", buffer_size, 100);
+  private_nh.param("buffer_size", buffer_size, 6);
   private_nh.param("i2c_addr", i2c_addr, 0x42);
   private_nh.param<std::string>("i2c_lock_file", i2c_lock_file, "/tmp/i2c-1.lock");
 
@@ -293,6 +293,8 @@ int main(int argc, char **argv) {
       continue;
     }
 
+    // expected bytes no 2 1 6 0 0 4
+    //         one click 2 1 6 1 94 4
     rxBuffer.resize(bytesRead);
     unpacker.reset();
     unpacker.write_data_list(rxBuffer);
