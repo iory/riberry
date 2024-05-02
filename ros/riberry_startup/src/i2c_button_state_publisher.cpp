@@ -6,37 +6,82 @@
 #include <linux/i2c-dev.h>
 #include <ros/ros.h>
 #include <std_msgs/Int32.h>
+#include <stdexcept>
+#include <sys/file.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <vector>
 
-int lockFile(int fd) {
-  struct flock fl;
-  fl.l_type = F_WRLCK;
-  fl.l_whence = SEEK_SET;
-  fl.l_start = 0;
-  fl.l_len = 0;
+// The code has been adapted to ensure consistency with the FileLock behavior in a Python program.
+// https://github.com/tox-dev/filelock/blob/main/src/filelock/_unix.py
+class FileLock {
+private:
+  int fd;
+  std::string filename;
+  int timeout;  // Timeout in seconds
 
-  if (fcntl(fd, F_SETLKW, &fl) == -1) {
-    std::cerr << "Locking failed: " << strerror(errno) << std::endl;
-    return -1;
+public:
+  FileLock(const std::string& filename, int timeoutSecs = 10)
+    : filename(filename), fd(-1), timeout(timeoutSecs) {}
+
+  void lock() {
+    fd = open(filename.c_str(), O_RDWR | O_CREAT, 0666);
+    if (fd == -1) {
+      std::cerr << "Failed to open file: " << strerror(errno) << std::endl;
+      throw std::runtime_error("Failed to open file.");
+    }
+
+    struct flock fl;
+    fl.l_type = F_WRLCK;
+    fl.l_whence = SEEK_SET;
+    fl.l_start = 0;
+    fl.l_len = 0;  // Lock the whole file
+
+    struct timeval start, now;
+    gettimeofday(&start, NULL);
+
+    while (true) {
+      if (fcntl(fd, F_SETLK, &fl) == 0) {
+        return;  // Lock was acquired
+      }
+
+      if (errno != EACCES && errno != EAGAIN) {
+        std::cerr << "Locking failed: " << strerror(errno) << std::endl;
+        close(fd);
+        throw std::runtime_error("Failed to acquire lock.");
+      }
+
+      gettimeofday(&now, NULL);
+      if (now.tv_sec - start.tv_sec > timeout) {
+        std::cerr << "Lock attempt timed out.\n";
+        close(fd);
+        throw std::runtime_error("Failed to acquire lock due to timeout.");
+      }
+
+      usleep(100000);  // Sleep for 100 milliseconds before retrying
+    }
   }
-  return 0;
-}
 
-int unlockFile(int fd) {
-  struct flock fl;
-  fl.l_type = F_UNLCK;
-  fl.l_whence = SEEK_SET;
-  fl.l_start = 0;
-  fl.l_len = 0;
+  void unlock() {
+    if (fd != -1) {
+      struct flock fl;
+      fl.l_type = F_UNLCK;
+      fl.l_whence = SEEK_SET;
+      fl.l_start = 0;
+      fl.l_len = 0;
 
-  if (fcntl(fd, F_SETLK, &fl) == -1) {
-    std::cerr << "Unlocking failed: " << strerror(errno) << std::endl;
-    return -1;
+      if (fcntl(fd, F_SETLK, &fl) == -1) {
+        std::cerr << "Unlocking failed: " << strerror(errno) << std::endl;
+      }
+      close(fd);
+      fd = -1;
+    }
   }
-  return 0;
-}
+
+  ~FileLock() {
+    unlock();  // Ensure the file is unlocked on object destruction
+  }
+};
 
 class WireCrc {
 public:
@@ -253,7 +298,6 @@ int main(int argc, char **argv) {
   private_nh.param("i2c_addr", i2c_addr, 0x42);
   private_nh.param<std::string>("i2c_lock_file", i2c_lock_file, "/tmp/i2c-1.lock");
 
-  int lock_file_descriptor = open(i2c_lock_file.c_str(), O_RDWR | O_CREAT, 0666);
   int file_descriptor;
 
   if ((file_descriptor = open(i2c_device.c_str(), O_RDWR)) < 0) {
@@ -271,20 +315,20 @@ int main(int argc, char **argv) {
   uint8_t write_buf[5] = {2, 1, 5, 0, 4};
 
   WireUnpacker unpacker(buffer_size);
+  FileLock fileLock(i2c_lock_file.c_str());
+  ssize_t bytesRead;
 
   while (ros::ok()) {
     ros::spinOnce();
-    if (lockFile(lock_file_descriptor) != 0) {
-      ROS_ERROR("Failed to lock file descriptor");
-      break;
-    }
 
-    write(file_descriptor, write_buf, sizeof(write_buf));
-    ros::Duration(0.05).sleep();
-    ssize_t bytesRead = read(file_descriptor, rxBuffer.data(), rxBuffer.size());
-
-    if (unlockFile(lock_file_descriptor) != 0) {
-      ROS_ERROR("Failed to unlock file descriptor");
+    try {
+      fileLock.lock();
+      write(file_descriptor, write_buf, sizeof(write_buf));
+      ros::Duration(0.05).sleep();
+      bytesRead = read(file_descriptor, rxBuffer.data(), rxBuffer.size());
+      fileLock.unlock();
+    } catch (const std::runtime_error& e) {
+      ROS_ERROR_STREAM("An error occurred: " << e.what());
       break;
     }
 
@@ -308,6 +352,5 @@ int main(int argc, char **argv) {
     pub.publish(button_state_msg);
   }
   close(file_descriptor);
-  close(lock_file_descriptor);
   return 0;
 }
