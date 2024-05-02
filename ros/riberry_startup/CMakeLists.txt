@@ -44,6 +44,11 @@ target_link_libraries(i2c_audio_publisher
   ${catkin_LIBRARIES}
 )
 
+add_executable(i2c_button_state_publisher src/i2c_button_state_publisher.cpp)
+target_link_libraries(i2c_button_state_publisher
+  ${catkin_LIBRARIES}
+)
+
 add_executable(imu_filter src/imu_filter.cpp)
 target_link_libraries(imu_filter
   ${catkin_LIBRARIES}

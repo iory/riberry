@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <WireSlave.h>
 #include <WireUnpacker.h>
+#include <OneButton.h>
 
 WireUnpacker unpacker(256);
 
@@ -17,6 +18,68 @@ String target_serial_type = "i2c";  // For testing purposes, set to "i2c"
 // String target_serial_type = "serial1";
 
 void receiveEvent(int howMany);
+void requestEvent();
+
+// ==== Button ==== //
+constexpr int BUTTON_PIN = 41;
+OneButton btn(BUTTON_PIN, true, false);
+enum ButtonState {
+  NOT_CHANGED,
+  SINGLE_CLICK,
+  DOUBLE_CLICK,
+  TRIPLE_CLICK,
+  QUADRUPLE_CLICK,  // 4 clicks
+  QUINTUPLE_CLICK,  // 5 clicks
+  SEXTUPLE_CLICK,   // 6 clicks
+  SEPTUPLE_CLICK,   // 7 clicks
+  OCTUPLE_CLICK,    // 8 clicks
+  NONUPLE_CLICK,    // 9 clicks
+  DECUPLE_CLICK,    // 10 clicks
+  PRESSED,
+  RELEASED,
+  BUTTON_STATE_COUNT
+};
+ButtonState currentButtonState = NOT_CHANGED;
+
+void ButtonTask(void *parameter) {
+  while (true) {
+    btn.tick();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
+
+static void handleClick() {
+  currentButtonState = SINGLE_CLICK;
+}
+
+static void handleDoubleClick() {
+  currentButtonState = DOUBLE_CLICK;
+}
+
+static void handleMultiClick() {
+  int n = btn.getNumberClicks();
+  switch (n) {
+  case 1: currentButtonState = SINGLE_CLICK; break;
+  case 2: currentButtonState = DOUBLE_CLICK; break;
+  case 3: currentButtonState = TRIPLE_CLICK; break;
+  case 4: currentButtonState = QUADRUPLE_CLICK; break;
+  case 5: currentButtonState = QUINTUPLE_CLICK; break;
+  case 6: currentButtonState = SEXTUPLE_CLICK; break;
+  case 7: currentButtonState = SEPTUPLE_CLICK; break;
+  case 8: currentButtonState = OCTUPLE_CLICK; break;
+  case 9: currentButtonState = NONUPLE_CLICK; break;
+  case 10: currentButtonState = DECUPLE_CLICK; break;
+  default: currentButtonState = DECUPLE_CLICK; // Handle case where n > 10
+  }
+}
+
+static void handleLongPress() {
+  currentButtonState = PRESSED;
+}
+
+static void handleLongPressEnd() {
+  currentButtonState = RELEASED;
+}
 
 
 uint16_t colorMap(int code, bool isBackground = false) {
@@ -105,13 +168,23 @@ void setup() {
             while (1) delay(100);
         }
         WireSlave.onReceive(receiveEvent);
+        WireSlave.onRequest(requestEvent);
     } else {
         M5.Lcd.fillScreen(M5.Lcd.color565(0, 0, 0));
         M5.Lcd.setCursor(0, 0);
         M5.Lcd.println("invalid target_serial_type.");
         while (true) delay(100);
     }
-    lastReceiveTime = millis();  // Initialize last receive time
+    lastReceiveTime = millis();
+
+    btn.setClickMs(200);  // Timeout used to distinguish single clicks from double clicks. (msec)
+    btn.attachClick(handleClick);
+    btn.attachDoubleClick(handleDoubleClick);
+    btn.attachMultiClick(handleMultiClick);
+    btn.attachLongPressStart(handleLongPress);
+    btn.attachLongPressStop(handleLongPressEnd);// Initialize last receive time
+
+    xTaskCreatePinnedToCore(ButtonTask, "Button Task", 2048, NULL, 25, NULL, 0);
 }
 
 void loop() {
@@ -160,4 +233,9 @@ void receiveEvent(int howMany) {
     }
     // Draw
     printColorText(str);
+}
+
+void requestEvent() {
+  WireSlave.write(currentButtonState);
+  currentButtonState = NOT_CHANGED;
 }
