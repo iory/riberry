@@ -1,0 +1,15 @@
+<launch>
+
+  <arg name="namespace" default="" />
+
+  <group if="$(eval len(arg('namespace')) > 0)" ns="$(arg namespace)" >
+    <include file="$(find riberry_startup)/launch/atoms3_button_state_publisher.launch" >
+      <arg name="namespace" value="$(arg namespace)" />
+    </include>
+  </group>
+  <group unless="$(eval len(arg('namespace')) > 0)">
+    <include file="$(find riberry_startup)/launch/atoms3_button_state_publisher.launch" >
+    </include>
+  </group>
+
+</launch>
