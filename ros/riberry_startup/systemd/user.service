@@ -6,7 +6,7 @@ Requires=roscore.service
 [Service]
 EnvironmentFile=-/etc/opt/riberry/riberry.user
 Environment="ROSCONSOLE_FORMAT='[${severity}] [${time}] [${node}:${logger}]: ${message}'"
-ExecStart=/bin/bash -c '. $SETUP && export $(python $(rospack find riberry_startup)/scripts/get_roshost.py) && roslaunch riberry_startup user.launch --wait'
+ExecStart=/bin/bash -c '. $SETUP && export $(python3 $(rospack find riberry_startup)/scripts/get_roshost.py) && roslaunch riberry_startup user.launch --wait'
 SyslogIdentifier=%n
 Restart=always
 RestartSec=9999s
