@@ -4,13 +4,15 @@
 
   <group if="$(eval len(arg('namespace')) > 0)" ns="$(arg namespace)" >
     <node name="atom_s3_button_publisher"
-          pkg="riberry_startup" type="i2c_button_state_publisher" >
+          pkg="riberry_startup" type="i2c_button_state_publisher"
+          output="screen">
       <remap from="/i2c_button_state" to="/$(arg namespace)/atom_s3_button_state" />
     </node>
   </group>
   <group unless="$(eval len(arg('namespace')) > 0)">
     <node name="atom_s3_button_publisher"
-          pkg="riberry_startup" type="i2c_button_state_publisher" >
+          pkg="riberry_startup" type="i2c_button_state_publisher"
+          output="screen">
       <remap from="/i2c_button_state" to="/atom_s3_button_state" />
     </node>
   </group>
