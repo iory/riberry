@@ -8,6 +8,11 @@ import board
 import busio
 from colorama import Fore
 from i2c_for_esp32 import WirePacker
+from filelock import Timeout
+from filelock import FileLock
+
+
+lock_path = '/tmp/i2c-1.lock'
 
 
 def get_ip_address():
@@ -90,8 +95,7 @@ class DisplayInformation(object):
     def __init__(self, i2c_addr):
         self.i2c_addr = i2c_addr
         self.i2c = busio.I2C(board.SCL1, board.SDA1, frequency=400_000)
-        while not self.i2c.try_lock():
-            pass
+        self.lock = FileLock(lock_path, timeout=10)
 
     def display_information(self):
         ip_str = '{}:\n{}{}{}'.format(
@@ -124,8 +128,9 @@ class DisplayInformation(object):
             packer.write(ord(s))
         packer.end()
         if packer.available():
-            self.i2c.writeto(self.i2c_addr,
-                             packer.buffer[:packer.available()])
+            with self.lock.acquire():
+                self.i2c.writeto(self.i2c_addr,
+                                 packer.buffer[:packer.available()])
 
     def run(self):
         while True:
