@@ -13,10 +13,6 @@ constexpr int I2C_SLAVE_ADDR = 0x42;
 unsigned long lastReceiveTime = 0;
 const unsigned long receiveTimeout = 15000;  // Timeout in milliseconds (15 seconds)
 
-Stream* target_serial;
-String target_serial_type = "i2c";  // For testing purposes, set to "i2c"
-// String target_serial_type = "serial1";
-
 void receiveEvent(int howMany);
 void requestEvent();
 
