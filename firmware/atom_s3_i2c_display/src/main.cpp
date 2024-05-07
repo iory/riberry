@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <WireSlave.h>
 #include <WireUnpacker.h>
+#include <OneButton.h>
 
 WireUnpacker unpacker(256);
 
@@ -12,12 +13,91 @@ constexpr int I2C_SLAVE_ADDR = 0x42;
 unsigned long lastReceiveTime = 0;
 const unsigned long receiveTimeout = 15000;  // Timeout in milliseconds (15 seconds)
 
-Stream* target_serial;
-String target_serial_type = "i2c";  // For testing purposes, set to "i2c"
-// String target_serial_type = "serial1";
-
 void receiveEvent(int howMany);
+void requestEvent();
 
+// ==== Button ==== //
+constexpr int BUTTON_PIN = 41;
+OneButton btn(BUTTON_PIN, true, false);
+enum ButtonState {
+  NOT_CHANGED,
+  SINGLE_CLICK,
+  DOUBLE_CLICK,
+  TRIPLE_CLICK,
+  QUADRUPLE_CLICK,  // 4 clicks
+  QUINTUPLE_CLICK,  // 5 clicks
+  SEXTUPLE_CLICK,   // 6 clicks
+  SEPTUPLE_CLICK,   // 7 clicks
+  OCTUPLE_CLICK,    // 8 clicks
+  NONUPLE_CLICK,    // 9 clicks
+  DECUPLE_CLICK,    // 10 clicks
+  PRESSED,
+  RELEASED,
+  BUTTON_STATE_COUNT
+};
+ButtonState currentButtonState = NOT_CHANGED;
+
+static void handleClick() {
+  currentButtonState = SINGLE_CLICK;
+}
+
+static void handleDoubleClick() {
+  currentButtonState = DOUBLE_CLICK;
+}
+
+static void handleMultiClick() {
+  int n = btn.getNumberClicks();
+  switch (n) {
+  case 1: currentButtonState = SINGLE_CLICK; break;
+  case 2: currentButtonState = DOUBLE_CLICK; break;
+  case 3: currentButtonState = TRIPLE_CLICK; break;
+  case 4: currentButtonState = QUADRUPLE_CLICK; break;
+  case 5: currentButtonState = QUINTUPLE_CLICK; break;
+  case 6: currentButtonState = SEXTUPLE_CLICK; break;
+  case 7: currentButtonState = SEPTUPLE_CLICK; break;
+  case 8: currentButtonState = OCTUPLE_CLICK; break;
+  case 9: currentButtonState = NONUPLE_CLICK; break;
+  case 10: currentButtonState = DECUPLE_CLICK; break;
+  default: currentButtonState = DECUPLE_CLICK; // Handle case where n > 10
+  }
+}
+
+static void handleLongPress() {
+  currentButtonState = PRESSED;
+}
+
+static void handleLongPressEnd() {
+  currentButtonState = RELEASED;
+}
+
+void ButtonTask(void *parameter) {
+  btn.setClickMs(200);  // Timeout used to distinguish single clicks from double clicks. (msec)
+  btn.attachClick(handleClick);
+  btn.attachDoubleClick(handleDoubleClick);
+  btn.attachMultiClick(handleMultiClick);
+  btn.attachLongPressStart(handleLongPress);
+  btn.attachLongPressStop(handleLongPressEnd);// Initialize last receive time
+
+  while (true) {
+    btn.tick();
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
+
+
+void I2CTask(void *parameter) {
+  bool success = WireSlave.begin(SDA_PIN, SCL_PIN, I2C_SLAVE_ADDR);
+  if (!success) {
+    M5.Lcd.println("I2C slave init failed");
+    while (1) delay(100);
+  }
+  WireSlave.onReceive(receiveEvent);
+  WireSlave.onRequest(requestEvent);
+  while (true) {
+    WireSlave.update();
+    delay(1);  // let I2C and other ESP32 peripherals interrupts work
+  }
+}
 
 uint16_t colorMap(int code, bool isBackground = false) {
     if (isBackground) {
@@ -85,33 +165,15 @@ void setup() {
     M5.Lcd.setRotation(1);
     M5.Lcd.setTextSize(1.5);
 
-    // Determine the target serial type
-    if (target_serial_type == "serial1") {
-        M5.Lcd.println("Wait for UART input.");
-        M5.Lcd.println("Baud rate = 1000000,");
-        M5.Lcd.println("SERIAL_8N1, 1, 2.");
-        delay(500);
-        Serial1.begin(1000000, SERIAL_8N1, 1, 2);
-        target_serial = &Serial1;
-    } else if (target_serial_type == "i2c") {
-        M5.Lcd.println("Wait for I2C input.");
-        char log_msg[50];
-        sprintf(log_msg, "I2C address \x1b[33m0x%02x\x1b[39m", I2C_SLAVE_ADDR);
-        printColorText(log_msg);
+    M5.Lcd.println("Wait for I2C input.");
+    char log_msg[50];
+    sprintf(log_msg, "I2C address \x1b[33m0x%02x\x1b[39m", I2C_SLAVE_ADDR);
+    printColorText(log_msg);
 
-        bool success = WireSlave.begin(SDA_PIN, SCL_PIN, I2C_SLAVE_ADDR);
-        if (!success) {
-            M5.Lcd.println("I2C slave init failed");
-            while (1) delay(100);
-        }
-        WireSlave.onReceive(receiveEvent);
-    } else {
-        M5.Lcd.fillScreen(M5.Lcd.color565(0, 0, 0));
-        M5.Lcd.setCursor(0, 0);
-        M5.Lcd.println("invalid target_serial_type.");
-        while (true) delay(100);
-    }
-    lastReceiveTime = millis();  // Initialize last receive time
+    lastReceiveTime = millis();
+
+    xTaskCreatePinnedToCore(I2CTask, "I2C Task", 2048, NULL, 24, NULL, 0);
+    xTaskCreatePinnedToCore(ButtonTask, "Button Task", 2048, NULL, 24, NULL, 1);
 }
 
 void loop() {
@@ -120,30 +182,6 @@ void loop() {
         M5.Lcd.setCursor(0, 0);
         M5.Lcd.println("No data received.");
         delay(500);  // Show message for a short time
-    }
-    if (target_serial_type == "i2c") {
-        WireSlave.update();
-        delay(1);  // let I2C and other ESP32 peripherals interrupts work
-    } else {
-        String str;
-        if (target_serial->available() > 0) {
-            lastReceiveTime = millis();  // Update the last received time
-            // Clear display
-            M5.Lcd.fillScreen(M5.Lcd.color565(0, 0, 0));
-            M5.Lcd.setCursor(0, 0);
-            unpacker.reset();
-            int incoming_byte = target_serial->read();
-            while (incoming_byte != -1 || !unpacker.available()) {
-                unpacker.write(incoming_byte);
-                incoming_byte = target_serial->read();
-            }
-            while (unpacker.available()) {
-                str += (char)unpacker.read();
-            }
-            // Draw
-            M5.Lcd.println(str);
-        }
-        delay(1000);
     }
 }
 
@@ -160,4 +198,9 @@ void receiveEvent(int howMany) {
     }
     // Draw
     printColorText(str);
+}
+
+void requestEvent() {
+  WireSlave.write(currentButtonState);
+  currentButtonState = NOT_CHANGED;
 }
