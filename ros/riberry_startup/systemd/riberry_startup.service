@@ -1,12 +1,13 @@
 [Unit]
 Description=Startup Riberry launch service
-After=roscore.service
-Requires=roscore.service
+After=roscore.service  # This service starts after roscore.service
+Requires=roscore.service  # This service requires roscore.service
+BindsTo=roscore.service  # If roscore.service is stopped or restarted, this service will also be stopped or restarted
 
 [Service]
 EnvironmentFile=-/etc/opt/riberry/riberry.user
 Environment="ROSCONSOLE_FORMAT='[${severity}] [${time}] [${node}:${logger}]: ${message}'"
-ExecStart=/bin/bash -c '. $SETUP && export $(python3 $(rospack find riberry_startup)/scripts/get_roshost.py) && roslaunch riberry_startup riberry_startup.launch'
+ExecStart=/bin/bash -c '. $SETUP && export $(python3 $(rospack find riberry_startup)/scripts/get_roshost.py) && roslaunch riberry_startup riberry_startup.launch --wait'
 SyslogIdentifier=%n
 Restart=always
 RestartSec=10s
