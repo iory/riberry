@@ -28,3 +28,9 @@ pip3 install platformio -U
 ```
 pio run -t upload
 ```
+
+If you are using Grove cables, set the `USE_GROVE` environment variable to `1` before running the command:
+
+```
+USE_GROVE=1 pio run -t upload
+```

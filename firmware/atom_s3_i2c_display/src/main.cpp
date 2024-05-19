@@ -6,8 +6,13 @@
 
 WireUnpacker unpacker(256);
 
+#ifdef USE_GROVE
+constexpr int SDA_PIN = 2;
+constexpr int SCL_PIN = 1;
+#else
 constexpr int SDA_PIN = 38;
 constexpr int SCL_PIN = 39;
+#endif
 constexpr int I2C_SLAVE_ADDR = 0x42;
 
 unsigned long lastReceiveTime = 0;
