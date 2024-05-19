@@ -13,6 +13,12 @@ constexpr int SCL_PIN = 1;
 constexpr int SDA_PIN = 38;
 constexpr int SCL_PIN = 39;
 #endif
+#ifdef LCD_ROTATION
+constexpr int lcd_rotation = LCD_ROTATION;
+#else
+constexpr int lcd_rotation = 1;
+#endif
+
 constexpr int I2C_SLAVE_ADDR = 0x42;
 
 unsigned long lastReceiveTime = 0;
@@ -167,7 +173,7 @@ void setup() {
     M5.begin();
 
     // For display
-    M5.Lcd.setRotation(1);
+    M5.Lcd.setRotation(lcd_rotation);
     M5.Lcd.setTextSize(1.5);
 
     M5.Lcd.println("Wait for I2C input.");

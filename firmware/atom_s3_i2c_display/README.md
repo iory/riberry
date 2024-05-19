@@ -34,3 +34,9 @@ If you are using Grove cables, set the `USE_GROVE` environment variable to `1` b
 ```
 USE_GROVE=1 pio run -t upload
 ```
+
+If you want to set the LCD rotation, set the `LCD_ROTATION` environment variable to `0`, `1`, `2`, or `3` before running the command:
+
+```
+LCD_ROTATION=1 pio run -t upload
+```
