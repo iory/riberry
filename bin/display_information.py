@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import socket
+import subprocess
 import time
+import threading
 
 import board
 import busio
@@ -12,7 +14,74 @@ from filelock import Timeout
 from filelock import FileLock
 
 
+def parse_ip(route_get_output):
+    tokens = route_get_output.split()
+    if "via" in tokens:
+        return tokens[tokens.index("via") + 5]
+    else:
+        return tokens[tokens.index("src") + 1]
+
+
+def get_ros_ip():
+    try:
+        route_get = subprocess.check_output(
+            ["ip", "-o", "route", "get", "8.8.8.8"],
+            stderr=subprocess.DEVNULL).decode()
+        return parse_ip(route_get)
+    except subprocess.CalledProcessError:
+        return None
+
+
+def wait_and_get_ros_ip(retry=300):
+    for _ in range(retry):
+        ros_ip = get_ros_ip()
+        if ros_ip:
+            return ros_ip
+        time.sleep(1)
+    return None
+
+
 lock_path = '/tmp/i2c-1.lock'
+
+# Global variable for ROS availability and additional message
+ros_available = False
+ros_additional_message = None
+stop_event = threading.Event()
+
+
+def try_init_ros():
+    global ros_available
+    global ros_additional_message
+    while not stop_event.is_set():
+        try:
+            import rospy
+            from std_msgs.msg import String
+
+            ros_ip = wait_and_get_ros_ip(300)
+            print('Set ROS_IP={}'.format(ros_ip))
+            os.environ['ROS_IP'] = ros_ip
+
+            def ros_callback(msg):
+                global ros_additional_message
+                ros_additional_message = msg.data
+
+            rospy.init_node('atom_s3_display_information_node', anonymous=True)
+            rospy.Subscriber('/atom_s3_additional_info', String, ros_callback,
+                             queue_size=1)
+            ros_available = True
+            rospy.spin()
+        except KeyboardInterrupt as e:
+            print('KeyboardInterrupt {}. exit'.format(e))
+            break
+        except ImportError as e:
+            print("ROS is not available ({}). Retrying...".format(e))
+            time.sleep(5)  # Wait before retrying
+        except rospy.ROSInterruptException:
+            print("ROS interrupted. Retrying...")
+            time.sleep(5)  # Wait before retrying
+        finally:
+            ros_available = False
+            ros_additional_message = None
 
 
 def get_ip_address():
@@ -98,6 +167,9 @@ class DisplayInformation(object):
         self.lock = FileLock(lock_path, timeout=10)
 
     def display_information(self):
+        global ros_available
+        global ros_additional_message
+
         ip_str = '{}:\n{}{}{}'.format(
             socket.gethostname(), Fore.YELLOW, get_ip_address(), Fore.RESET)
         master_str = 'ROS_MASTER:\n' + Fore.RED + '{}'.format(
@@ -121,6 +193,11 @@ class DisplayInformation(object):
             battery_str += '?'
         sent_str = '{}\n{}\n{}\n'.format(
             ip_str, master_str, battery_str)
+
+        if ros_available and ros_additional_message:
+            sent_str += '{}\n'.format(ros_additional_message)
+            ros_additional_message = None
+
         print('send the following message')
         print(sent_str)
         packer = WirePacker(buffer_size=len(sent_str) + 8)
@@ -133,11 +210,19 @@ class DisplayInformation(object):
                                  packer.buffer[:packer.available()])
 
     def run(self):
-        while True:
+        while not stop_event.is_set():
             self.display_information()
             time.sleep(10)
 
 
 if __name__ == '__main__':
-    act = DisplayInformation(0x42)
-    act.run()
+    display_thread = threading.Thread(target=DisplayInformation(0x42).run)
+    display_thread.daemon = True
+    display_thread.start()
+
+    try:
+        try_init_ros()
+    except KeyboardInterrupt:
+        print("Interrupted by user, shutting down...")
+        stop_event.set()
+        display_thread.join()
