@@ -5,7 +5,7 @@ After=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /usr/local/bin/display_information.py
+ExecStart=/bin/bash -c '. /opt/ros/noetic/setup.bash && /usr/bin/python3 /usr/local/bin/display_information.py'
 Restart=on-failure
 RestartSec=10
 SyslogIdentifier=%n
