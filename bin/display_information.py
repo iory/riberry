@@ -69,15 +69,16 @@ def try_init_ros():
             rospy.Subscriber('/atom_s3_additional_info', String, ros_callback,
                              queue_size=1)
             ros_available = True
-            rospy.spin()
-        except KeyboardInterrupt as e:
-            print('KeyboardInterrupt {}. exit'.format(e))
-            break
+            rate = rospy.Rate(1)
+            while not rospy.is_shutdown() and not stop_event.is_set():
+                rate.sleep()
+            if rospy.is_shutdown():
+                break
         except ImportError as e:
             print("ROS is not available ({}). Retrying...".format(e))
             time.sleep(5)  # Wait before retrying
-        except rospy.ROSInterruptException:
-            print("ROS interrupted. Retrying...")
+        except rospy.ROSInterruptException as e:
+            print("ROS interrupted ({}). Retrying...".format(e))
             time.sleep(5)  # Wait before retrying
         finally:
             ros_available = False
