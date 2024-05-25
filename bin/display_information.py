@@ -6,11 +6,13 @@ import subprocess
 import time
 import threading
 
+import cv2
 import board
 import busio
 from colorama import Fore
 from i2c_for_esp32 import WirePacker
-from filelock import Timeout
+from pybsc.image_utils import squared_padding_image
+from pybsc import nsplit
 from filelock import FileLock
 
 
@@ -46,16 +48,24 @@ lock_path = '/tmp/i2c-1.lock'
 # Global variable for ROS availability and additional message
 ros_available = False
 ros_additional_message = None
+ros_display_image_flag = False
+ros_display_image = None
 stop_event = threading.Event()
 
 
 def try_init_ros():
     global ros_available
     global ros_additional_message
+    global ros_display_image_flag
+    global ros_display_image
+    ros_display_image_param = None
+    prev_ros_display_image_param = None
     while not stop_event.is_set():
         try:
             import rospy
             from std_msgs.msg import String
+            import sensor_msgs.msg
+            import cv_bridge
 
             ros_ip = wait_and_get_ros_ip(300)
             print('Set ROS_IP={}'.format(ros_ip))
@@ -65,12 +75,42 @@ def try_init_ros():
                 global ros_additional_message
                 ros_additional_message = msg.data
 
+            def ros_image_callback(msg):
+                global ros_display_image
+                delay_threshold = 0.3
+                msg_time = msg.header.stamp
+                current_time = rospy.get_rostime()
+                time_diff = current_time - msg_time
+                if time_diff.to_sec() > delay_threshold:
+                    rospy.logwarn("Received a delayed message. Ignoring...")
+                    return
+                bridge = cv_bridge.CvBridge()
+                ros_display_image = bridge.imgmsg_to_cv2(
+                    msg, desired_encoding='bgr8')
+
             rospy.init_node('atom_s3_display_information_node', anonymous=True)
             rospy.Subscriber('/atom_s3_additional_info', String, ros_callback,
                              queue_size=1)
             ros_available = True
             rate = rospy.Rate(1)
+            sub = None
             while not rospy.is_shutdown() and not stop_event.is_set():
+                ros_display_image_param = rospy.get_param(
+                    '/display_image', None)
+                if prev_ros_display_image_param != ros_display_image_param:
+                    ros_display_image_flag = False
+                    if sub is not None:
+                        sub.unregister()
+                        sub = None
+                    if ros_display_image_param:
+                        rospy.loginfo('Start subscribe {} for display'
+                                      .format(ros_display_image_param))
+                        ros_display_image_flag = True
+                        sub = rospy.Subscriber(ros_display_image_param,
+                                               sensor_msgs.msg.Image,
+                                               queue_size=1,
+                                               callback=ros_image_callback)
+                prev_ros_display_image_param = ros_display_image_param
                 rate.sleep()
             if rospy.is_shutdown():
                 break
@@ -167,6 +207,42 @@ class DisplayInformation(object):
         self.i2c = busio.I2C(board.SCL1, board.SDA1, frequency=400_000)
         self.lock = FileLock(lock_path, timeout=10)
 
+    def display_image(self, img):
+        img = squared_padding_image(img, 128)
+        quality = 75
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+        result, jpg_img = cv2.imencode('.jpg', img, encode_param)
+        jpg_size = len(jpg_img)
+
+        header = []
+        header += [0xFF, 0xD8, 0xEA]
+        header += [(jpg_size & 0xFF00) >> 8,
+                   (jpg_size & 0x00FF) >> 0]
+
+        packer = WirePacker(buffer_size=1000)
+        for h in header:
+            packer.write(h)
+        packer.end()
+
+        if packer.available():
+            with self.lock.acquire():
+                self.i2c.writeto(self.i2c_addr,
+                                 packer.buffer[:packer.available()])
+        time.sleep(0.005)
+
+        for pack in nsplit(jpg_img, n=50):
+            packer.reset()
+            for h in [0xFF, 0xD8, 0xEA]:
+                packer.write(h)
+            for h in pack:
+                packer.write(h)
+            packer.end()
+            if packer.available():
+                with self.lock.acquire():
+                    self.i2c.writeto(self.i2c_addr,
+                                     packer.buffer[:packer.available()])
+            time.sleep(0.005)
+
     def display_information(self):
         global ros_available
         global ros_additional_message
@@ -211,9 +287,15 @@ class DisplayInformation(object):
                                  packer.buffer[:packer.available()])
 
     def run(self):
+        global ros_display_image
+        global ros_display_image_flag
+
         while not stop_event.is_set():
-            self.display_information()
-            time.sleep(10)
+            if ros_display_image_flag and ros_display_image is not None:
+                self.display_image(ros_display_image)
+            else:
+                self.display_information()
+                time.sleep(10)
 
 
 if __name__ == '__main__':
