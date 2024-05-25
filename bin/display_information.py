@@ -77,13 +77,6 @@ def try_init_ros():
 
             def ros_image_callback(msg):
                 global ros_display_image
-                delay_threshold = 0.3
-                msg_time = msg.header.stamp
-                current_time = rospy.get_rostime()
-                time_diff = current_time - msg_time
-                if time_diff.to_sec() > delay_threshold:
-                    rospy.logwarn("Received a delayed message. Ignoring...")
-                    return
                 bridge = cv_bridge.CvBridge()
                 ros_display_image = bridge.imgmsg_to_cv2(
                     msg, desired_encoding='bgr8')
