@@ -1,6 +1,5 @@
 #include <Wire.h>
 #include <WireSlave.h>
-#include <WireUnpacker.h>
 #include <OneButton.h>
 
 #define LGFX_M5ATOMS3
@@ -8,8 +7,6 @@
 #include <LGFX_AUTODETECT.hpp>
 
 static LGFX lcd;
-
-WireUnpacker unpacker(256);
 
 #ifdef USE_GROVE
 constexpr int SDA_PIN = 2;
@@ -28,6 +25,13 @@ constexpr int I2C_SLAVE_ADDR = 0x42;
 
 unsigned long lastReceiveTime = 0;
 const unsigned long receiveTimeout = 15000;  // Timeout in milliseconds (15 seconds)
+
+// for image
+static const uint8_t jpegPacketHeader[3] = { 0xFF, 0xD8, 0xEA };
+uint8_t jpegBuf[8000];
+bool loadingJpeg = false;
+uint32_t jpegLength;
+uint32_t currentJpegIndex = 0;
 
 void receiveEvent(int howMany);
 void requestEvent();
@@ -208,16 +212,35 @@ void loop() {
 
 void receiveEvent(int howMany) {
     lastReceiveTime = millis();  // Update the last received time
-
-    // Clear display
-    lcd.fillScreen(lcd.color565(0, 0, 0));
-    lcd.setCursor(0, 0);
     String str;
     while (0 < WireSlave.available()) {
         char c = WireSlave.read();  // receive byte as a character
+        if (loadingJpeg && str.length() >= 3) {
+          jpegBuf[currentJpegIndex + str.length() - 3] = c;
+        }
         str += c;
     }
+    if (str.length() == 5
+        && (str[0] == jpegPacketHeader[0]) && (str[1] == jpegPacketHeader[1]) && (str[2] == jpegPacketHeader[2])) {
+      jpegLength = (uint32_t)(str[3] << 8) | str[4];
+      currentJpegIndex = 0;
+      loadingJpeg = true;
+      return;
+    } else if (loadingJpeg) {
+      if ((str[0] == jpegPacketHeader[0]) && (str[1] == jpegPacketHeader[1]) && (str[2] == jpegPacketHeader[2])) {
+        currentJpegIndex += str.length() - 3;
+        if (currentJpegIndex >= jpegLength) {
+          lcd.drawJpg(jpegBuf, jpegLength, 0, 0, 128, 128, 0, 0, ::JPEG_DIV_NONE);
+          loadingJpeg = false;
+        }
+        return;
+      } else {
+        loadingJpeg = false;
+      }
+    }
     // Draw
+    lcd.fillScreen(lcd.color565(0, 0, 0));
+    lcd.setCursor(0, 0);
     printColorText(str);
 }
 
