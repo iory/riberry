@@ -14,6 +14,7 @@ from i2c_for_esp32 import WirePacker
 from pybsc.image_utils import squared_padding_image
 from pybsc import nsplit
 from filelock import FileLock
+from filelock import Timeout
 
 
 def parse_ip(route_get_output):
@@ -275,11 +276,20 @@ class DisplayInformation(object):
             self.i2c_write(packer.buffer[:packer.available()])
 
     def i2c_write(self, packet):
-        with self.lock.acquire():
-            try:
-                self.i2c.writeto(self.i2c_addr, packet)
-            except TimeoutError as e:
-                print('I2C Write error {}'.format(e))
+        try:
+            self.lock.acquire()
+        except Timeout as e:
+            print(e)
+            return
+        try:
+            self.i2c.writeto(self.i2c_addr, packet)
+        except TimeoutError as e:
+            print('I2C Write error {}'.format(e))
+        try:
+            self.lock.release()
+        except Timeout as e:
+            print(e)
+            return
 
     def run(self):
         global ros_display_image
