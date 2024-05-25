@@ -55,6 +55,25 @@ The message text is colored red using colorama. By using ROS and colorama, you c
 
 <img src="doc/atoms3-additional-info.jpg" alt="Display additional message with Atom S3" width="300">
 
+#### Displaying Images on Atom S3
+
+You can also display images on your Atom S3 by setting a ROS parameter.
+To display an image, you need to set the `/display_image` parameter to the desired image topic. For example:
+
+```
+rosparam set /display_image "/camera/color/image_raw"
+```
+
+This command sets the `/display_image` parameter to the `/camera/color/image_raw` topic, which will then be displayed on the Atom S3.
+
+To revert back to the normal display (i.e., stop displaying the image), you can reset the `/display_image` parameter to an empty string:
+
+```
+rosparam set /display_image ""
+```
+
+By managing the `/display_image` parameter, you can control when and which images are displayed on your Atom S3.
+
 ## Distribute radxa image as SD card
 
 When distributing images, it's necessary to adjust the disk size among other parameters initially due to writing to an SD card.
