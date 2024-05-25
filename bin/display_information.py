@@ -14,6 +14,7 @@ from i2c_for_esp32 import WirePacker
 from pybsc.image_utils import squared_padding_image
 from pybsc import nsplit
 from filelock import FileLock
+from filelock import Timeout
 
 
 def parse_ip(route_get_output):
@@ -77,13 +78,6 @@ def try_init_ros():
 
             def ros_image_callback(msg):
                 global ros_display_image
-                delay_threshold = 0.3
-                msg_time = msg.header.stamp
-                current_time = rospy.get_rostime()
-                time_diff = current_time - msg_time
-                if time_diff.to_sec() > delay_threshold:
-                    rospy.logwarn("Received a delayed message. Ignoring...")
-                    return
                 bridge = cv_bridge.CvBridge()
                 ros_display_image = bridge.imgmsg_to_cv2(
                     msg, desired_encoding='bgr8')
@@ -225,9 +219,8 @@ class DisplayInformation(object):
         packer.end()
 
         if packer.available():
-            with self.lock.acquire():
-                self.i2c.writeto(self.i2c_addr,
-                                 packer.buffer[:packer.available()])
+            self.i2c_write(packer.buffer[:packer.available()])
+
         time.sleep(0.005)
 
         for pack in nsplit(jpg_img, n=50):
@@ -238,9 +231,7 @@ class DisplayInformation(object):
                 packer.write(h)
             packer.end()
             if packer.available():
-                with self.lock.acquire():
-                    self.i2c.writeto(self.i2c_addr,
-                                     packer.buffer[:packer.available()])
+                self.i2c_write(packer.buffer[:packer.available()])
             time.sleep(0.005)
 
     def display_information(self):
@@ -282,9 +273,25 @@ class DisplayInformation(object):
             packer.write(ord(s))
         packer.end()
         if packer.available():
-            with self.lock.acquire():
-                self.i2c.writeto(self.i2c_addr,
-                                 packer.buffer[:packer.available()])
+            self.i2c_write(packer.buffer[:packer.available()])
+
+    def i2c_write(self, packet):
+        try:
+            self.lock.acquire()
+        except Timeout as e:
+            print(e)
+            return
+        try:
+            self.i2c.writeto(self.i2c_addr, packet)
+        except OSError as e:
+            print(e)
+        except TimeoutError as e:
+            print('I2C Write error {}'.format(e))
+        try:
+            self.lock.release()
+        except Timeout as e:
+            print(e)
+            return
 
     def run(self):
         global ros_display_image
