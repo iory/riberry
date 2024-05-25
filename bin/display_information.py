@@ -218,9 +218,8 @@ class DisplayInformation(object):
         packer.end()
 
         if packer.available():
-            with self.lock.acquire():
-                self.i2c.writeto(self.i2c_addr,
-                                 packer.buffer[:packer.available()])
+            self.i2c_write(packer.buffer[:packer.available()])
+
         time.sleep(0.005)
 
         for pack in nsplit(jpg_img, n=50):
@@ -231,9 +230,7 @@ class DisplayInformation(object):
                 packer.write(h)
             packer.end()
             if packer.available():
-                with self.lock.acquire():
-                    self.i2c.writeto(self.i2c_addr,
-                                     packer.buffer[:packer.available()])
+                self.i2c_write(packer.buffer[:packer.available()])
             time.sleep(0.005)
 
     def display_information(self):
@@ -275,9 +272,14 @@ class DisplayInformation(object):
             packer.write(ord(s))
         packer.end()
         if packer.available():
-            with self.lock.acquire():
-                self.i2c.writeto(self.i2c_addr,
-                                 packer.buffer[:packer.available()])
+            self.i2c_write(packer.buffer[:packer.available()])
+
+    def i2c_write(self, packet):
+        with self.lock.acquire():
+            try:
+                self.i2c.writeto(self.i2c_addr, packet)
+            except TimeoutError as e:
+                print('I2C Write error {}'.format(e))
 
     def run(self):
         global ros_display_image
