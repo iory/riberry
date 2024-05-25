@@ -1,7 +1,9 @@
 #include <cerrno>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <fcntl.h>
+#include <filesystem>
 #include <iostream>
 #include <linux/i2c-dev.h>
 #include <ros/ros.h>
@@ -9,79 +11,77 @@
 #include <stdexcept>
 #include <sys/file.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <thread>
 #include <unistd.h>
 #include <vector>
 
 // The code has been adapted to ensure consistency with the FileLock behavior in a Python program.
 // https://github.com/tox-dev/filelock/blob/main/src/filelock/_unix.py
 class FileLock {
-private:
-  int fd;
-  std::string filename;
-  int timeout;  // Timeout in seconds
-
 public:
-  FileLock(const std::string& filename, int timeoutSecs = 10)
-    : filename(filename), fd(-1), timeout(timeoutSecs) {}
+    FileLock(const std::string& filename, int timeoutSecs = 10) : lockFile(filename), timeoutSecs(timeoutSecs), lockFileFd(-1), mode(0666) {}
 
-  void lock() {
-    fd = open(filename.c_str(), O_RDWR | O_CREAT, 0666);
-    if (fd == -1) {
-      std::cerr << "Failed to open file: " << strerror(errno) << std::endl;
-      throw std::runtime_error("Failed to open file.");
+    void acquire() {
+        ensureDirectoryExists();
+        int openFlags = O_RDWR | O_TRUNC;
+        if (!std::filesystem::exists(lockFile)) {
+            openFlags |= O_CREAT;
+        }
+        lockFileFd = open(lockFile.c_str(), openFlags, mode);
+        if (lockFileFd == -1) {
+            throw std::runtime_error("Failed to open lock file");
+        }
+        try {
+            fchmod(lockFileFd, mode);
+        } catch (...) {
+            // Ignore PermissionError: This locked is not owned by this UID
+        }
+
+        auto start = std::chrono::steady_clock::now();
+        while (true) {
+            if (flock(lockFileFd, LOCK_EX | LOCK_NB) != -1) {
+                break;
+            }
+            if (std::chrono::steady_clock::now() - start > std::chrono::seconds(timeoutSecs)) {
+                close(lockFileFd);
+                lockFileFd = -1;
+                throw std::runtime_error("Failed to acquire file lock: timeout");
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
     }
 
-    struct flock fl;
-    fl.l_type = F_WRLCK;
-    fl.l_whence = SEEK_SET;
-    fl.l_start = 0;
-    fl.l_len = 0;  // Lock the whole file
-
-    struct timeval start, now;
-    gettimeofday(&start, NULL);
-
-    while (true) {
-      if (fcntl(fd, F_SETLK, &fl) == 0) {
-        return;  // Lock was acquired
-      }
-
-      if (errno != EACCES && errno != EAGAIN) {
-        std::cerr << "Locking failed: " << strerror(errno) << std::endl;
-        close(fd);
-        throw std::runtime_error("Failed to acquire lock.");
-      }
-
-      gettimeofday(&now, NULL);
-      if (now.tv_sec - start.tv_sec > timeout) {
-        std::cerr << "Lock attempt timed out.\n";
-        close(fd);
-        throw std::runtime_error("Failed to acquire lock due to timeout.");
-      }
-
-      usleep(100000);  // Sleep for 100 milliseconds before retrying
+    void release() {
+        if (lockFileFd != -1) {
+            flock(lockFileFd, LOCK_UN);
+            close(lockFileFd);
+            lockFileFd = -1;
+        }
     }
-  }
 
-  void unlock() {
-    if (fd != -1) {
-      struct flock fl;
-      fl.l_type = F_UNLCK;
-      fl.l_whence = SEEK_SET;
-      fl.l_start = 0;
-      fl.l_len = 0;
-
-      if (fcntl(fd, F_SETLK, &fl) == -1) {
-        std::cerr << "Unlocking failed: " << strerror(errno) << std::endl;
-      }
-      close(fd);
-      fd = -1;
+    ~FileLock() {
+        if (lockFileFd != -1) {
+            release();
+        }
     }
-  }
 
-  ~FileLock() {
-    unlock();  // Ensure the file is unlocked on object destruction
-  }
+private:
+    std::string lockFile;
+    int timeoutSecs;
+    int lockFileFd;
+    mode_t mode;
+
+    void ensureDirectoryExists() {
+        std::filesystem::path dir = std::filesystem::path(lockFile).parent_path();
+        if (!std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
+        }
+    }
 };
+
+
 
 class WireCrc {
 public:
@@ -292,10 +292,12 @@ int main(int argc, char **argv) {
   std::string i2c_lock_file;
   int buffer_size;
   int i2c_addr;
+  double loop_rate;
 
   private_nh.param<std::string>("i2c_device", i2c_device, "/dev/i2c-1");
   private_nh.param("buffer_size", buffer_size, 6);
   private_nh.param("i2c_addr", i2c_addr, 0x42);
+  private_nh.param("loop_rate", loop_rate, 5.0);
   private_nh.param<std::string>("i2c_lock_file", i2c_lock_file, "/tmp/i2c-1.lock");
 
   int file_descriptor;
@@ -317,16 +319,17 @@ int main(int argc, char **argv) {
   WireUnpacker unpacker(buffer_size);
   FileLock fileLock(i2c_lock_file.c_str());
   ssize_t bytesRead;
+  ros::Rate rate(loop_rate);
 
   while (ros::ok()) {
     ros::spinOnce();
 
     try {
-      fileLock.lock();
+      fileLock.acquire();
       write(file_descriptor, write_buf, sizeof(write_buf));
       ros::Duration(0.05).sleep();
       bytesRead = read(file_descriptor, rxBuffer.data(), rxBuffer.size());
-      fileLock.unlock();
+      fileLock.release();
     } catch (const std::runtime_error& e) {
       ROS_ERROR_STREAM("An error occurred: " << e.what());
       break;
@@ -352,6 +355,7 @@ int main(int argc, char **argv) {
     std_msgs::Int32 button_state_msg;
     button_state_msg.data = payload[0];
     pub.publish(button_state_msg);
+    rate.sleep();
   }
   close(file_descriptor);
   return 0;

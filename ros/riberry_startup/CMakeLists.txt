@@ -8,6 +8,10 @@ execute_process(
   OUTPUT_VARIABLE GCC_VERSION
 )
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
   message(STATUS "Configuring for ARM or AArch64 architecture.")
 endif()
