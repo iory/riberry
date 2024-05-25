@@ -283,6 +283,8 @@ class DisplayInformation(object):
             return
         try:
             self.i2c.writeto(self.i2c_addr, packet)
+        except OSError as e:
+            print(e)
         except TimeoutError as e:
             print('I2C Write error {}'.format(e))
         try:
