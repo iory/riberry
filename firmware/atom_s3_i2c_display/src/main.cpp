@@ -1,8 +1,13 @@
-#include <M5AtomS3.h>
 #include <Wire.h>
 #include <WireSlave.h>
 #include <WireUnpacker.h>
 #include <OneButton.h>
+
+#define LGFX_M5ATOMS3
+#include <LovyanGFX.hpp>
+#include <LGFX_AUTODETECT.hpp>
+
+static LGFX lcd;
 
 WireUnpacker unpacker(256);
 
@@ -99,7 +104,7 @@ void ButtonTask(void *parameter) {
 void I2CTask(void *parameter) {
   bool success = WireSlave.begin(SDA_PIN, SCL_PIN, I2C_SLAVE_ADDR);
   if (!success) {
-    M5.Lcd.println("I2C slave init failed");
+    lcd.println("I2C slave init failed");
     while (1) delay(100);
   }
   WireSlave.onReceive(receiveEvent);
@@ -113,29 +118,29 @@ void I2CTask(void *parameter) {
 uint16_t colorMap(int code, bool isBackground = false) {
     if (isBackground) {
         switch (code) {
-        case 40: return M5.Lcd.color565(0, 0, 0);     // Black
-        case 41: return M5.Lcd.color565(255, 0, 0);   // Red
-        case 42: return M5.Lcd.color565(0, 255, 0);   // Green
-        case 43: return M5.Lcd.color565(255, 255, 0); // Yellow
-        case 44: return M5.Lcd.color565(0, 0, 255);   // Blue
-        case 45: return M5.Lcd.color565(255, 0, 255); // Magenta
-        case 46: return M5.Lcd.color565(0, 255, 255); // Cyan
-        case 47: return M5.Lcd.color565(255, 255, 255); // White
-        case 49: return M5.Lcd.color565(0, 0, 0);     // Default (Black)
-        default: return M5.Lcd.color565(0, 0, 0);
+        case 40: return lcd.color565(0, 0, 0);     // Black
+        case 41: return lcd.color565(255, 0, 0);   // Red
+        case 42: return lcd.color565(0, 255, 0);   // Green
+        case 43: return lcd.color565(255, 255, 0); // Yellow
+        case 44: return lcd.color565(0, 0, 255);   // Blue
+        case 45: return lcd.color565(255, 0, 255); // Magenta
+        case 46: return lcd.color565(0, 255, 255); // Cyan
+        case 47: return lcd.color565(255, 255, 255); // White
+        case 49: return lcd.color565(0, 0, 0);     // Default (Black)
+        default: return lcd.color565(0, 0, 0);
         }
     } else {
         switch (code) {
-        case 30: return M5.Lcd.color565(0, 0, 0);     // Black
-        case 31: return M5.Lcd.color565(255, 0, 0);   // Red
-        case 32: return M5.Lcd.color565(0, 255, 0);   // Green
-        case 33: return M5.Lcd.color565(255, 255, 0); // Yellow
-        case 34: return M5.Lcd.color565(0, 0, 255);   // Blue
-        case 35: return M5.Lcd.color565(255, 0, 255); // Magenta
-        case 36: return M5.Lcd.color565(0, 255, 255); // Cyan
-        case 37: return M5.Lcd.color565(255, 255, 255); // White
-        case 39: return M5.Lcd.color565(255, 255, 255); // Default (White)
-        default: return M5.Lcd.color565(255, 255, 255);
+        case 30: return lcd.color565(0, 0, 0);     // Black
+        case 31: return lcd.color565(255, 0, 0);   // Red
+        case 32: return lcd.color565(0, 255, 0);   // Green
+        case 33: return lcd.color565(255, 255, 0); // Yellow
+        case 34: return lcd.color565(0, 0, 255);   // Blue
+        case 35: return lcd.color565(255, 0, 255); // Magenta
+        case 36: return lcd.color565(0, 255, 255); // Cyan
+        case 37: return lcd.color565(255, 255, 255); // White
+        case 39: return lcd.color565(255, 255, 255); // Default (White)
+        default: return lcd.color565(255, 255, 255);
         }
     }
 }
@@ -143,8 +148,8 @@ uint16_t colorMap(int code, bool isBackground = false) {
 
 void printColorText(const String& input) {
     String text = input;
-    uint16_t textColor = M5.Lcd.color565(255, 255, 255); // Default text color: white
-    uint16_t bgColor = M5.Lcd.color565(0, 0, 0);         // Default background color: black
+    uint16_t textColor = lcd.color565(255, 255, 255); // Default text color: white
+    uint16_t bgColor = lcd.color565(0, 0, 0);         // Default background color: black
     int index = 0;
 
     while (index < text.length()) {
@@ -162,21 +167,26 @@ void printColorText(const String& input) {
                 continue;
             }
         }
-        M5.Lcd.setTextColor(textColor, bgColor);
-        M5.Lcd.print(text.charAt(index));
+        lcd.setTextColor(textColor, bgColor);
+        lcd.print(text.charAt(index));
         index++;
     }
 }
 
 
 void setup() {
-    M5.begin();
-
     // For display
-    M5.Lcd.setRotation(lcd_rotation);
-    M5.Lcd.setTextSize(1.5);
+    lcd.init();
+    lcd.setRotation(lcd_rotation);
+    lcd.clear();
+    lcd.setTextSize(1.5);
 
-    M5.Lcd.println("Wait for I2C input.");
+    lcd.println("Wait for I2C input.");
+#ifdef USE_GROVE
+    printColorText("\x1b[31mGROVE\x1b[39m Mode\n");
+#else
+    printColorText("\x1b[31mNOT GROVE\x1b[39m Mode\n");
+#endif
     char log_msg[50];
     sprintf(log_msg, "I2C address \x1b[33m0x%02x\x1b[39m", I2C_SLAVE_ADDR);
     printColorText(log_msg);
@@ -189,9 +199,9 @@ void setup() {
 
 void loop() {
     if (millis() - lastReceiveTime > receiveTimeout) {
-        M5.Lcd.fillScreen(M5.Lcd.color565(255, 0, 0));  // Fill the screen with red
-        M5.Lcd.setCursor(0, 0);
-        M5.Lcd.println("No data received.");
+        lcd.fillScreen(lcd.color565(255, 0, 0));  // Fill the screen with red
+        lcd.setCursor(0, 0);
+        lcd.println("No data received.");
         delay(500);  // Show message for a short time
     }
 }
@@ -200,8 +210,8 @@ void receiveEvent(int howMany) {
     lastReceiveTime = millis();  // Update the last received time
 
     // Clear display
-    M5.Lcd.fillScreen(M5.Lcd.color565(0, 0, 0));
-    M5.Lcd.setCursor(0, 0);
+    lcd.fillScreen(lcd.color565(0, 0, 0));
+    lcd.setCursor(0, 0);
     String str;
     while (0 < WireSlave.available()) {
         char c = WireSlave.read();  // receive byte as a character
