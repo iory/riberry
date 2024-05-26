@@ -33,6 +33,14 @@ bool loadingJpeg = false;
 uint32_t jpegLength;
 uint32_t currentJpegIndex = 0;
 
+// for QR code
+static const uint8_t qrCodeHeader = 0x02;
+constexpr size_t ETH_ALEN = 6;
+constexpr uint16_t SPACING = 4;
+constexpr uint8_t FONT = 1;
+constexpr uint8_t FONT_HEIGHT = 8;
+constexpr uint8_t QR_VERSION = 1;
+
 void receiveEvent(int howMany);
 void requestEvent();
 
@@ -238,6 +246,14 @@ void receiveEvent(int howMany) {
         loadingJpeg = false;
       }
     }
+    if (str.length() > 1 && str[0] == qrCodeHeader) {
+      uint8_t qrCodeLength = str[1];  // Assuming the length of the QR code data is in the second byte
+      String qrCodeData = str.substring(2, 2 + qrCodeLength);
+      lcd.fillScreen(lcd.color565(255, 255, 255));
+      lcd.qrcode(qrCodeData.c_str(), SPACING, SPACING / 2, lcd.width() - SPACING * 2, QR_VERSION);
+      return;
+    }
+
     // Draw
     lcd.fillScreen(lcd.color565(0, 0, 0));
     lcd.setCursor(0, 0);
