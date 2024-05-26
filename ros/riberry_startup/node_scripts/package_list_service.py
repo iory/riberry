@@ -14,6 +14,8 @@ def handle_package_list_request(req):
     www_packages = []
 
     for package in packages:
+        if package == 'roswww':
+            continue
         pkg_path = rospack.get_path(package)
         www_path = os.path.join(pkg_path, 'www')
         index_path = os.path.join(pkg_path, 'www', 'index.html')
