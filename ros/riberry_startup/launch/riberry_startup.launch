@@ -2,14 +2,42 @@
 
   <arg name="namespace" default="" />
 
+
   <group if="$(eval len(arg('namespace')) > 0)" ns="$(arg namespace)" >
+    <node name="generate_html"
+          pkg="riberry_startup" type="generate_html.py"
+          args="$(find riberry_startup)/www/index.html.template $(find riberry_startup)/www/index.html --namespace $(arg namespace)"
+          output="screen" />
+
     <include file="$(find riberry_startup)/launch/atoms3_button_state_publisher.launch" >
       <arg name="namespace" value="$(arg namespace)" />
     </include>
+    <include file="$(find roswww)/launch/roswww.launch" >
+    </include>
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
+    </include>
+
+    <node name="package_list_service"
+          pkg="riberry_startup" type="package_list_service.py"
+          output="screen" >
+    </node>
   </group>
   <group unless="$(eval len(arg('namespace')) > 0)">
+    <node name="generate_html"
+          pkg="riberry_startup" type="generate_html.py"
+          args="$(find riberry_startup)/www/index.html.template $(find riberry_startup)/www/index.html"
+          output="screen" />
+
     <include file="$(find riberry_startup)/launch/atoms3_button_state_publisher.launch" >
     </include>
+    <include file="$(find roswww)/launch/roswww.launch" >
+    </include>
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
+    </include>
+    <node name="package_list_service"
+          pkg="riberry_startup" type="package_list_service.py"
+          output="screen" >
+    </node>
   </group>
 
 </launch>
