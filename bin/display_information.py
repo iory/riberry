@@ -275,6 +275,19 @@ class DisplayInformation(object):
         if packer.available():
             self.i2c_write(packer.buffer[:packer.available()])
 
+    def display_qrcode(self):
+        ip = get_ip_address()
+        header = [0x02]
+        target_url = 'http://{}:8085/riberry_startup/'.format(ip)
+        header += [len(target_url)]
+        header += list(map(ord, target_url))
+        packer = WirePacker(buffer_size=100)
+        for h in header:
+            packer.write(h)
+        packer.end()
+        if packer.available():
+            self.i2c_write(packer.buffer[:packer.available()])
+
     def i2c_write(self, packet):
         try:
             self.lock.acquire()
@@ -302,7 +315,9 @@ class DisplayInformation(object):
                 self.display_image(ros_display_image)
             else:
                 self.display_information()
-                time.sleep(10)
+                time.sleep(3)
+                self.display_qrcode()
+                time.sleep(3)
 
 
 if __name__ == '__main__':
