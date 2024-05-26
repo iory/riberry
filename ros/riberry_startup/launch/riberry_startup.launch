@@ -1,7 +1,7 @@
 <launch>
 
   <arg name="namespace" default="" />
-
+  <arg name="web_video_server_port" default="8080" />
 
   <group if="$(eval len(arg('namespace')) > 0)" ns="$(arg namespace)" >
     <node name="generate_html"
@@ -16,6 +16,13 @@
     </include>
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
     </include>
+
+    <node pkg="web_video_server" type="web_video_server"
+          name="web_video_server"
+          output="screen"
+          clear_params="true">
+      <param name="port" value="$(arg web_video_server_port)" />
+    </node>
 
     <node name="package_list_service"
           pkg="riberry_startup" type="package_list_service.py"
@@ -34,6 +41,14 @@
     </include>
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
     </include>
+
+    <node pkg="web_video_server" type="web_video_server"
+          name="web_video_server"
+          output="screen"
+          clear_params="true">
+      <param name="port" value="$(arg web_video_server_port)" />
+    </node>
+
     <node name="package_list_service"
           pkg="riberry_startup" type="package_list_service.py"
           output="screen" >
