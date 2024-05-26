@@ -10,6 +10,6 @@ if [ $? -eq 0 ]; then
     printf 'Skipping WiFi Connect.\n'
 else
     printf 'No default gateway found. Starting WiFi Connect.\n'
-    CURRENT_TIME=$(who -b | awk '{print $3 " " $4}' | xargs -I {} date -d {} +"%Y-%m-%d-%H-%M")
-    wifi-connect -s radxa-${CURRENT_TIME} -g 192.168.4.1 -d 192.168.4.2,192.168.4.5
+    MAC_ADDRESS=$(cat /sys/class/net/wlan0/address | tr -d ':')
+    wifi-connect -s radxa-${MAC_ADDRESS} -g 192.168.4.1 -d 192.168.4.2,192.168.4.5
 fi

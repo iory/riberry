@@ -44,6 +44,18 @@ def wait_and_get_ros_ip(retry=300):
     return None
 
 
+def get_mac_address(interface='wlan0'):
+    try:
+        mac_address = subprocess.check_output(
+            ['cat', f'/sys/class/net/{interface}/address']).decode(
+                'utf-8').strip()
+        mac_address = mac_address.replace(':', '')
+        return mac_address
+    except Exception as e:
+        print(f"Error obtaining MAC address: {e}")
+        return None
+
+
 lock_path = '/tmp/i2c-1.lock'
 
 # Global variable for ROS availability and additional message
@@ -121,17 +133,14 @@ def try_init_ros():
 
 def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    for _ in range(6):
-        try:
-            s.connect(("8.8.8.8", 80))
-        except socket.error as e:
-            print(e)
-            print('Try to connect network again')
-            time.sleep(10)
-        else:
-            break
+    try:
+        s.connect(("8.8.8.8", 80))
+    except socket.error as e:
+        print(e)
     ip_address = s.getsockname()[0]
     s.close()
+    if ip_address == '0.0.0.0':
+        return None
     return ip_address
 
 
@@ -238,8 +247,11 @@ class DisplayInformation(object):
         global ros_available
         global ros_additional_message
 
+        ip = get_ip_address()
+        if ip is None:
+            ip = 'no connection'
         ip_str = '{}:\n{}{}{}'.format(
-            socket.gethostname(), Fore.YELLOW, get_ip_address(), Fore.RESET)
+            socket.gethostname(), Fore.YELLOW, ip, Fore.RESET)
         master_str = 'ROS_MASTER:\n' + Fore.RED + '{}'.format(
             get_ros_master_ip()) + Fore.RESET
         battery = get_battery()
@@ -275,10 +287,14 @@ class DisplayInformation(object):
         if packer.available():
             self.i2c_write(packer.buffer[:packer.available()])
 
-    def display_qrcode(self):
-        ip = get_ip_address()
+    def display_qrcode(self, target_url=None):
         header = [0x02]
-        target_url = 'http://{}:8085/riberry_startup/'.format(ip)
+        if target_url is None:
+            ip = get_ip_address()
+            if ip is None:
+                print('Could not get ip. skip showing qr code.')
+                return
+            target_url = 'http://{}:8085/riberry_startup/'.format(ip)
         header += [len(target_url)]
         header += list(map(ord, target_url))
         packer = WirePacker(buffer_size=100)
@@ -314,10 +330,15 @@ class DisplayInformation(object):
             if ros_display_image_flag and ros_display_image is not None:
                 self.display_image(ros_display_image)
             else:
-                self.display_information()
-                time.sleep(3)
-                self.display_qrcode()
-                time.sleep(3)
+                if get_ip_address() is None:
+                    self.display_qrcode(
+                        f'WIFI:S:radxa-{get_mac_address()};T:nopass;;')
+                    time.sleep(3)
+                else:
+                    self.display_information()
+                    time.sleep(3)
+                    self.display_qrcode()
+                    time.sleep(3)
 
 
 if __name__ == '__main__':
