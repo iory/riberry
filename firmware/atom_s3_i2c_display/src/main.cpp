@@ -121,7 +121,8 @@ void ButtonTask(void *parameter) {
 
 
 void I2CTask(void *parameter) {
-  bool success = WireSlave.begin(SDA_PIN, SCL_PIN, I2C_SLAVE_ADDR);
+  bool success = WireSlave.begin(SDA_PIN, SCL_PIN, I2C_SLAVE_ADDR, 200, 100);
+
   if (!success) {
     lcd.println("I2C slave init failed");
     while (1) delay(100);
