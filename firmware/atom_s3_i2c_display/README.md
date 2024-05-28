@@ -40,3 +40,9 @@ If you want to set the LCD rotation, set the `LCD_ROTATION` environment variable
 ```
 LCD_ROTATION=1 pio run -t upload
 ```
+
+If you want to set the I2C address, set the `I2C_ADDR` environment variable to the desired address (in hexadecimal format) before running the command:
+
+```
+I2C_ADDR=0x42 pio run -t upload
+```
