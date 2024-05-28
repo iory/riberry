@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
-from std_msgs.msg import Int16, Empty
+from std_msgs.msg import Bool, Int16, Empty
 
 class VacuumControl(object):
     def __init__(self, vacuum_threshold=80):
@@ -15,12 +15,14 @@ class VacuumControl(object):
         rospy.Subscriber('vacuum_pressure', Int16, self.pressure_cb)
         # Control vacuum state
         self.vacuum = False
+        self.state_pub = rospy.Publisher('vacuum_control_state', Bool, queue_size=10)
         rospy.Subscriber('vacuum_on', Empty, self.on_cb)
         rospy.Subscriber('vacuum_off', Empty, self.off_cb)
         # Calibate pressure
         self.pressure_samples = []
         self.atm_pressure = None
         rospy.Subscriber('calibrate_pressure', Empty, self.calibrate)
+        self.timer = rospy.Timer(rospy.Duration(1), self.publish_state)
 
     def calibrate(self, msg):
         self.pressure_samples = []
@@ -58,6 +60,11 @@ class VacuumControl(object):
                 self.pub_on.publish(Empty())
             else:
                 self.pub_off.publish(Empty())
+
+    def publish_state(self, event=None):
+        rospy.loginfo(f"Publishing vacuum control state: {self.vacuum}")
+        self.state_pub.publish(self.vacuum)
+
 
 if __name__ == '__main__':
     rospy.init_node('vacuum_control')
