@@ -10,7 +10,7 @@ from i2c_for_esp32 import WireUnpacker
 
 
 if __name__ == '__main__':
-    i2c = busio.I2C(board.SCL1, board.SDA1, frequency=1000_000)
+    i2c = busio.I2C(board.SCL1, board.SDA1)
 
     i2c_addr = 0x41
 
