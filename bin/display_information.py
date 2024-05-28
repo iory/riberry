@@ -207,7 +207,7 @@ class DisplayInformation(object):
 
     def __init__(self, i2c_addr):
         self.i2c_addr = i2c_addr
-        self.i2c = busio.I2C(board.SCL1, board.SDA1, frequency=400_000)
+        self.i2c = busio.I2C(board.SCL1, board.SDA1)
         self.lock = FileLock(lock_path, timeout=10)
 
     def display_image(self, img):

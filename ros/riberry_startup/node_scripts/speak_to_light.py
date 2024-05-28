@@ -13,7 +13,7 @@ from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 if __name__ == '__main__':
     rospy.init_node('speak_to_light')
 
-    i2c = busio.I2C(board.SCL3, board.SDA3, frequency=1_000_000)
+    i2c = busio.I2C(board.SCL3, board.SDA3)
     i2c_addr = 0x41
     while not i2c.try_lock():
         pass
