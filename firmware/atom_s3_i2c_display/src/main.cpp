@@ -21,7 +21,14 @@ constexpr int lcd_rotation = LCD_ROTATION;
 constexpr int lcd_rotation = 1;
 #endif
 
+
+#ifdef I2C_ADDR
+constexpr int I2C_SLAVE_ADDR = I2C_ADDR;
+#else
 constexpr int I2C_SLAVE_ADDR = 0x42;
+#endif
+
+
 
 unsigned long lastReceiveTime = 0;
 const unsigned long receiveTimeout = 15000;  // Timeout in milliseconds (15 seconds)
