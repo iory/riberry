@@ -3,6 +3,7 @@
 import os
 import socket
 import subprocess
+import sys
 import time
 import threading
 
@@ -15,6 +16,12 @@ from pybsc.image_utils import squared_padding_image
 from pybsc import nsplit
 from filelock import FileLock
 from filelock import Timeout
+
+
+# Ensure that the standard output is line-buffered. This makes sure that
+# each line of output is flushed immediately, which is useful for logging.
+# This is for systemd.
+sys.stdout.reconfigure(line_buffering=True)
 
 
 def parse_ip(route_get_output):
