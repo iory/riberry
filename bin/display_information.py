@@ -164,11 +164,14 @@ def get_ros_master_ip():
 
 def send_pisugar_command(command_str):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    pisugar_str = None
     try:
         s.connect(('localhost', 8423))
         s.sendall(command_str.encode())
         time.sleep(0.1)  # Wait for pisugar to response
         pisugar_str = s.recv(1024).decode()
+    except ConnectionRefusedError as e:
+        print('{}: {}'.format(type(e), e))
     except Exception as e:
         print('{}: {}'.format(type(e), e))
     finally:
@@ -178,6 +181,8 @@ def send_pisugar_command(command_str):
 
 def get_battery():
     battery_str = send_pisugar_command('get battery')
+    if battery_str is None:
+        return None
     try:
         # battery: [Battery Level]\n -> [Battery Level]
         tmp = battery_str.split(':')
