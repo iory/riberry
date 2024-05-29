@@ -313,10 +313,10 @@ class DisplayInformation(object):
         else:
             if battery <= 20:
                 battery_str = 'Bat: {}{}%{}'.format(
-                    Fore.RED, battery, Fore.RESET)
+                    Fore.RED, int(battery), Fore.RESET)
             else:
                 battery_str = 'Bat: {}{}%{}'.format(
-                    Fore.GREEN, battery, Fore.RESET)
+                    Fore.GREEN, int(battery), Fore.RESET)
         # charging = battery_charging()
         charging = self.pisugar_reader.get_is_charging()
         if charging is True:
