@@ -26,6 +26,9 @@ import smbus2
 sys.stdout.reconfigure(line_buffering=True)
 
 
+pisugar_battery_percentage = None
+
+
 def parse_ip(route_get_output):
     tokens = route_get_output.split()
     if "via" in tokens:
@@ -80,12 +83,14 @@ def try_init_ros():
     global ros_additional_message
     global ros_display_image_flag
     global ros_display_image
+    global pisugar_battery_percentage
     ros_display_image_param = None
     prev_ros_display_image_param = None
     while not stop_event.is_set():
         try:
             import rospy
             from std_msgs.msg import String
+            from std_msgs.msg import Float32
             import sensor_msgs.msg
             import cv_bridge
 
@@ -106,12 +111,16 @@ def try_init_ros():
             rospy.init_node('atom_s3_display_information_node', anonymous=True)
             rospy.Subscriber('/atom_s3_additional_info', String, ros_callback,
                              queue_size=1)
+            battery_pub = rospy.Publisher('/pisugar_battery', Float32,
+                                          queue_size=1)
             ros_available = True
             rate = rospy.Rate(1)
             sub = None
             while not rospy.is_shutdown() and not stop_event.is_set():
                 ros_display_image_param = rospy.get_param(
                     '/display_image', None)
+                if pisugar_battery_percentage is not None:
+                    battery_pub.publish(pisugar_battery_percentage)
                 if prev_ros_display_image_param != ros_display_image_param:
                     ros_display_image_flag = False
                     if sub is not None:
@@ -299,6 +308,7 @@ class DisplayInformation(object):
     def display_information(self):
         global ros_available
         global ros_additional_message
+        global pisugar_battery_percentage
 
         ip = get_ip_address()
         if ip is None:
@@ -308,6 +318,7 @@ class DisplayInformation(object):
         master_str = 'ROS_MASTER:\n' + Fore.RED + '{}'.format(
             get_ros_master_ip()) + Fore.RESET
         battery = self.pisugar_reader.get_filtered_percentage()
+        pisugar_battery_percentage = battery
         if battery is None:
             battery_str = 'Bat: None'
         else:
