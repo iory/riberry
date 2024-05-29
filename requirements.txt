@@ -3,3 +3,4 @@ adafruit-circuitpython-mprls
 colorama
 i2c-for-esp32
 pybsc
+smbus2
