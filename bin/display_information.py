@@ -16,6 +16,7 @@ from pybsc.image_utils import squared_padding_image
 from pybsc import nsplit
 from filelock import FileLock
 from filelock import Timeout
+import smbus2
 
 
 # Ensure that the standard output is line-buffered. This makes sure that
@@ -162,57 +163,74 @@ def get_ros_master_ip():
     return master_ip
 
 
-def send_pisugar_command(command_str):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    pisugar_str = None
-    try:
-        s.connect(('localhost', 8423))
-        s.sendall(command_str.encode())
-        time.sleep(0.1)  # Wait for pisugar to response
-        pisugar_str = s.recv(1024).decode()
-    except ConnectionRefusedError as e:
-        print('{}: {}'.format(type(e), e))
-    except Exception as e:
-        print('{}: {}'.format(type(e), e))
-    finally:
-        s.close()
-    return pisugar_str
+class PisugarBatteryReader(threading.Thread):
 
+    def __init__(self, bus_number=3, device_address=0x57, alpha=0.1,
+                 value_threshold=1000, percentage_threshold=20,
+                 history_size=5):
+        super().__init__()
+        self.bus_number = bus_number
+        self.device_address = device_address
+        self.alpha = alpha
+        self.value_threshold = value_threshold
+        self.percentage_threshold = percentage_threshold
+        self.history_size = history_size
 
-def get_battery():
-    battery_str = send_pisugar_command('get battery')
-    if battery_str is None:
-        return None
-    try:
-        # battery: [Battery Level]\n -> [Battery Level]
-        tmp = battery_str.split(':')
-        if len(tmp) > 1:
-            battery_str = tmp[1].replace('\n', '')
-            battery_level = int(float(battery_str))
-        else:
-            battery_level = None
-    except Exception as e:
-        print('{}: {}'.format(type(e), e))
-        print('get battery result: {}'.format(battery_str))
-        battery_level = None
-    return(battery_level)
+        self.filtered_value = 0
+        self.filtered_percentage = 0
+        self.value_history = []
+        self.percentage_history = []
 
+        self.bus = smbus2.SMBus(self.bus_number)
+        self.lock = threading.Lock()
+        self.running = True
 
-def battery_charging():
-    charging_str = send_pisugar_command('get battery_charging')
-    try:
-        # battery_charging: [true/false]\n -> True/False
-        if 'true' in charging_str:
-            charging = True
-        elif 'false' in charging_str:
-            charging = False
-        else:
-            charging = None
-    except Exception as e:
-        print('{}: {}'.format(type(e), e))
-        print('get battery_charging result: {}'.format(charging_str))
-        charging = None
-    return(charging)
+    def read_sensor_data(self):
+        try:
+            percentage = self.bus.read_byte_data(self.device_address, 0x2A)
+            return percentage
+        except Exception as e:
+            print('[Pisugar Battery Reader] {}'.format(e))
+            return None
+
+    def is_outlier(self, current, history, threshold):
+        if not history:
+            return False
+        return all(abs(current - h) > threshold for h in history)
+
+    def update_history(self, value, history):
+        history.append(value)
+        if len(history) > self.history_size:
+            history.pop(0)
+
+    def run(self):
+        try:
+            while self.running:
+                percentage = self.read_sensor_data()
+                if percentage is None:
+                    time.sleep(0.1)
+                    continue
+
+                with self.lock:
+                    if self.is_outlier(percentage, self.percentage_history, self.percentage_threshold):
+                        pass
+                        # print(f"Percentage outlier detected: {percentage:.2f}, history: {self.percentage_history}")
+                    else:
+                        self.filtered_percentage = self.alpha * percentage + (1 - self.alpha) * self.filtered_percentage
+                        self.update_history(percentage, self.percentage_history)
+                # print(f"RAW Percentage: {percentage:.2f}")
+                # print(f"Filtered Percentage: {self.filtered_percentage:.2f}")
+                time.sleep(0.1)
+        finally:
+            self.bus.close()
+
+    def get_filtered_percentage(self):
+        with self.lock:
+            return self.filtered_percentage
+
+    def stop(self):
+        self.running = False
+        self.join()
 
 
 class DisplayInformation(object):
@@ -221,6 +239,9 @@ class DisplayInformation(object):
         self.i2c_addr = i2c_addr
         self.i2c = busio.I2C(board.SCL1, board.SDA1)
         self.lock = FileLock(lock_path, timeout=10)
+        self.pisugar_reader = PisugarBatteryReader()
+        self.pisugar_reader.daemon = True
+        self.pisugar_reader.start()
 
     def display_image(self, img):
         img = squared_padding_image(img, 128)
@@ -266,7 +287,7 @@ class DisplayInformation(object):
             socket.gethostname(), Fore.YELLOW, ip, Fore.RESET)
         master_str = 'ROS_MASTER:\n' + Fore.RED + '{}'.format(
             get_ros_master_ip()) + Fore.RESET
-        battery = get_battery()
+        battery = self.pisugar_reader.get_filtered_percentage()
         if battery is None:
             battery_str = 'Bat: None'
         else:
@@ -276,7 +297,8 @@ class DisplayInformation(object):
             else:
                 battery_str = 'Bat: {}{}%{}'.format(
                     Fore.GREEN, battery, Fore.RESET)
-        charging = battery_charging()
+        # charging = battery_charging()
+        charging = None
         if charging is True:
             battery_str += '+'
         elif charging is False:
