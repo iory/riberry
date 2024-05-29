@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 import threading
+from collections import Counter
 
 import cv2
 import board
@@ -163,6 +164,13 @@ def get_ros_master_ip():
     return master_ip
 
 
+def majority_vote(history):
+    if not history:
+        return 0
+    count = Counter(history)
+    return count.most_common(1)[0][0]
+
+
 class PisugarBatteryReader(threading.Thread):
 
     def __init__(self, bus_number=3, device_address=0x57, alpha=0.1,
@@ -172,23 +180,25 @@ class PisugarBatteryReader(threading.Thread):
         self.bus_number = bus_number
         self.device_address = device_address
         self.alpha = alpha
-        self.value_threshold = value_threshold
         self.percentage_threshold = percentage_threshold
         self.history_size = history_size
 
-        self.filtered_value = 0
         self.filtered_percentage = 0
-        self.value_history = []
         self.percentage_history = []
+        self.charging_history = []
 
         self.bus = smbus2.SMBus(self.bus_number)
         self.lock = threading.Lock()
         self.running = True
 
-    def read_sensor_data(self):
+    def read_sensor_data(self, get_charge=False):
         try:
-            percentage = self.bus.read_byte_data(self.device_address, 0x2A)
-            return percentage
+            if get_charge is True:
+                value = self.bus.read_byte_data(
+                    self.device_address, 0x02) >> 7
+            else:
+                value = self.bus.read_byte_data(self.device_address, 0x2A)
+            return value
         except Exception as e:
             print('[Pisugar Battery Reader] {}'.format(e))
             return None
@@ -207,7 +217,8 @@ class PisugarBatteryReader(threading.Thread):
         try:
             while self.running:
                 percentage = self.read_sensor_data()
-                if percentage is None:
+                is_charging = self.read_sensor_data(get_charge=True)
+                if percentage is None or is_charging is None:
                     time.sleep(0.1)
                     continue
 
@@ -218,6 +229,11 @@ class PisugarBatteryReader(threading.Thread):
                     else:
                         self.filtered_percentage = self.alpha * percentage + (1 - self.alpha) * self.filtered_percentage
                         self.update_history(percentage, self.percentage_history)
+
+                    self.charging_history.append(is_charging)
+                    if len(self.charging_history) > self.history_size:
+                        self.charging_history.pop(0)
+
                 # print(f"RAW Percentage: {percentage:.2f}")
                 # print(f"Filtered Percentage: {self.filtered_percentage:.2f}")
                 time.sleep(0.1)
@@ -227,6 +243,10 @@ class PisugarBatteryReader(threading.Thread):
     def get_filtered_percentage(self):
         with self.lock:
             return self.filtered_percentage
+
+    def get_is_charging(self):
+        with self.lock:
+            return majority_vote(self.charging_history) == 1
 
     def stop(self):
         self.running = False
@@ -298,7 +318,7 @@ class DisplayInformation(object):
                 battery_str = 'Bat: {}{}%{}'.format(
                     Fore.GREEN, battery, Fore.RESET)
         # charging = battery_charging()
-        charging = None
+        charging = self.pisugar_reader.get_is_charging()
         if charging is True:
             battery_str += '+'
         elif charging is False:
