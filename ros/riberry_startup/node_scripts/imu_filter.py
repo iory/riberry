@@ -57,7 +57,7 @@ class BiQuadFilter:
                 stored_data[key] = current_input
                 return current_input
         
-        # Calculate filtered IMU singal
+        # Calculate filtered IMU signal
         current_output = (self.b0 / self.a0) * current_input\
             + (self.b1 / self.a0) * self.last1_inputs[key]\
             + (self.b2 / self.a0) * self.last2_inputs[key]\
