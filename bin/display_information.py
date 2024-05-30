@@ -228,7 +228,7 @@ class PisugarBatteryReader(threading.Thread):
                 percentage = self.read_sensor_data()
                 is_charging = self.read_sensor_data(get_charge=True)
                 if percentage is None or is_charging is None:
-                    time.sleep(0.1)
+                    time.sleep(0.2)
                     continue
 
                 with self.lock:
@@ -243,9 +243,9 @@ class PisugarBatteryReader(threading.Thread):
                     if len(self.charging_history) > self.history_size:
                         self.charging_history.pop(0)
 
-                # print(f"RAW Percentage: {percentage:.2f}")
-                # print(f"Filtered Percentage: {self.filtered_percentage:.2f}")
-                time.sleep(0.1)
+                print(f"RAW Percentage: {percentage:.2f}")
+                print(f"Filtered Percentage: {self.filtered_percentage:.2f}")
+                time.sleep(0.2)
         finally:
             self.bus.close()
 
