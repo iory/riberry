@@ -10,6 +10,26 @@ import argparse
 def is_regular_file(filename):
     return not filename.endswith('~') and not filename.startswith('.')
 
+
+def identify_device():
+    try:
+        with open('/proc/cpuinfo', 'r') as f:
+            cpuinfo = f.read()
+
+        if 'Raspberry Pi' in cpuinfo:
+            return 'Raspberry Pi'
+
+        with open('/proc/device-tree/model', 'r') as f:
+            model = f.read().strip()
+
+        if 'Radxa' in model or 'ROCK Pi' in model:
+            return model
+
+        return 'Unknown Device'
+    except FileNotFoundError:
+        return 'Unknown Device'
+
+
 def create_symlinks(source_dir, target_dir, dry_run=False):
     added_symlinks = []
     for item in os.listdir(source_dir):
@@ -94,21 +114,22 @@ def main(dry_run=False, enable_oneshot=False):
 
     enable_systemd_services(added_symlinks, dry_run=dry_run)
 
-    execute_dtc_command(
-        dry_run,
-        '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m1-gpioh-6-gpioh-7.dtbo',
-        './overlays/i2c1.dts'
-    )
-    execute_dtc_command(
-        dry_run,
-        '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m3-gpioa-14-gpioa-15.dtbo',
-        './overlays/i2c3.dts'
-    )
-    execute_dtc_command(
-        dry_run,
-        '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-gpio-line-names.dtbo',
-        './overlays/meson-g12a-gpio-line-names.dts'
-    )
+    if identify_device() == 'Radxa Zero':
+        execute_dtc_command(
+            dry_run,
+            '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m1-gpioh-6-gpioh-7.dtbo',
+            './overlays/i2c1.dts'
+        )
+        execute_dtc_command(
+            dry_run,
+            '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m3-gpioa-14-gpioa-15.dtbo',
+            './overlays/i2c3.dts'
+        )
+        execute_dtc_command(
+            dry_run,
+            '/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-gpio-line-names.dtbo',
+            './overlays/meson-g12a-gpio-line-names.dts'
+        )
 
     if dry_run:
         print("Dry-run: No install python libraries.")
