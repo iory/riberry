@@ -29,6 +29,25 @@ sys.stdout.reconfigure(line_buffering=True)
 pisugar_battery_percentage = None
 
 
+def identify_device():
+    try:
+        with open('/proc/cpuinfo', 'r') as f:
+            cpuinfo = f.read()
+
+        if 'Raspberry Pi' in cpuinfo:
+            return 'Raspberry Pi'
+
+        with open('/proc/device-tree/model', 'r') as f:
+            model = f.read().strip()
+
+        if 'Radxa' in model or 'ROCK Pi' in model:
+            return model
+
+        return 'Unknown Device'
+    except FileNotFoundError:
+        return 'Unknown Device'
+
+
 def parse_ip(route_get_output):
     tokens = route_get_output.split()
     if "via" in tokens:
@@ -267,9 +286,18 @@ class DisplayInformation(object):
 
     def __init__(self, i2c_addr):
         self.i2c_addr = i2c_addr
-        self.i2c = busio.I2C(board.SCL1, board.SDA1)
+        self.device_type = identify_device()
+        if self.device_type == 'Raspberry Pi':
+            self.i2c = busio.I2C(board.SCL, board.SDA)
+            bus_number = 1
+        elif self.device_type == 'Radxa Zero':
+            self.i2c = busio.I2C(board.SCL3, board.SDA3)
+            bus_number = 3
+        else:
+            raise ValueError('Unknown device {}'.format(
+                self.device_type))
         self.lock = FileLock(lock_path, timeout=10)
-        self.pisugar_reader = PisugarBatteryReader()
+        self.pisugar_reader = PisugarBatteryReader(bus_number)
         self.pisugar_reader.daemon = True
         self.pisugar_reader.start()
 
