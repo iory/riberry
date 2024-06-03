@@ -237,7 +237,8 @@ class PisugarBatteryReader(threading.Thread):
                         # print(f"Percentage outlier detected: {percentage:.2f}, history: {self.percentage_history}")
                     else:
                         self.filtered_percentage = self.alpha * percentage + (1 - self.alpha) * self.filtered_percentage
-                        self.update_history(percentage, self.percentage_history)
+                    # Always update history
+                    self.update_history(percentage, self.percentage_history)
 
                     self.charging_history.append(is_charging)
                     if len(self.charging_history) > self.history_size:
