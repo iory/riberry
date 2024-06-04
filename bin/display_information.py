@@ -425,8 +425,13 @@ class DisplayInformation(object):
                 self.display_image(ros_display_image)
             else:
                 if get_ip_address() is None:
-                    self.display_qrcode(
-                        f'WIFI:S:radxa-{get_mac_address()};T:nopass;;')
+                    if self.device_type == 'Raspberry Pi':
+                        ssid = f'raspi-{get_mac_address()}'
+                    elif self.device_type == 'Radxa Zero':
+                        ssid = f'radxa-{get_mac_address()}'
+                    else:
+                        ssid = f'radxa-{get_mac_address()}'
+                    self.display_qrcode(f'WIFI:S:{ssid};T:nopass;;')
                     time.sleep(3)
                 else:
                     self.display_information()
