@@ -204,7 +204,7 @@ def majority_vote(history):
 
 class PisugarBatteryReader(threading.Thread):
 
-    def __init__(self, bus_number=3, device_address=0x57, alpha=0.1,
+    def __init__(self, bus_number=1, device_address=0x57, alpha=0.1,
                  value_threshold=1000, percentage_threshold=20,
                  history_size=5):
         super().__init__()
@@ -294,7 +294,7 @@ class DisplayInformation(object):
             self.i2c = busio.I2C(board.SCL, board.SDA)
             bus_number = 1
         elif self.device_type == 'Radxa Zero':
-            self.i2c = busio.I2C(board.SCL3, board.SDA3)
+            self.i2c = busio.I2C(board.SCL1, board.SDA1)
             bus_number = 3
         else:
             raise ValueError('Unknown device {}'.format(
