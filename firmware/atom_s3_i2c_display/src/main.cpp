@@ -68,9 +68,10 @@ enum ButtonState {
   DECUPLE_CLICK,    // 10 clicks
   PRESSED,
   RELEASED,
+  RESET,
   BUTTON_STATE_COUNT
 };
-ButtonState currentButtonState = NOT_CHANGED;
+ButtonState currentButtonState = RESET;
 
 static void handleClick() {
   currentButtonState = SINGLE_CLICK;

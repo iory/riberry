@@ -74,6 +74,19 @@ rosparam set /display_image ""
 
 By managing the `/display_image` parameter, you can control when and which images are displayed on your Atom S3.
 
+##### Button States for `/atom_s3_button_state` Topic
+
+The `/atom_s3_button_state` topic publishes messages of type `std_msgs/Int32`. The value corresponds to different button states as shown in the table below:
+
+
+| Button State        | Value   |
+|---------------------|---------|
+| Not Changed         | 0       |
+| Clicked 1-10 Times  | 1-10    |
+| Long Pressed        | 11      |
+| Released            | 12      |
+| Reset               | 13      |
+
 ## Distribute radxa image as SD card
 
 When distributing images, it's necessary to adjust the disk size among other parameters initially due to writing to an SD card.
