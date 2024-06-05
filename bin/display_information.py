@@ -204,9 +204,9 @@ def majority_vote(history):
 
 class PisugarBatteryReader(threading.Thread):
 
-    def __init__(self, bus_number=1, device_address=0x57, alpha=0.1,
+    def __init__(self, bus_number=1, device_address=0x57, alpha=0.9,
                  value_threshold=1000, percentage_threshold=20,
-                 history_size=5):
+                 history_size=10):
         super().__init__()
         self.bus_number = bus_number
         self.device_address = device_address
@@ -237,7 +237,8 @@ class PisugarBatteryReader(threading.Thread):
     def is_outlier(self, current, history, threshold):
         if not history:
             return False
-        return all(abs(current - h) > threshold for h in history)
+        ratio = sum(abs(current - h) > threshold for h in history) / len(history)
+        return ratio > 0.4
 
     def update_history(self, value, history):
         history.append(value)
