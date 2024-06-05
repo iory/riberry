@@ -40,6 +40,9 @@ def identify_device():
         with open('/proc/device-tree/model', 'r') as f:
             model = f.read().strip()
 
+        # remove null character
+        model = model.replace('\x00', '')
+
         if 'Radxa' in model or 'ROCK Pi' in model:
             return model
 
