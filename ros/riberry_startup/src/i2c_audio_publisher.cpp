@@ -1,4 +1,5 @@
 #include <audio_common_msgs/AudioData.h>
+#include <audio_common_msgs/AudioInfo.h>
 #include <cstdint>
 #include <cstring>
 #include <fcntl.h>
@@ -310,7 +311,16 @@ int main(int argc, char **argv) {
   ros::NodeHandle private_nh("~");
 
   ros::Publisher pub = nh.advertise<audio_common_msgs::AudioData>("/audio", 1);
+  ros::Publisher pub_audio_info = nh.advertise<audio_common_msgs::AudioInfo>("/audio_info", 1, true);
+  audio_common_msgs::AudioInfo audio_info_msg;
+  audio_info_msg.sample_rate = 8000;
+  audio_info_msg.channels = 1;
+  audio_info_msg.sample_format = "S16LE";
+  audio_info_msg.bitrate = 128;
+  audio_info_msg.coding_format = "wave";
   ros::Duration(3.0).sleep();
+
+  pub_audio_info.publish(audio_info_msg);
 
   std::string i2c_device;
   std::string i2c_lock_file;
