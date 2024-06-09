@@ -8,6 +8,91 @@
 #include <unistd.h>
 #include <vector>
 
+#include <cerrno>
+#include <chrono>
+#include <cstdint>
+#include <cstring>
+#include <fcntl.h>
+#include <filesystem>
+#include <iostream>
+#include <linux/i2c-dev.h>
+#include <ros/ros.h>
+#include <std_msgs/Int32.h>
+#include <stdexcept>
+#include <sys/file.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <thread>
+#include <unistd.h>
+#include <vector>
+
+// The code has been adapted to ensure consistency with the FileLock behavior in a Python program.
+// https://github.com/tox-dev/filelock/blob/main/src/filelock/_unix.py
+class FileLock {
+public:
+    FileLock(const std::string& filename, int timeoutSecs = 10) : lockFile(filename), timeoutSecs(timeoutSecs), lockFileFd(-1), mode(0666) {}
+
+    void acquire() {
+        ensureDirectoryExists();
+        int openFlags = O_RDWR | O_TRUNC;
+        if (!std::filesystem::exists(lockFile)) {
+            openFlags |= O_CREAT;
+        }
+        lockFileFd = open(lockFile.c_str(), openFlags, mode);
+        if (lockFileFd == -1) {
+            throw std::runtime_error("Failed to open lock file");
+        }
+        try {
+            fchmod(lockFileFd, mode);
+        } catch (...) {
+            // Ignore PermissionError: This locked is not owned by this UID
+        }
+
+        auto start = std::chrono::steady_clock::now();
+        while (true) {
+            if (flock(lockFileFd, LOCK_EX | LOCK_NB) != -1) {
+                break;
+            }
+            if (std::chrono::steady_clock::now() - start > std::chrono::seconds(timeoutSecs)) {
+                close(lockFileFd);
+                lockFileFd = -1;
+                throw std::runtime_error("Failed to acquire file lock: timeout");
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+
+    void release() {
+        if (lockFileFd != -1) {
+            flock(lockFileFd, LOCK_UN);
+            close(lockFileFd);
+            lockFileFd = -1;
+        }
+    }
+
+    ~FileLock() {
+        if (lockFileFd != -1) {
+            release();
+        }
+    }
+
+private:
+    std::string lockFile;
+    int timeoutSecs;
+    int lockFileFd;
+    mode_t mode;
+
+    void ensureDirectoryExists() {
+        std::filesystem::path dir = std::filesystem::path(lockFile).parent_path();
+        if (!std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
+        }
+    }
+};
+
+
+
 
 class WireCrc {
 public:
@@ -228,10 +313,12 @@ int main(int argc, char **argv) {
   ros::Duration(3.0).sleep();
 
   std::string i2c_device;
+  std::string i2c_lock_file;
   int buffer_size;
   int i2c_addr;
 
   private_nh.param<std::string>("i2c_device", i2c_device, "/dev/i2c-3");
+  private_nh.param<std::string>("i2c_lock_file", i2c_lock_file, "/tmp/i2c-3.lock");
   private_nh.param("buffer_size", buffer_size, 4096);
   private_nh.param("i2c_addr", i2c_addr, 0x41);
 
@@ -253,16 +340,29 @@ int main(int argc, char **argv) {
   uint8_t write_buf[5] = {2, 1, 5, 0, 4};
 
   WireUnpacker unpacker(buffer_size);
+  FileLock fileLock(i2c_lock_file.c_str());
 
+  ssize_t bytesRead;
   while (ros::ok()) {
-    write(file_descriptor, write_buf, sizeof(write_buf));
+
     ros::Duration(0.01).sleep();
 
-    ssize_t bytesRead = read(file_descriptor, rxBuffer.data(), rxBuffer.size());
+    try {
+      fileLock.acquire();
+      write(file_descriptor, write_buf, sizeof(write_buf));
+      ros::Duration(0.05).sleep();
+      bytesRead = read(file_descriptor, rxBuffer.data(), rxBuffer.size());
+      fileLock.release();
+    } catch (const std::runtime_error& e) {
+      ROS_ERROR_STREAM("An error occurred: " << e.what());
+      break;
+    }
+
     if (bytesRead <= 0) {
       ROS_ERROR("Failed to read from the audio sensor");
       continue;
     }
+
     rxBuffer.resize(bytesRead);
     unpacker.reset();
     unpacker.write_data_list(rxBuffer);
