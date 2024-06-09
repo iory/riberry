@@ -335,9 +335,6 @@ std::vector<uint8_t> publishAudioSegments(ros::Publisher& pub, const std::vector
     audio_common_msgs::AudioData audio_msg;
     audio_msg.data = segment;
     pub.publish(audio_msg);
-
-    // Sleep for 10ms before publishing the next segment
-    ros::Duration(0.01).sleep();
   }
 
   // Return any remaining carryover data
