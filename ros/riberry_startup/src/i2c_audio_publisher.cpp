@@ -305,6 +305,50 @@ void convertAndPack(const std::vector<uint8_t>& input, std::vector<uint8_t>& res
   }
 }
 
+
+
+std::vector<uint8_t> publishAudioSegments(ros::Publisher& pub, const std::vector<uint8_t>& convertedPayload, int sampleRate) {
+  const int samplesPer10ms = sampleRate / 100; // 10ms worth of samples
+  size_t totalSamples = convertedPayload.size() / 2; // Each sample is 2 bytes (int16_t)
+  std::vector<uint8_t> carryOver;
+
+  for (size_t i = 0; i < totalSamples; i += samplesPer10ms) {
+    std::vector<uint8_t> segment;
+
+    // Include any carryover from the previous segment
+    segment.insert(segment.end(), carryOver.begin(), carryOver.end());
+    carryOver.clear();
+
+    // Determine the end index for this segment
+    size_t end = std::min(i + samplesPer10ms, totalSamples) * 2; // Multiply by 2 for byte indexing
+    for (size_t j = i * 2; j < end; ++j) {
+      segment.push_back(convertedPayload[j]);
+    }
+
+    // If the segment is less than the required size, carry over the remainder to the next segment
+    if (segment.size() < samplesPer10ms * 2) {
+      carryOver.insert(carryOver.end(), segment.begin(), segment.end());
+      continue;
+    }
+
+    // Publish the segment
+    audio_common_msgs::AudioData audio_msg;
+    audio_msg.data = segment;
+    pub.publish(audio_msg);
+
+    // Sleep for 10ms before publishing the next segment
+    ros::Duration(0.01).sleep();
+  }
+
+  // Return any remaining carryover data
+  if (!carryOver.empty()) {
+    return carryOver;
+  } else {
+    return std::vector<uint8_t>();
+  }
+}
+
+
 int main(int argc, char **argv) {
   ros::init(argc, argv, "i2c_audio_publisher");
   ros::NodeHandle nh;
@@ -346,6 +390,7 @@ int main(int argc, char **argv) {
 
   std::vector<uint8_t> rxBuffer(buffer_size);
   std::vector<uint8_t> convertedPayload;
+  std::vector<uint8_t> carryOver;
 
   uint8_t write_buf[5] = {2, 1, 5, 0, 4};
 
@@ -379,9 +424,9 @@ int main(int argc, char **argv) {
     std::vector<uint8_t> payload = unpacker.getPayload();
     convertAndPack(payload, convertedPayload);
     if (!convertedPayload.empty()) {
-      audio_common_msgs::AudioData audio_msg;
-      audio_msg.data = convertedPayload;
-      pub.publish(audio_msg);
+      std::vector<uint8_t> combinedPayload = carryOver;
+      combinedPayload.insert(combinedPayload.end(), convertedPayload.begin(), convertedPayload.end());
+      carryOver = publishAudioSegments(pub, combinedPayload, audio_info_msg.sample_rate);
     }
     ros::spinOnce();
   }
