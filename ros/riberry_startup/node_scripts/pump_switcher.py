@@ -16,6 +16,7 @@ class PumpSwitcher(object):
         self.mosfet = digitalio.DigitalInOut(board.D19)
         self.mosfet.direction = digitalio.Direction.OUTPUT
         self.mosfet.value = False  # default: D19 is low
+        self.prev_state = self.mosfet.value
         # ROS publisher
         self.state_pub = rospy.Publisher('pump_state', Bool, queue_size=10)
         # ROS subscribers
@@ -26,15 +27,19 @@ class PumpSwitcher(object):
         self.timer = rospy.Timer(rospy.Duration(1), self.publish_state)
 
     def on_cb(self, msg):
-        rospy.loginfo("Pump on")
+        if self.prev_state is False:
+            rospy.loginfo("Pump on")
         self.mosfet.value = True
+        self.prev_state = self.mosfet.value
 
     def off_cb(self, msg):
-        rospy.loginfo("Pump off")
+        if self.prev_state is True:
+            rospy.loginfo("Pump off")
         self.mosfet.value = False
+        self.prev_state = self.mosfet.value
 
     def publish_state(self, event=None):
-        rospy.loginfo(f"Publishing pump state: {self.mosfet.value}")
+        rospy.logdebug(f"Publishing pump state: {self.mosfet.value}")
         self.state_pub.publish(self.mosfet.value)
 
 if __name__ == '__main__':
