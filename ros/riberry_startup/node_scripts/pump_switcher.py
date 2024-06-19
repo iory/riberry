@@ -34,7 +34,7 @@ class PumpSwitcher(object):
         self.mosfet.value = False
 
     def publish_state(self, event=None):
-        rospy.loginfo(f"Publishing pump state: {self.mosfet.value}")
+        rospy.logdebug(f"Publishing pump state: {self.mosfet.value}")
         self.state_pub.publish(self.mosfet.value)
 
 if __name__ == '__main__':

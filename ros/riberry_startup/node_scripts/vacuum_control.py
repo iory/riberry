@@ -62,7 +62,7 @@ class VacuumControl(object):
                     self.atm_pressure))
             return
         differential_pressure = self.atm_pressure - vacuum_pressure
-        rospy.loginfo('Differential pressure: {:.1f}'.format(differential_pressure))
+        rospy.logdebug('Differential pressure: {:.1f}'.format(differential_pressure))
         # Control vacuum state
         if self.vacuum is True:
             if differential_pressure < self.vacuum_threshold:
@@ -72,7 +72,7 @@ class VacuumControl(object):
                 self.pub_off.publish(Empty())
 
     def publish_state(self, event=None):
-        rospy.loginfo(f"Publishing vacuum control state: {self.vacuum}")
+        rospy.logdebug(f"Publishing vacuum control state: {self.vacuum}")
         self.state_pub.publish(self.vacuum)
 
 
