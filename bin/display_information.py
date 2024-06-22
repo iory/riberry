@@ -27,6 +27,8 @@ sys.stdout.reconfigure(line_buffering=True)
 
 
 pisugar_battery_percentage = None
+debug_battery = False
+debug_i2c_text = False
 
 
 def identify_device():
@@ -267,8 +269,9 @@ class PisugarBatteryReader(threading.Thread):
                     if len(self.charging_history) > self.history_size:
                         self.charging_history.pop(0)
 
-                print(f"RAW Percentage: {percentage:.2f}")
-                print(f"Filtered Percentage: {self.filtered_percentage:.2f}")
+                if debug_battery:
+                    print(f"RAW Percentage: {percentage:.2f}")
+                    print(f"Filtered Percentage: {self.filtered_percentage:.2f}")
                 time.sleep(0.2)
         finally:
             self.bus.close()
@@ -376,8 +379,9 @@ class DisplayInformation(object):
             sent_str += '{}\n'.format(ros_additional_message)
             ros_additional_message = None
 
-        print('send the following message')
-        print(sent_str)
+        if debug_i2c_text:
+            print('send the following message')
+            print(sent_str)
         packer = WirePacker(buffer_size=len(sent_str) + 8)
         for s in sent_str:
             packer.write(ord(s))
