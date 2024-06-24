@@ -21,6 +21,8 @@ if [[ "$model" == *raspberry* ]]; then
     MODEL="raspi"
 elif [[ "$model" == *radxa* ]]; then
     MODEL="radxa"
+elif [[ "$model" == "Khadas VIM4" ]]; then
+    MODEL="vim4"
 else
     MODEL="unknown"
 fi

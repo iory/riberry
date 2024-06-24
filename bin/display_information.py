@@ -6,11 +6,11 @@ import subprocess
 import sys
 import time
 import threading
+import io
+import fcntl
 from collections import Counter
 
 import cv2
-import board
-import busio
 from colorama import Fore
 from i2c_for_esp32 import WirePacker
 from pybsc.image_utils import squared_padding_image
@@ -18,6 +18,40 @@ from pybsc import nsplit
 from filelock import FileLock
 from filelock import Timeout
 import smbus2
+
+
+I2C_SLAVE = 0x0703
+
+if sys.hexversion < 0x03000000:
+   def _b(x):
+      return x
+else:
+   def _b(x):
+      return x.encode('latin-1')
+
+
+class i2c:
+
+    def __init__(self, device=0x42, bus=5):
+        self.fr = io.open("/dev/i2c-"+str(bus), "rb", buffering=0)
+        self.fw = io.open("/dev/i2c-"+str(bus), "wb", buffering=0)
+        # set device address
+        fcntl.ioctl(self.fr, I2C_SLAVE, device)
+        fcntl.ioctl(self.fw, I2C_SLAVE, device)
+
+    def write(self, data):
+        if type(data) is list:
+            data = bytearray(data)
+        elif type(data) is str:
+            data = _b(data)
+        self.fw.write(data)
+
+    def read(self, count):
+        return self.fr.read(count)
+
+    def close(self):
+        self.fw.close()
+        self.fr.close()
 
 
 # Ensure that the standard output is line-buffered. This makes sure that
@@ -45,7 +79,7 @@ def identify_device():
         # remove null character
         model = model.replace('\x00', '')
 
-        if 'Radxa' in model or 'ROCK Pi' in model:
+        if 'Radxa' in model or 'ROCK Pi' in model or model in 'Khadas VIM4':
             return model
 
         return 'Unknown Device'
@@ -295,18 +329,28 @@ class DisplayInformation(object):
         self.i2c_addr = i2c_addr
         self.device_type = identify_device()
         if self.device_type == 'Raspberry Pi':
+            import board
+            import busio
             self.i2c = busio.I2C(board.SCL, board.SDA)
             bus_number = 1
         elif self.device_type == 'Radxa Zero':
+            import board
+            import busio
             self.i2c = busio.I2C(board.SCL1, board.SDA1)
             bus_number = 3
+        elif self.device_type == 'Khadas VIM4':
+            self.i2c = i2c()
+            bus_number = None
         else:
             raise ValueError('Unknown device {}'.format(
                 self.device_type))
         self.lock = FileLock(lock_path, timeout=10)
-        self.pisugar_reader = PisugarBatteryReader(bus_number)
-        self.pisugar_reader.daemon = True
-        self.pisugar_reader.start()
+        if bus_number:
+            self.pisugar_reader = PisugarBatteryReader(bus_number)
+            self.pisugar_reader.daemon = True
+            self.pisugar_reader.start()
+        else:
+            self.pisugar_reader = None
 
     def display_image(self, img):
         img = squared_padding_image(img, 128)
@@ -353,25 +397,27 @@ class DisplayInformation(object):
             socket.gethostname(), Fore.YELLOW, ip, Fore.RESET)
         master_str = 'ROS_MASTER:\n' + Fore.RED + '{}'.format(
             get_ros_master_ip()) + Fore.RESET
-        battery = self.pisugar_reader.get_filtered_percentage()
-        pisugar_battery_percentage = battery
-        if battery is None:
-            battery_str = 'Bat: None'
-        else:
-            if battery <= 20:
-                battery_str = 'Bat: {}{}%{}'.format(
-                    Fore.RED, int(battery), Fore.RESET)
+        battery_str = ''
+        if self.pisugar_reader:
+            battery = self.pisugar_reader.get_filtered_percentage()
+            pisugar_battery_percentage = battery
+            if battery is None:
+                battery_str = 'Bat: None'
             else:
-                battery_str = 'Bat: {}{}%{}'.format(
-                    Fore.GREEN, int(battery), Fore.RESET)
-        # charging = battery_charging()
-        charging = self.pisugar_reader.get_is_charging()
-        if charging is True:
-            battery_str += '+'
-        elif charging is False:
-            battery_str += '-'
-        else:
-            battery_str += '?'
+                if battery <= 20:
+                    battery_str = 'Bat: {}{}%{}'.format(
+                        Fore.RED, int(battery), Fore.RESET)
+                else:
+                    battery_str = 'Bat: {}{}%{}'.format(
+                        Fore.GREEN, int(battery), Fore.RESET)
+            # charging = battery_charging()
+            charging = self.pisugar_reader.get_is_charging()
+            if charging is True:
+                battery_str += '+'
+            elif charging is False:
+                battery_str += '-'
+            else:
+                battery_str += '?'
         sent_str = '{}\n{}\n{}\n'.format(
             ip_str, master_str, battery_str)
 
