@@ -1,8 +1,11 @@
 [Unit]
 Description=Startup Riberry launch service
-After=roscore.service  # This service starts after roscore.service
-Requires=roscore.service  # This service requires roscore.service
-BindsTo=roscore.service  # If roscore.service is stopped or restarted, this service will also be stopped or restarted
+# This service starts after roscore.service
+After=roscore.service
+# This service requires roscore.service
+Requires=roscore.service
+# If roscore.service is stopped or restarted, this service will also be stopped or restarted
+BindsTo=roscore.service
 
 [Service]
 EnvironmentFile=-/etc/opt/riberry/riberry.user
