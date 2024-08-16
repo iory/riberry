@@ -3,28 +3,15 @@
 import threading
 
 import rospy
-from std_msgs.msg import Int32, Empty
+
 from kxr_controller.kxr_interface import KXRROSRobotInterface
+from kxr_controller.msg import PressureControl
+from kxr_controller.msg import ServoOnOff
 from skrobot.model import RobotModel
+from std_msgs.msg import Int32
 
 
-class PumpOnOff(object):
-    """
-    Pressing and holding AtomS3 toggles the pump on and off.
-    """
-    def __init__(self):
-        self.pub_toggle = rospy.Publisher(
-            "/robot_a/vacuum_toggle", Empty, queue_size=1)
-        rospy.Subscriber(
-            "/atom_s3_button_state", Int32, callback=self.cb, queue_size=1)
-
-    def cb(self, msg):
-        # When AtomS3 is pressed and holded
-        if msg.data == 11:
-            self.pub_toggle.publish(Empty())
-
-       
-class ServoOnOff(threading.Thread):
+class ButtonActionManager(threading.Thread):
     """
     4 clicks to turn servo off, 5 clicks to turn servo on.
     The process may stop when creating a KXRROSRobotInterface instance.
@@ -33,20 +20,79 @@ class ServoOnOff(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
         self.ri = None
+
+        # Pressure control
+        self.pressure_control_state = {}
         rospy.Subscriber(
-            "/atom_s3_button_state", Int32, callback=self.cb, queue_size=1)
+            "/kxr_fullbody_controller/pressure_control_interface/state",
+            PressureControl,
+            callback=self.pressure_control_cb, queue_size=1)
+        # Servo on off
+        self.servo_on_states = None
+        rospy.Subscriber(
+            "/kxr_fullbody_controller/servo_on_off_real_interface/state",
+            ServoOnOff, callback=self.servo_on_off_cb, queue_size=1)
+        # Button
+        rospy.Subscriber(
+            "/atom_s3_button_state", Int32,
+            callback=self.button_cb, queue_size=1)
+
         self.start()
 
-    def cb(self, msg):
+    def pressure_control_cb(self, msg):
+        self.pressure_control_state[f'{msg.board_idx}'] = msg
+
+    def servo_on_off_cb(self, msg):
+        self.servo_on_states = msg
+
+    def button_cb(self, msg):
+        """
+        When AtomS3 is
+        - pressed and holded, toggle pressure control.
+        - pressed once, toggle servo on off.
+        """
         state = msg.data
-        if state == 4 or state == 5:
-            if self.ri is None:
-                rospy.logwarn("KXRROSRobotInterface instance is not created.")
-                return
-            if state == 4:
-                self.ri.servo_off()
-            elif state == 5:
-                self.ri.servo_on()
+        if state == 11:
+            rospy.loginfo('AtomS3 is pressed and holded. Toggle pressure control.')
+            self.toggle_pressure_control()
+        if state == 1:
+            rospy.loginfo('AtomS3 is pressed once. Toggle servo on off.')
+            self.toggle_servo_on_off()
+
+    def toggle_pressure_control(self):
+        """
+        Toggle release status
+        """
+        if self.ri is None:
+            rospy.logwarn("KXRROSRobotInterface instance is not created.")
+            return
+        board_ids = list(self.pressure_control_state.keys())
+        for idx in board_ids:
+            state = self.pressure_control_state[f'{idx}']
+            if state.threshold == 0:
+                threshold = -20
+            else:
+                threshold = state.threshold
+            self.ri.send_pressure_control(
+                board_idx=int(idx),
+                threshold=threshold,
+                release=(not state.release))
+
+    def toggle_servo_on_off(self):
+        """
+        If one of the servos is on, turn the entire servo off.
+        If all of the servos is off, turn the entire servo on.
+        """
+        if self.ri is None:
+            rospy.logwarn("KXRROSRobotInterface instance is not created.")
+            return
+        if self.servo_on_states is None:
+            return
+        servo_on_states = self.servo_on_states.servo_on_states
+        if any(servo_on_states) is True:
+            self.ri.servo_off()
+        else:
+            self.ri.servo_on()
 
     def run(self):
         """
@@ -66,8 +112,7 @@ if __name__ == "__main__":
     to prevent different actions from being assigned to the same click.
     """
     rospy.init_node('button_action_manager')
-    PumpOnOff()
-    ServoOnOff()
+    ButtonActionManager()
     try:
         rospy.spin()
     except KeyboardInterrupt:
