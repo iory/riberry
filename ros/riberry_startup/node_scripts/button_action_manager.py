@@ -69,13 +69,16 @@ class ButtonActionManager(threading.Thread):
         board_ids = list(self.pressure_control_state.keys())
         for idx in board_ids:
             state = self.pressure_control_state[f'{idx}']
-            if state.threshold == 0:
-                threshold = -20
+            if state.start_pressure == 0 and state.stop_pressure == 0:
+                start_pressure = -10
+                stop_pressure = -30
             else:
-                threshold = state.threshold
+                start_pressure = state.start_pressure
+                stop_pressure = state.stop_pressure
             self.ri.send_pressure_control(
                 board_idx=int(idx),
-                threshold=threshold,
+                start_pressure=start_pressure,
+                stop_pressure=stop_pressure,
                 release=(not state.release))
 
     def toggle_servo_on_off(self):
