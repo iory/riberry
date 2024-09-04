@@ -243,6 +243,120 @@ def get_ros_master_ip():
     return master_ip
 
 
+class BatteryMonitor(object):
+
+    BATTERY_DEVICE_ADDRESS = 0x5c
+    REG27H = 0x27  # Battery Charge Current
+    REG26H = 0x26  # System Voltage
+    REG24H = 0x24  # Input Current
+    REG25H = 0x25  # Battery Voltage
+
+    def __init__(self, bus_number=3):
+        self.bus = smbus2.SMBus(bus_number)
+
+    def calculate_lipo_percentage(self, voltage):
+        max_voltage = 8.4  # 100%
+        min_voltage = 6.0  # 0%
+
+        if voltage >= max_voltage:
+            return 100
+        elif voltage <= min_voltage:
+            return 0
+        percentage = (voltage - min_voltage) / (
+           max_voltage - min_voltage) * 100
+        return round(percentage, 2)
+
+    def read_register(self, register):
+        value = self.bus.read_word_data(self.BATTERY_DEVICE_ADDRESS, register)
+        return value
+
+    def calculate_voltage_from_bits(self, bits):
+        voltage = 0
+        voltage += ((bits & 0x200) >> 9) * 2560
+        voltage += ((bits & 0x100) >> 8) * 1280
+        voltage += ((bits & 0x080) >> 7) * 640
+        voltage += ((bits & 0x040) >> 6) * 320
+        voltage += ((bits & 0x020) >> 5) * 160
+        voltage += ((bits & 0x010) >> 4) * 80
+        voltage += ((bits & 0x008) >> 3) * 40
+        voltage += ((bits & 0x004) >> 2) * 20
+        voltage += ((bits & 0x002) >> 1) * 10
+        voltage += (bits & 0x001) * 5
+        return voltage
+
+    def read_input_voltage(self):
+        reg23_value = self.read_register(0x23)
+        input_voltage = 0
+        input_voltage += ((reg23_value & 0x200) >> 9) * 10240
+        input_voltage += ((reg23_value & 0x100) >> 8) * 5120
+        input_voltage += ((reg23_value & 0x080) >> 7) * 2560
+        input_voltage += ((reg23_value & 0x040) >> 6) * 1280
+        input_voltage += ((reg23_value & 0x020) >> 5) * 640
+        input_voltage += ((reg23_value & 0x010) >> 4) * 320
+        input_voltage += ((reg23_value & 0x008) >> 3) * 160
+        input_voltage += ((reg23_value & 0x004) >> 2) * 80
+        input_voltage += ((reg23_value & 0x002) >> 1) * 40
+        input_voltage += (reg23_value & 0x001) * 20
+        return 0.001 * input_voltage
+
+    def read_system_voltage(self):
+        reg26_value = self.read_register(self.REG26H)
+        system_voltage = 0
+        system_voltage += ((reg26_value & 0x200) >> 9) * 10240
+        system_voltage += ((reg26_value & 0x100) >> 8) * 5120
+        system_voltage += ((reg26_value & 0x080) >> 7) * 2560
+        system_voltage += ((reg26_value & 0x040) >> 6) * 1280
+        system_voltage += ((reg26_value & 0x020) >> 5) * 640
+        system_voltage += ((reg26_value & 0x010) >> 4) * 320
+        system_voltage += ((reg26_value & 0x008) >> 3) * 160
+        system_voltage += ((reg26_value & 0x004) >> 2) * 80
+        system_voltage += ((reg26_value & 0x002) >> 1) * 40
+        system_voltage += (reg26_value & 0x001) * 20
+        return 0.001 * system_voltage
+
+    def read_battery_voltage(self):
+        reg25_value = self.read_register(self.REG25H)
+        battery_voltage = 2 * self.calculate_voltage_from_bits(reg25_value)
+        return 0.001 * battery_voltage
+
+    def read_input_current(self, register_address):
+        reg24_value = self.read_register(register_address)
+        input_current = 0
+        input_current += ((reg24_value & 0x200) >> 9) * 3200
+        input_current += ((reg24_value & 0x100) >> 8) * 1600
+        input_current += ((reg24_value & 0x080) >> 7) * 800
+        input_current += ((reg24_value & 0x040) >> 6) * 400
+        input_current += ((reg24_value & 0x020) >> 5) * 200
+        input_current += ((reg24_value & 0x010) >> 4) * 100
+        input_current += ((reg24_value & 0x008) >> 3) * 50
+        input_current += ((reg24_value & 0x004) >> 2) * 25
+        input_current += ((reg24_value & 0x002) >> 1) * 12.5
+        input_current += (reg24_value & 0x001) * 6.25
+        return input_current
+
+    def read_junction_temperature(self):
+        reg2a_value = self.read_register(0x2A)
+        junction_temp = 0
+        junction_temp += ((reg2a_value & 0x200) >> 9) * 512
+        junction_temp += ((reg2a_value & 0x100) >> 8) * 256
+        junction_temp += ((reg2a_value & 0x080) >> 7) * 128
+        junction_temp += ((reg2a_value & 0x040) >> 6) * 64
+        junction_temp += ((reg2a_value & 0x020) >> 5) * 32
+        junction_temp += ((reg2a_value & 0x010) >> 4) * 16
+        junction_temp += ((reg2a_value & 0x008) >> 3) * 8
+        junction_temp += ((reg2a_value & 0x004) >> 2) * 4
+        junction_temp += ((reg2a_value & 0x002) >> 1) * 2
+        junction_temp += (reg2a_value & 0x001) * 1
+        return 314 - 0.5703 * junction_temp
+
+    def get_filtered_percentage(self):
+        battery_voltage = self.read_battery_voltage()
+        return self.calculate_lipo_percentage(battery_voltage)
+
+    def get_is_charging(self):
+        return self.read_input_current(self.REG27H) > 0
+
+
 def majority_vote(history):
     if not history:
         return 0
@@ -364,7 +478,7 @@ class PisugarBatteryReader(threading.Thread):
 
 class DisplayInformation(object):
 
-    def __init__(self, i2c_addr):
+    def __init__(self, i2c_addr, use_pisugar=False):
         self.i2c_addr = i2c_addr
         self.device_type = identify_device()
         if self.device_type == 'Raspberry Pi':
@@ -384,10 +498,14 @@ class DisplayInformation(object):
             raise ValueError('Unknown device {}'.format(
                 self.device_type))
         self.lock = FileLock(lock_path, timeout=10)
+        self.use_pisugar = use_pisugar
         if bus_number:
-            self.pisugar_reader = PisugarBatteryReader(bus_number)
-            self.pisugar_reader.daemon = True
-            self.pisugar_reader.start()
+            if use_pisugar:
+                self.pisugar_reader = PisugarBatteryReader(bus_number)
+                self.pisugar_reader.daemon = True
+                self.pisugar_reader.start()
+            else:
+                self.pisugar_reader = BatteryMonitor(bus_number)
         else:
             self.pisugar_reader = None
 
