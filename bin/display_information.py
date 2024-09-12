@@ -254,6 +254,32 @@ class BatteryMonitor(object):
     def __init__(self, bus_number=3):
         self.bus = smbus2.SMBus(bus_number)
 
+    def set_adc_continuous_mode(self, set_bit=True):
+        try:
+            word = self.bus.read_word_data(
+                self.BATTERY_DEVICE_ADDRESS,
+                0x0e)
+        except Exception as e:
+            print('[Battery Monitor] Error reading from I2C: {}'.format(e))
+            return
+        current_bit = (word >> 7) & 1
+        if current_bit == set_bit:
+            print('[Battery Monitor] 7bit is already set to the desired value. No action needed.')
+            return
+        if set_bit:
+            print('[Battery Monitor] Set ADC_CONV to Continuous')
+            set_adc_word = word | (1 << 7)
+        else:
+            print('[Battery Monitor] Set ADC_CONV to One-shot conversion')
+            set_adc_word = word & ~(1 << 7)
+        try:
+            self.bus.write_word_data(
+                self.BATTERY_DEVICE_ADDRESS,
+                0x0e, set_adc_word)
+        except Exception as e:
+            print('[Battery Monitor] Error writing I2C: {}'.format(e))
+            return
+
     def calculate_lipo_percentage(self, voltage):
         max_voltage = 8.4  # 100%
         min_voltage = 6.0  # 0%
@@ -364,6 +390,7 @@ class BatteryMonitor(object):
         return 314 - 0.5703 * junction_temp
 
     def get_filtered_percentage(self):
+        self.set_adc_continuous_mode(set_bit=True)
         battery_voltage = self.read_battery_voltage()
         if battery_voltage is None:
             return None
@@ -371,6 +398,7 @@ class BatteryMonitor(object):
 
     def get_is_charging(self):
         input_current = self.read_input_current(self.REG27H)
+        self.set_adc_continuous_mode(set_bit=False)
         if input_current is None:
             return None
         return input_current > 0
