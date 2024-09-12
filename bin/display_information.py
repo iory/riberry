@@ -267,7 +267,11 @@ class BatteryMonitor(object):
         return round(percentage, 2)
 
     def read_register(self, register):
-        value = self.bus.read_word_data(self.BATTERY_DEVICE_ADDRESS, register)
+        try:
+            value = self.bus.read_word_data(self.BATTERY_DEVICE_ADDRESS, register)
+        except Exception as e:
+            print('[Battery Monitor] {}'.format(e))
+            return None
         return value
 
     def calculate_voltage_from_bits(self, bits):
@@ -286,6 +290,8 @@ class BatteryMonitor(object):
 
     def read_input_voltage(self):
         reg23_value = self.read_register(0x23)
+        if reg23_value is None:
+            return None
         input_voltage = 0
         input_voltage += ((reg23_value & 0x200) >> 9) * 10240
         input_voltage += ((reg23_value & 0x100) >> 8) * 5120
@@ -301,6 +307,8 @@ class BatteryMonitor(object):
 
     def read_system_voltage(self):
         reg26_value = self.read_register(self.REG26H)
+        if reg26_value is None:
+            return None
         system_voltage = 0
         system_voltage += ((reg26_value & 0x200) >> 9) * 10240
         system_voltage += ((reg26_value & 0x100) >> 8) * 5120
@@ -316,11 +324,15 @@ class BatteryMonitor(object):
 
     def read_battery_voltage(self):
         reg25_value = self.read_register(self.REG25H)
+        if reg25_value is None:
+            return None
         battery_voltage = 2 * self.calculate_voltage_from_bits(reg25_value)
         return 0.001 * battery_voltage
 
     def read_input_current(self, register_address):
         reg24_value = self.read_register(register_address)
+        if reg24_value is None:
+            return None
         input_current = 0
         input_current += ((reg24_value & 0x200) >> 9) * 3200
         input_current += ((reg24_value & 0x100) >> 8) * 1600
@@ -336,6 +348,8 @@ class BatteryMonitor(object):
 
     def read_junction_temperature(self):
         reg2a_value = self.read_register(0x2A)
+        if reg2a_value is None:
+            return None
         junction_temp = 0
         junction_temp += ((reg2a_value & 0x200) >> 9) * 512
         junction_temp += ((reg2a_value & 0x100) >> 8) * 256
@@ -351,10 +365,15 @@ class BatteryMonitor(object):
 
     def get_filtered_percentage(self):
         battery_voltage = self.read_battery_voltage()
+        if battery_voltage is None:
+            return None
         return self.calculate_lipo_percentage(battery_voltage)
 
     def get_is_charging(self):
-        return self.read_input_current(self.REG27H) > 0
+        input_current = self.read_input_current(self.REG27H)
+        if input_current is None:
+            return None
+        return input_current > 0
 
 
 def majority_vote(history):
@@ -478,7 +497,7 @@ class PisugarBatteryReader(threading.Thread):
 
 class DisplayInformation(object):
 
-    def __init__(self, i2c_addr, use_pisugar=False):
+    def __init__(self, i2c_addr):
         self.i2c_addr = i2c_addr
         self.device_type = identify_device()
         if self.device_type == 'Raspberry Pi':
@@ -498,6 +517,17 @@ class DisplayInformation(object):
             raise ValueError('Unknown device {}'.format(
                 self.device_type))
         self.lock = FileLock(lock_path, timeout=10)
+        use_pisugar = False
+        try:
+            battery_monitor = BatteryMonitor(bus_number)
+            voltage = battery_monitor.read_battery_voltage()
+            if voltage is None:
+                print('[Display Information] Use Pisugar')
+                use_pisugar = True
+            else:
+                print('[Display Information] Use JSK Battery Board')
+        except Exception as e:
+            print('[Display Information] Use JSK Battery Board')
         self.use_pisugar = use_pisugar
         if bus_number:
             if use_pisugar:
