@@ -19,6 +19,18 @@ from filelock import FileLock
 from filelock import Timeout
 import smbus2
 
+IP5209_CURVE = [
+    (4160, 100),
+    (4050, 95),
+    (4000, 80),
+    (3920, 65),
+    (3860, 40),
+    (3790, 25),
+    (3660, 10),
+    (3520, 6),
+    (3490, 3),
+    (3100, 0),
+]
 
 I2C_SLAVE = 0x0703
 
@@ -266,6 +278,33 @@ class PisugarBatteryReader(threading.Thread):
             else:
                 value = self.bus.read_byte_data(self.device_address, 0x2A)
             return value
+        except OSError as _:
+            # for pisugar2
+            try:
+                vol_low = self.bus.read_byte_data(0x75, 0xa2)
+                vol_high = self.bus.read_byte_data(0x75, 0xa3)
+                if not (0 <= vol_low <= 255 and 0 <= vol_high <= 255):
+                    print("[Pisugar Battery Reader] Invalid voltage data")
+                    return
+                if (vol_high & 0x20) == 0x20:
+                    vol = 2600 - (~vol_low + (~(vol_high & 0x1F)) * 256 + 1) * 27 // 100
+                else:
+                    vol = 2600 + (vol_low + vol_high * 256) * 27 // 100
+                cap = 0
+                for i in range(len(IP5209_CURVE)):
+                    if vol >= IP5209_CURVE[i][0]:
+                        cap = IP5209_CURVE[i][1]
+                        if i == 0:
+                            break
+                    if i > 0:
+                        vol_diff_v = vol - IP5209_CURVE[i][0]
+                        k = (IP5209_CURVE[i - 1][1] - IP5209_CURVE[i][1]) / (IP5209_CURVE[i - 1][0] - IP5209_CURVE[i][0])
+                        cap += int(k * vol_diff_v)
+                        break
+                return cap
+            except Exception as e:
+                print('[Pisugar Battery Reader] {}'.format(e))
+                return None
         except Exception as e:
             print('[Pisugar Battery Reader] {}'.format(e))
             return None
