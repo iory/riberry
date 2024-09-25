@@ -35,11 +35,11 @@ IP5209_CURVE = [
 I2C_SLAVE = 0x0703
 
 if sys.hexversion < 0x03000000:
-   def _b(x):
-      return x
+    def _b(x):
+        return x
 else:
-   def _b(x):
-      return x.encode('latin-1')
+    def _b(x):
+        return x.encode('latin-1')
 
 
 class i2c:
@@ -243,7 +243,7 @@ def get_ros_master_ip():
     return master_ip
 
 
-class BatteryMonitor(object):
+class MP2760BatteryMonitor(object):
 
     BATTERY_DEVICE_ADDRESS = 0x5c
     REG27H = 0x27  # Battery Charge Current
@@ -264,7 +264,9 @@ class BatteryMonitor(object):
             return
         current_bit = (word >> 7) & 1
         if current_bit == set_bit:
-            print('[Battery Monitor] 7bit is already set to the desired value. No action needed.')
+            print(
+               '[Battery Monitor] 7bit is already set to the desired value. ',
+               'No action needed.')
             return
         if set_bit:
             print('[Battery Monitor] Set ADC_CONV to Continuous')
@@ -294,7 +296,8 @@ class BatteryMonitor(object):
 
     def read_register(self, register):
         try:
-            value = self.bus.read_word_data(self.BATTERY_DEVICE_ADDRESS, register)
+            value = self.bus.read_word_data(
+               self.BATTERY_DEVICE_ADDRESS, register)
         except Exception as e:
             print('[Battery Monitor] {}'.format(e))
             return None
@@ -313,6 +316,22 @@ class BatteryMonitor(object):
         voltage += ((bits & 0x002) >> 1) * 10
         voltage += (bits & 0x001) * 5
         return voltage
+
+    def read_charge_status(self):
+        """Read charge status
+
+0: No charging
+1: Trickle charge
+2: Pre-charge
+3: CC charge
+4: CV charge
+5: Charge termination
+"""
+        reg16_value = self.read_register(0x16)
+        if reg16_value is None:
+            return None
+        charge_status = (reg16_value & 0x1c0) >> 6
+        return charge_status
 
     def read_input_voltage(self):
         reg23_value = self.read_register(0x23)
@@ -397,11 +416,9 @@ class BatteryMonitor(object):
         return self.calculate_lipo_percentage(battery_voltage)
 
     def get_is_charging(self):
-        input_current = self.read_input_current(self.REG27H)
+        charge_status = self.read_charge_status()
         self.set_adc_continuous_mode(set_bit=False)
-        if input_current is None:
-            return None
-        return input_current > 0
+        return charge_status != 0
 
 
 def majority_vote(history):
@@ -439,7 +456,7 @@ class PisugarBatteryReader(threading.Thread):
             else:
                 value = self.bus.read_byte_data(self.device_address, 0x2A)
             return value
-        except OSError as _:
+        except OSError:
             # for pisugar2
             try:
                 vol_low = self.bus.read_byte_data(0x75, 0xa2)
@@ -448,7 +465,8 @@ class PisugarBatteryReader(threading.Thread):
                     print("[Pisugar Battery Reader] Invalid voltage data")
                     return
                 if (vol_high & 0x20) == 0x20:
-                    vol = 2600 - (~vol_low + (~(vol_high & 0x1F)) * 256 + 1) * 27 // 100
+                    vol = 2600 - (~vol_low + (~(vol_high & 0x1F)) * 256 + 1)\
+                       * 27 // 100
                 else:
                     vol = 2600 + (vol_low + vol_high * 256) * 27 // 100
                 cap = 0
@@ -459,7 +477,9 @@ class PisugarBatteryReader(threading.Thread):
                             break
                     if i > 0:
                         vol_diff_v = vol - IP5209_CURVE[i][0]
-                        k = (IP5209_CURVE[i - 1][1] - IP5209_CURVE[i][1]) / (IP5209_CURVE[i - 1][0] - IP5209_CURVE[i][0])
+                        k_percent = IP5209_CURVE[i - 1][1] - IP5209_CURVE[i][1]
+                        k_voltage = IP5209_CURVE[i - 1][0] - IP5209_CURVE[i][0]
+                        k = k_percent / k_voltage
                         cap += int(k * vol_diff_v)
                         break
                 return cap
@@ -473,7 +493,8 @@ class PisugarBatteryReader(threading.Thread):
     def is_outlier(self, current, history, threshold):
         if not history:
             return False
-        ratio = sum(abs(current - h) > threshold for h in history) / len(history)
+        ratio = sum(abs(current - h) > threshold
+                    for h in history) / len(history)
         return ratio > 0.4
 
     def update_history(self, value, history):
@@ -491,11 +512,18 @@ class PisugarBatteryReader(threading.Thread):
                     continue
 
                 with self.lock:
-                    if self.is_outlier(percentage, self.percentage_history, self.percentage_threshold):
+                    if self.is_outlier(
+                          percentage,
+                          self.percentage_history,
+                          self.percentage_threshold):
                         pass
-                        # print(f"Percentage outlier detected: {percentage:.2f}, history: {self.percentage_history}")
+                        print(f"Percentage outlier detected:",
+                              f" {percentage:.2f}, ",
+                              f"history: {self.percentage_history}")
                     else:
-                        self.filtered_percentage = self.alpha * percentage + (1 - self.alpha) * self.filtered_percentage
+                        self.filtered_percentage = \
+                           (self.alpha * percentage +
+                            (1 - self.alpha) * self.filtered_percentage)
                     # Always update history
                     self.update_history(percentage, self.percentage_history)
 
@@ -505,7 +533,8 @@ class PisugarBatteryReader(threading.Thread):
 
                 if debug_battery:
                     print(f"RAW Percentage: {percentage:.2f}")
-                    print(f"Filtered Percentage: {self.filtered_percentage:.2f}")
+                    print(f"Filtered Percentage:",
+                          f" {self.filtered_percentage:.2f}")
                 time.sleep(0.2)
         finally:
             self.bus.close()
@@ -547,25 +576,25 @@ class DisplayInformation(object):
         self.lock = FileLock(lock_path, timeout=10)
         use_pisugar = False
         try:
-            battery_monitor = BatteryMonitor(bus_number)
+            battery_monitor = MP2760BatteryMonitor(bus_number)
             voltage = battery_monitor.read_battery_voltage()
             if voltage is None:
                 print('[Display Information] Use Pisugar')
                 use_pisugar = True
             else:
                 print('[Display Information] Use JSK Battery Board')
-        except Exception as e:
+        except Exception:
             print('[Display Information] Use JSK Battery Board')
         self.use_pisugar = use_pisugar
         if bus_number:
             if use_pisugar:
-                self.pisugar_reader = PisugarBatteryReader(bus_number)
-                self.pisugar_reader.daemon = True
-                self.pisugar_reader.start()
+                self.battery_reader = PisugarBatteryReader(bus_number)
+                self.battery_reader.daemon = True
+                self.battery_reader.start()
             else:
-                self.pisugar_reader = BatteryMonitor(bus_number)
+                self.battery_reader = MP2760BatteryMonitor(bus_number)
         else:
-            self.pisugar_reader = None
+            self.battery_reader = None
 
     def display_image(self, img):
         img = squared_padding_image(img, 128)
@@ -613,8 +642,8 @@ class DisplayInformation(object):
         master_str = 'ROS_MASTER:\n' + Fore.RED + '{}'.format(
             get_ros_master_ip()) + Fore.RESET
         battery_str = ''
-        if self.pisugar_reader:
-            battery = self.pisugar_reader.get_filtered_percentage()
+        if self.battery_reader:
+            battery = self.battery_reader.get_filtered_percentage()
             pisugar_battery_percentage = battery
             if battery is None:
                 battery_str = 'Bat: None'
@@ -626,7 +655,7 @@ class DisplayInformation(object):
                     battery_str = 'Bat: {}{}%{}'.format(
                         Fore.GREEN, int(battery), Fore.RESET)
             # charging = battery_charging()
-            charging = self.pisugar_reader.get_is_charging()
+            charging = self.battery_reader.get_is_charging()
             if charging is True:
                 battery_str += '+'
             elif charging is False:
