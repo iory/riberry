@@ -243,7 +243,7 @@ def get_ros_master_ip():
     return master_ip
 
 
-class BatteryMonitor(object):
+class MP2760BatteryMonitor(object):
 
     BATTERY_DEVICE_ADDRESS = 0x5c
     REG27H = 0x27  # Battery Charge Current
@@ -547,7 +547,7 @@ class DisplayInformation(object):
         self.lock = FileLock(lock_path, timeout=10)
         use_pisugar = False
         try:
-            battery_monitor = BatteryMonitor(bus_number)
+            battery_monitor = MP2760BatteryMonitor(bus_number)
             voltage = battery_monitor.read_battery_voltage()
             if voltage is None:
                 print('[Display Information] Use Pisugar')
@@ -563,7 +563,7 @@ class DisplayInformation(object):
                 self.pisugar_reader.daemon = True
                 self.pisugar_reader.start()
             else:
-                self.pisugar_reader = BatteryMonitor(bus_number)
+                self.pisugar_reader = MP2760BatteryMonitor(bus_number)
         else:
             self.pisugar_reader = None
 
