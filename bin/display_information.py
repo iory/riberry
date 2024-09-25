@@ -35,11 +35,11 @@ IP5209_CURVE = [
 I2C_SLAVE = 0x0703
 
 if sys.hexversion < 0x03000000:
-   def _b(x):
-      return x
+    def _b(x):
+        return x
 else:
-   def _b(x):
-      return x.encode('latin-1')
+    def _b(x):
+        return x.encode('latin-1')
 
 
 class i2c:
@@ -264,7 +264,9 @@ class MP2760BatteryMonitor(object):
             return
         current_bit = (word >> 7) & 1
         if current_bit == set_bit:
-            print('[Battery Monitor] 7bit is already set to the desired value. No action needed.')
+            print(
+               '[Battery Monitor] 7bit is already set to the desired value. ',
+               'No action needed.')
             return
         if set_bit:
             print('[Battery Monitor] Set ADC_CONV to Continuous')
@@ -294,7 +296,8 @@ class MP2760BatteryMonitor(object):
 
     def read_register(self, register):
         try:
-            value = self.bus.read_word_data(self.BATTERY_DEVICE_ADDRESS, register)
+            value = self.bus.read_word_data(
+               self.BATTERY_DEVICE_ADDRESS, register)
         except Exception as e:
             print('[Battery Monitor] {}'.format(e))
             return None
@@ -453,7 +456,7 @@ class PisugarBatteryReader(threading.Thread):
             else:
                 value = self.bus.read_byte_data(self.device_address, 0x2A)
             return value
-        except OSError as _:
+        except OSError:
             # for pisugar2
             try:
                 vol_low = self.bus.read_byte_data(0x75, 0xa2)
@@ -462,7 +465,8 @@ class PisugarBatteryReader(threading.Thread):
                     print("[Pisugar Battery Reader] Invalid voltage data")
                     return
                 if (vol_high & 0x20) == 0x20:
-                    vol = 2600 - (~vol_low + (~(vol_high & 0x1F)) * 256 + 1) * 27 // 100
+                    vol = 2600 - (~vol_low + (~(vol_high & 0x1F)) * 256 + 1)\
+                       * 27 // 100
                 else:
                     vol = 2600 + (vol_low + vol_high * 256) * 27 // 100
                 cap = 0
@@ -473,7 +477,9 @@ class PisugarBatteryReader(threading.Thread):
                             break
                     if i > 0:
                         vol_diff_v = vol - IP5209_CURVE[i][0]
-                        k = (IP5209_CURVE[i - 1][1] - IP5209_CURVE[i][1]) / (IP5209_CURVE[i - 1][0] - IP5209_CURVE[i][0])
+                        k_percent = IP5209_CURVE[i - 1][1] - IP5209_CURVE[i][1]
+                        k_voltage = IP5209_CURVE[i - 1][0] - IP5209_CURVE[i][0]
+                        k = k_percent / k_voltage
                         cap += int(k * vol_diff_v)
                         break
                 return cap
@@ -487,7 +493,8 @@ class PisugarBatteryReader(threading.Thread):
     def is_outlier(self, current, history, threshold):
         if not history:
             return False
-        ratio = sum(abs(current - h) > threshold for h in history) / len(history)
+        ratio = sum(abs(current - h) > threshold
+                    for h in history) / len(history)
         return ratio > 0.4
 
     def update_history(self, value, history):
@@ -505,11 +512,18 @@ class PisugarBatteryReader(threading.Thread):
                     continue
 
                 with self.lock:
-                    if self.is_outlier(percentage, self.percentage_history, self.percentage_threshold):
+                    if self.is_outlier(
+                          percentage,
+                          self.percentage_history,
+                          self.percentage_threshold):
                         pass
-                        # print(f"Percentage outlier detected: {percentage:.2f}, history: {self.percentage_history}")
+                        print(f"Percentage outlier detected:",
+                              f" {percentage:.2f}, ",
+                              f"history: {self.percentage_history}")
                     else:
-                        self.filtered_percentage = self.alpha * percentage + (1 - self.alpha) * self.filtered_percentage
+                        self.filtered_percentage = \
+                           (self.alpha * percentage +
+                            (1 - self.alpha) * self.filtered_percentage)
                     # Always update history
                     self.update_history(percentage, self.percentage_history)
 
@@ -519,7 +533,8 @@ class PisugarBatteryReader(threading.Thread):
 
                 if debug_battery:
                     print(f"RAW Percentage: {percentage:.2f}")
-                    print(f"Filtered Percentage: {self.filtered_percentage:.2f}")
+                    print(f"Filtered Percentage:",
+                          f" {self.filtered_percentage:.2f}")
                 time.sleep(0.2)
         finally:
             self.bus.close()
@@ -568,7 +583,7 @@ class DisplayInformation(object):
                 use_pisugar = True
             else:
                 print('[Display Information] Use JSK Battery Board')
-        except Exception as e:
+        except Exception:
             print('[Display Information] Use JSK Battery Board')
         self.use_pisugar = use_pisugar
         if bus_number:
