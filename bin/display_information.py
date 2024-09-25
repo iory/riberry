@@ -559,13 +559,13 @@ class DisplayInformation(object):
         self.use_pisugar = use_pisugar
         if bus_number:
             if use_pisugar:
-                self.pisugar_reader = PisugarBatteryReader(bus_number)
-                self.pisugar_reader.daemon = True
-                self.pisugar_reader.start()
+                self.battery_reader = PisugarBatteryReader(bus_number)
+                self.battery_reader.daemon = True
+                self.battery_reader.start()
             else:
-                self.pisugar_reader = MP2760BatteryMonitor(bus_number)
+                self.battery_reader = MP2760BatteryMonitor(bus_number)
         else:
-            self.pisugar_reader = None
+            self.battery_reader = None
 
     def display_image(self, img):
         img = squared_padding_image(img, 128)
@@ -613,8 +613,8 @@ class DisplayInformation(object):
         master_str = 'ROS_MASTER:\n' + Fore.RED + '{}'.format(
             get_ros_master_ip()) + Fore.RESET
         battery_str = ''
-        if self.pisugar_reader:
-            battery = self.pisugar_reader.get_filtered_percentage()
+        if self.battery_reader:
+            battery = self.battery_reader.get_filtered_percentage()
             pisugar_battery_percentage = battery
             if battery is None:
                 battery_str = 'Bat: None'
@@ -626,7 +626,7 @@ class DisplayInformation(object):
                     battery_str = 'Bat: {}{}%{}'.format(
                         Fore.GREEN, int(battery), Fore.RESET)
             # charging = battery_charging()
-            charging = self.pisugar_reader.get_is_charging()
+            charging = self.battery_reader.get_is_charging()
             if charging is True:
                 battery_str += '+'
             elif charging is False:
