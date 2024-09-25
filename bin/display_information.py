@@ -314,6 +314,22 @@ class MP2760BatteryMonitor(object):
         voltage += (bits & 0x001) * 5
         return voltage
 
+    def read_charge_status(self):
+        """Read charge status
+
+0: No charging
+1: Trickle charge
+2: Pre-charge
+3: CC charge
+4: CV charge
+5: Charge termination
+"""
+        reg16_value = self.read_register(0x16)
+        if reg16_value is None:
+            return None
+        charge_status = (reg16_value & 0x1c0) >> 6
+        return charge_status
+
     def read_input_voltage(self):
         reg23_value = self.read_register(0x23)
         if reg23_value is None:
@@ -397,11 +413,9 @@ class MP2760BatteryMonitor(object):
         return self.calculate_lipo_percentage(battery_voltage)
 
     def get_is_charging(self):
-        input_current = self.read_input_current(self.REG27H)
+        charge_status = self.read_charge_status()
         self.set_adc_continuous_mode(set_bit=False)
-        if input_current is None:
-            return None
-        return input_current > 0
+        return charge_status != 0
 
 
 def majority_vote(history):
