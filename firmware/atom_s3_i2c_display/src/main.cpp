@@ -33,12 +33,16 @@ void loop() {
     // Suspend
     modes[current_mode_index]->suspendTask();
     // Transition
-    delay(100);
     modes[current_mode_index]->waitForTaskSuspended();
-    atoms3lcd.resetLcdData();
     current_mode_index = (current_mode_index + 1) % num_modes;
+    atoms3i2c.stopReceiveEvent();
+    atoms3lcd.drawBlack();
+    atoms3lcd.printMessage("Wait for mode switch ...");
+    delay(1000);
+    atoms3lcd.resetLcdData();
     // Resume
     modes[current_mode_index]->resumeTask();
+    atoms3i2c.startReceiveEvent();
   }
   delay(500);
 }

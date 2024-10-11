@@ -8,6 +8,7 @@
 #include <linux/i2c-dev.h>
 #include <ros/ros.h>
 #include <std_msgs/Int32.h>
+#include <std_msgs/String.h>
 #include <stdexcept>
 #include <sys/file.h>
 #include <sys/ioctl.h>
@@ -286,6 +287,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle private_nh("~");
 
   ros::Publisher pub = nh.advertise<std_msgs::Int32>("/i2c_button_state", 1);
+  ros::Publisher pub_mode = nh.advertise<std_msgs::String>("/i2c_mode", 1);
   ros::Duration(3.0).sleep();
 
   std::string i2c_device;
@@ -295,9 +297,9 @@ int main(int argc, char **argv) {
   double loop_rate;
 
   private_nh.param<std::string>("i2c_device", i2c_device, "/dev/i2c-1");
-  private_nh.param("buffer_size", buffer_size, 6);
+  private_nh.param("buffer_size", buffer_size, 5+100);
   private_nh.param("i2c_addr", i2c_addr, 0x42);
-  private_nh.param("loop_rate", loop_rate, 5.0);
+  private_nh.param("loop_rate", loop_rate, 10.0);
   private_nh.param<std::string>("i2c_lock_file", i2c_lock_file, "/tmp/i2c-1.lock");
 
   int file_descriptor;
@@ -346,15 +348,27 @@ int main(int argc, char **argv) {
     unpacker.reset();
     unpacker.write_data_list(rxBuffer);
     std::vector<uint8_t> payload = unpacker.getPayload();
-    if (payload.size() != 1) {
+    if (payload.size() == 0) {
       // This error occurs frequently, but after several attempts,
       // the button value becomes readable, so throttle the output.
       ROS_ERROR_THROTTLE(60.0, "Failed to read button state");
       continue;
     }
+
+    // Publish Int32 msg
     std_msgs::Int32 button_state_msg;
     button_state_msg.data = payload[0];
     pub.publish(button_state_msg);
+
+    // Publish String msg
+    if (payload.size() > 1) {
+      // Retrieve the data from payload[1] onwards as a string
+      std::string extracted_string(payload.begin() + 1, payload.end());
+      std_msgs::String string_msg;
+      string_msg.data = extracted_string;
+      pub_mode.publish(string_msg);
+    }
+
     rate.sleep();
   }
   close(file_descriptor);

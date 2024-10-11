@@ -3,7 +3,7 @@
 DisplayInformationMode* DisplayInformationMode::instance = nullptr;
 
 DisplayInformationMode::DisplayInformationMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
-  : atoms3lcd(lcd), atoms3i2c(i2c), Mode() {
+  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayInformationMode") {
     instance = this;
 }
 
@@ -21,6 +21,7 @@ void DisplayInformationMode::task(void *parameter) {
     else {
       instance->atoms3lcd.drawBlack();
       instance->atoms3lcd.printColorText(instance->atoms3lcd.color_str);
+      instance->atoms3i2c.setRequestStr(instance->getModeName());
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }

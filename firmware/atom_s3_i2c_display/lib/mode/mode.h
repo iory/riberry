@@ -3,13 +3,14 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <Arduino.h> // To use String class
 
 /**
  * @brief Base class for handling FreeRTOS tasks.
  */
 class Mode {
 public:
-  Mode() : taskHandle(NULL) {}
+  Mode(const String& name)  : taskHandle(NULL), modeName(name) {}
 
   /**
    * @brief Suspend the task.
@@ -46,8 +47,17 @@ public:
    */
   virtual void createTask(uint8_t xCoreID) = 0;
 
+  /**
+   * @brief Get the mode name.
+   * @return The name of the mode.
+   */
+  String getModeName() const {
+    return modeName;
+  }
+
 protected:
   TaskHandle_t taskHandle;
+  String modeName;
 };
 
 #endif // MODE_H

@@ -3,7 +3,7 @@
 DisplayQRcodeMode* DisplayQRcodeMode::instance = nullptr;
 
 DisplayQRcodeMode::DisplayQRcodeMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
-  : atoms3lcd(lcd), atoms3i2c(i2c), Mode() {
+  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayQRcodeMode") {
     instance = this;
 }
 
@@ -20,6 +20,7 @@ void DisplayQRcodeMode::task(void *parameter) {
     // Display QR code
     else {
       instance->atoms3lcd.drawQRcode(instance->atoms3lcd.qrCodeData);
+      instance->atoms3i2c.setRequestStr(instance->getModeName());
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }
