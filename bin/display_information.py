@@ -143,6 +143,7 @@ lock_path = '/tmp/i2c-1.lock'
 # Global variable for ROS availability and additional message
 ros_available = False
 ros_additional_message = None
+atom_s3_mode = None
 ros_display_image_flag = False
 ros_display_image = None
 stop_event = threading.Event()
@@ -172,6 +173,10 @@ def try_init_ros():
                 global ros_additional_message
                 ros_additional_message = msg.data
 
+            def ros_mode_callback(msg):
+                global atom_s3_mode
+                atom_s3_mode = msg.data
+
             def ros_image_callback(msg):
                 global ros_display_image
                 bridge = cv_bridge.CvBridge()
@@ -180,6 +185,8 @@ def try_init_ros():
 
             rospy.init_node('atom_s3_display_information_node', anonymous=True)
             rospy.Subscriber('/atom_s3_additional_info', String, ros_callback,
+                             queue_size=1)
+            rospy.Subscriber('/atom_s3_mode', String, ros_mode_callback,
                              queue_size=1)
             battery_pub = rospy.Publisher('/pisugar_battery', Float32,
                                           queue_size=1)
@@ -719,6 +726,11 @@ class DisplayInformation(object):
         global ros_display_image_flag
 
         while not stop_event.is_set():
+            mode = atom_s3_mode
+            if mode != 'DisplayInformationMode' \
+               and mode != 'DisplayQRcodeMode':
+                time.sleep(0.1)
+                continue
             if ros_display_image_flag and ros_display_image is not None:
                 self.display_image(ros_display_image)
             else:
@@ -732,10 +744,14 @@ class DisplayInformation(object):
                     self.display_qrcode(f'WIFI:S:{ssid};T:nopass;;')
                     time.sleep(3)
                 else:
-                    self.display_information()
-                    time.sleep(3)
-                    self.display_qrcode()
-                    time.sleep(3)
+                    if mode == 'DisplayInformationMode':
+                        self.display_information()
+                        time.sleep(3)
+                    elif mode == 'DisplayQRcodeMode':
+                        self.display_qrcode()
+                        time.sleep(3)
+                    else:
+                        time.sleep(3)
 
 
 if __name__ == '__main__':
