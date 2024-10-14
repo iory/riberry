@@ -3,6 +3,7 @@
 #include <atom_s3_button.h>
 #include <display_information_mode.h>
 #include <display_qrcode_mode.h>
+#include <pressure_control_mode.h>
 
 // Common tasks for AtomS3
 AtomS3Button atoms3button;
@@ -12,7 +13,8 @@ AtomS3I2C atoms3i2c(atoms3lcd, atoms3button);
 // User-defined modes:
 DisplayInformationMode display_information_mode(atoms3lcd, atoms3i2c);
 DisplayQRcodeMode display_qrcode_mode(atoms3lcd, atoms3i2c);
-Mode* modes[] = { &display_information_mode, &display_qrcode_mode };
+PressureControlMode pressure_control_mode(atoms3lcd, atoms3i2c);
+Mode* modes[] = { &display_information_mode, &display_qrcode_mode, &pressure_control_mode };
 int current_mode_index = 0;
 int num_modes = sizeof(modes) / sizeof(modes[0]);
 
