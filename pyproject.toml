@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ri-berry"
+version = "0.0.1"
+description = "Riberry: Robot Intelligent Binary Enhancement Resource Revolutionary Yield"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name="Iori Yanokura", email="yanokura@jsk.imi.i.u-tokyo.ac.jp" },
+    { name="Naoya Yamaguchi", email="yamaguchi@jsk.imi.i.u-tokyo.ac.jp" },
+    { name="Aoi Nakane", email="nakane@jsk.imi.i.u-tokyo.ac.jp" },
+]
+keywords = ["riberry", "robotics", "automation", "robot module"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/iory/riberry"
+"Repository" = "https://github.com/iory/riberry"
+
+[tool.setuptools]
+packages = [
+    "riberry",
+]
