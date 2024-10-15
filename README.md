@@ -87,6 +87,10 @@ The `/atom_s3_button_state` topic publishes messages of type `std_msgs/Int32`. T
 | Released            | 12      |
 | Reset               | 13      |
 
+##### AtomS3 mode for `/atom_s3_mode` Topic
+
+AtomS3 has multiple modes, which can be switched with a long click. You can get which mode AtomS3 is in by topic. The `/atom_s3_mode` topic publishes messages of type `std_msgs/String`. You can use `/atom_s3_mode` as well as `/atom_s3_button_state` to define robot operations.
+
 ## Distribute radxa image as SD card
 
 When distributing images, it's necessary to adjust the disk size among other parameters initially due to writing to an SD card.
