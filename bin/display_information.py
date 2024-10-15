@@ -6,18 +6,15 @@ import subprocess
 import sys
 import time
 import threading
-import io
-import fcntl
 from collections import Counter
 
 import cv2
 from colorama import Fore
-from i2c_for_esp32 import WirePacker
 from pybsc.image_utils import squared_padding_image
 from pybsc import nsplit
-from filelock import FileLock
-from filelock import Timeout
 import smbus2
+
+from riberry.i2c_base import I2CBase
 
 IP5209_CURVE = [
     (4160, 100),
@@ -32,40 +29,6 @@ IP5209_CURVE = [
     (3100, 0),
 ]
 
-I2C_SLAVE = 0x0703
-
-if sys.hexversion < 0x03000000:
-    def _b(x):
-        return x
-else:
-    def _b(x):
-        return x.encode('latin-1')
-
-
-class i2c:
-
-    def __init__(self, device=0x42, bus=5):
-        self.fr = io.open("/dev/i2c-"+str(bus), "rb", buffering=0)
-        self.fw = io.open("/dev/i2c-"+str(bus), "wb", buffering=0)
-        # set device address
-        fcntl.ioctl(self.fr, I2C_SLAVE, device)
-        fcntl.ioctl(self.fw, I2C_SLAVE, device)
-
-    def write(self, data):
-        if type(data) is list:
-            data = bytearray(data)
-        elif type(data) is str:
-            data = _b(data)
-        self.fw.write(data)
-
-    def read(self, count):
-        return self.fr.read(count)
-
-    def close(self):
-        self.fw.close()
-        self.fr.close()
-
-
 # Ensure that the standard output is line-buffered. This makes sure that
 # each line of output is flushed immediately, which is useful for logging.
 # This is for systemd.
@@ -75,28 +38,6 @@ sys.stdout.reconfigure(line_buffering=True)
 pisugar_battery_percentage = None
 debug_battery = False
 debug_i2c_text = False
-
-
-def identify_device():
-    try:
-        with open('/proc/cpuinfo', 'r') as f:
-            cpuinfo = f.read()
-
-        if 'Raspberry Pi' in cpuinfo:
-            return 'Raspberry Pi'
-
-        with open('/proc/device-tree/model', 'r') as f:
-            model = f.read().strip()
-
-        # remove null character
-        model = model.replace('\x00', '')
-
-        if 'Radxa' in model or 'ROCK Pi' in model or model in 'Khadas VIM4':
-            return model
-
-        return 'Unknown Device'
-    except FileNotFoundError:
-        return 'Unknown Device'
 
 
 def parse_ip(route_get_output):
@@ -137,8 +78,6 @@ def get_mac_address(interface='wlan0'):
         print(f"Error obtaining MAC address: {e}")
         return None
 
-
-lock_path = '/tmp/i2c-1.lock'
 
 # Global variable for ROS availability and additional message
 ros_available = False
@@ -559,31 +498,13 @@ class PisugarBatteryReader(threading.Thread):
         self.join()
 
 
-class DisplayInformation(object):
+class DisplayInformation(I2CBase):
 
     def __init__(self, i2c_addr):
-        self.i2c_addr = i2c_addr
-        self.device_type = identify_device()
-        if self.device_type == 'Raspberry Pi':
-            import board
-            import busio
-            self.i2c = busio.I2C(board.SCL, board.SDA)
-            bus_number = 1
-        elif self.device_type == 'Radxa Zero':
-            import board
-            import busio
-            self.i2c = busio.I2C(board.SCL1, board.SDA1)
-            bus_number = 3
-        elif self.device_type == 'Khadas VIM4':
-            self.i2c = i2c()
-            bus_number = None
-        else:
-            raise ValueError('Unknown device {}'.format(
-                self.device_type))
-        self.lock = FileLock(lock_path, timeout=10)
+        super().__init__(i2c_addr)
         use_pisugar = False
         try:
-            battery_monitor = MP2760BatteryMonitor(bus_number)
+            battery_monitor = MP2760BatteryMonitor(self.bus_number)
             voltage = battery_monitor.read_battery_voltage()
             if voltage is None:
                 print('[Display Information] Use Pisugar')
@@ -593,13 +514,13 @@ class DisplayInformation(object):
         except Exception:
             print('[Display Information] Use JSK Battery Board')
         self.use_pisugar = use_pisugar
-        if bus_number:
+        if self.bus_number:
             if use_pisugar:
-                self.battery_reader = PisugarBatteryReader(bus_number)
+                self.battery_reader = PisugarBatteryReader(self.bus_number)
                 self.battery_reader.daemon = True
                 self.battery_reader.start()
             else:
-                self.battery_reader = MP2760BatteryMonitor(bus_number)
+                self.battery_reader = MP2760BatteryMonitor(self.bus_number)
         else:
             self.battery_reader = None
 
@@ -679,12 +600,7 @@ class DisplayInformation(object):
         if debug_i2c_text:
             print('send the following message')
             print(sent_str)
-        packer = WirePacker(buffer_size=len(sent_str) + 8)
-        for s in sent_str:
-            packer.write(ord(s))
-        packer.end()
-        if packer.available():
-            self.i2c_write(packer.buffer[:packer.available()])
+        self.send_string(sent_str)
 
     def display_qrcode(self, target_url=None):
         header = [0x02]
@@ -696,34 +612,14 @@ class DisplayInformation(object):
             target_url = 'http://{}:8085/riberry_startup/'.format(ip)
         header += [len(target_url)]
         header += list(map(ord, target_url))
-        packer = WirePacker(buffer_size=100)
-        for h in header:
-            packer.write(h)
-        packer.end()
-        if packer.available():
-            self.i2c_write(packer.buffer[:packer.available()])
-
-    def i2c_write(self, packet):
-        try:
-            self.lock.acquire()
-        except Timeout as e:
-            print(e)
-            return
-        try:
-            self.i2c.writeto(self.i2c_addr, packet)
-        except OSError as e:
-            print(e)
-        except TimeoutError as e:
-            print('I2C Write error {}'.format(e))
-        try:
-            self.lock.release()
-        except Timeout as e:
-            print(e)
-            return
+        print('header')
+        print(header)
+        self.send_raw_bytes(header)
 
     def run(self):
         global ros_display_image
         global ros_display_image_flag
+        global atom_s3_mode
 
         while not stop_event.is_set():
             mode = atom_s3_mode
