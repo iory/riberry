@@ -354,16 +354,18 @@ class MP2760BatteryMonitor(object):
         junction_temp += (reg2a_value & 0x001) * 1
         return 314 - 0.5703 * junction_temp
 
-    def get_filtered_percentage(self):
-        self.set_adc_continuous_mode(set_bit=True)
+    def get_filtered_percentage(self, charge_status=True):
+        if charge_status is False:
+            self.set_adc_continuous_mode(set_bit=True)
         battery_voltage = self.read_battery_voltage()
+        if charge_status is False:
+            self.set_adc_continuous_mode(set_bit=False)
         if battery_voltage is None:
             return None
         return self.calculate_lipo_percentage(battery_voltage)
 
     def get_is_charging(self):
         charge_status = self.read_charge_status()
-        self.set_adc_continuous_mode(set_bit=False)
         return charge_status != 0
 
 
@@ -485,7 +487,7 @@ class PisugarBatteryReader(threading.Thread):
         finally:
             self.bus.close()
 
-    def get_filtered_percentage(self):
+    def get_filtered_percentage(self, charge_status=True):
         with self.lock:
             return self.filtered_percentage
 
@@ -571,7 +573,9 @@ class DisplayInformation(I2CBase):
             get_ros_master_ip()) + Fore.RESET
         battery_str = ''
         if self.battery_reader:
-            battery = self.battery_reader.get_filtered_percentage()
+            charging = self.battery_reader.get_is_charging()
+            battery = self.battery_reader.get_filtered_percentage(
+                charging)
             pisugar_battery_percentage = battery
             if battery is None:
                 battery_str = 'Bat: None'
@@ -582,8 +586,6 @@ class DisplayInformation(I2CBase):
                 else:
                     battery_str = 'Bat: {}{}%{}'.format(
                         Fore.GREEN, int(battery), Fore.RESET)
-            # charging = battery_charging()
-            charging = self.battery_reader.get_is_charging()
             if charging is True:
                 battery_str += '+'
             elif charging is False:
