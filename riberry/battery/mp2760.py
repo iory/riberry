@@ -89,6 +89,9 @@ class MP2760BatteryMonitor(threading.Thread):
         while self.disable_ntc_protection() is None:
             print('[MP2760BatteryMonitor] Try to disable NTC protection.')
             time.sleep(1.0)
+        while self.set_adc_continuous_mode(set_bit=True) is None:
+            print('[MP2760BatteryMonitor] Try to enable adc continuous mode.')
+            time.sleep(1.0)
 
         self.lock = threading.Lock()
         self.running = True
@@ -124,7 +127,7 @@ class MP2760BatteryMonitor(threading.Thread):
             print(
                 '[Battery Monitor] 7bit is already set to the desired value. ',
                 'No action needed.')
-            return
+            return True
         if set_bit:
             print('[Battery Monitor] Set ADC_CONV to Continuous')
             set_adc_word = word | (1 << 7)
@@ -138,6 +141,7 @@ class MP2760BatteryMonitor(threading.Thread):
         except Exception as e:
             print('[Battery Monitor] Error writing I2C: {}'.format(e))
             return
+        return True
 
     def disable_ntc_protection(self):
         try:
@@ -310,18 +314,13 @@ class MP2760BatteryMonitor(threading.Thread):
     def read_sensor_data(self, get_charge=False):
         charge_status = self.read_charge_status()
         is_charging = charge_status != 0
-        filtered_is_charging = self.get_is_charging()
         if get_charge is True:
             return is_charging
-        if filtered_is_charging is False:
-            self.set_adc_continuous_mode(set_bit=True)
         input_voltage = self.read_input_voltage()
         system_voltage = self.read_system_voltage()
         battery_voltage = self.read_battery_voltage()
         battery_charge_current = self.read_battery_charge_current()
         temp = self.read_junction_temperature()
-        if filtered_is_charging is False:
-            self.set_adc_continuous_mode(set_bit=False)
         if battery_voltage is None:
             return input_voltage, system_voltage, \
                 0, battery_voltage, temp, \
