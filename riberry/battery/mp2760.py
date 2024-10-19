@@ -1,9 +1,30 @@
 import threading
 import time
+from enum import Enum
 
 import smbus2
 
 from riberry.battery.common import majority_vote
+
+
+class ChargeState(Enum):
+
+    NO_CHARGE = 0
+    TRICKLE_CHARGE = 1
+    PRE_CHARGE = 2
+    CC_CHARGE = 3
+    CV_CHARGE = 4
+    CHARGE_TERMINATION = 5
+
+    def __str__(self):
+        return {
+            ChargeState.NO_CHARGE: "No charging",
+            ChargeState.TRICKLE_CHARGE: "Trickle charge",
+            ChargeState.PRE_CHARGE: "Pre-charge",
+            ChargeState.CC_CHARGE: "CC charge",
+            ChargeState.CV_CHARGE: "CV charge",
+            ChargeState.CHARGE_TERMINATION: "Charge termination"
+        }[self]
 
 
 class MP2760BatteryMonitor(threading.Thread):
@@ -127,7 +148,11 @@ class MP2760BatteryMonitor(threading.Thread):
         reg16_value = self.read_register(0x16)
         if reg16_value is None:
             return None
-        charge_status = (reg16_value & 0x1c0) >> 6
+        charge_status_value = (reg16_value & 0x1c0) >> 6
+        try:
+            charge_status = ChargeState(charge_status_value)
+        except ValueError:
+            return 0
         return charge_status
 
     def read_input_voltage(self):
@@ -206,7 +231,8 @@ class MP2760BatteryMonitor(threading.Thread):
         return 314 - 0.5703 * junction_temp
 
     def read_sensor_data(self, get_charge=False):
-        is_charging = self.read_charge_status() != 0
+        charge_status = self.read_charge_status()
+        is_charging = charge_status != 0
         filtered_is_charging = self.get_is_charging()
         if get_charge is True:
             return is_charging
@@ -217,14 +243,15 @@ class MP2760BatteryMonitor(threading.Thread):
         if filtered_is_charging is False:
             self.set_adc_continuous_mode(set_bit=False)
         if battery_voltage is None:
-            return 0, temp
-        return self.calculate_lipo_percentage(battery_voltage), temp
+            return 0, temp, charge_status
+        return self.calculate_lipo_percentage(
+            battery_voltage), temp, charge_status
 
     def run(self):
         try:
             while self.running:
                 is_charging = self.read_sensor_data(get_charge=True)
-                percentage, temp = self.read_sensor_data()
+                percentage, temp, self.charge_status = self.read_sensor_data()
                 print(f"Junction Temperature: {temp}")
                 if percentage is None or is_charging is None:
                     time.sleep(0.2)
@@ -252,6 +279,7 @@ class MP2760BatteryMonitor(threading.Thread):
                     print(f"RAW Percentage: {percentage:.2f}")
                     print("Filtered Percentage:",
                           f" {self.filtered_percentage:.2f}")
+                    print(f'Charge Status: {self.charge_status}')
                 time.sleep(0.2)
         finally:
             self.bus.close()
@@ -263,6 +291,9 @@ class MP2760BatteryMonitor(threading.Thread):
     def get_is_charging(self):
         with self.lock:
             return majority_vote(self.charging_history) == 1
+
+    def get_charge_status(self):
+        return self.charge_status
 
     def stop(self):
         self.running = False
