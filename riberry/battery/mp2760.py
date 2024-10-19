@@ -150,7 +150,7 @@ class MP2760BatteryMonitor(threading.Thread):
             print(
                 '[Battery Monitor] 9bit is already set to the desired value. ',
                 'No action needed.')
-            return
+            return True
         print('[Battery Monitor] Disable NTC protection')
         set_word = word & ~(1 << 9)
         try:
@@ -256,6 +256,23 @@ class MP2760BatteryMonitor(threading.Thread):
         battery_voltage = 2 * self.calculate_voltage_from_bits(reg25_value)
         return 0.001 * battery_voltage
 
+    def read_battery_charge_current(self):
+        reg27_value = self.read_register(0x27)
+        if reg27_value is None:
+            return 0
+        input_current = 0
+        input_current += ((reg27_value & 0x200) >> 9) * 6400
+        input_current += ((reg27_value & 0x100) >> 8) * 3200
+        input_current += ((reg27_value & 0x080) >> 7) * 1600
+        input_current += ((reg27_value & 0x040) >> 6) * 800
+        input_current += ((reg27_value & 0x020) >> 5) * 400
+        input_current += ((reg27_value & 0x010) >> 4) * 200
+        input_current += ((reg27_value & 0x008) >> 3) * 100
+        input_current += ((reg27_value & 0x004) >> 2) * 50
+        input_current += ((reg27_value & 0x002) >> 1) * 25
+        input_current += (reg27_value & 0x001) * 12.5
+        return input_current
+
     def read_input_current(self, register_address):
         reg24_value = self.read_register(register_address)
         if reg24_value is None:
@@ -298,23 +315,45 @@ class MP2760BatteryMonitor(threading.Thread):
             return is_charging
         if filtered_is_charging is False:
             self.set_adc_continuous_mode(set_bit=True)
+        input_voltage = self.read_input_voltage()
+        system_voltage = self.read_system_voltage()
         battery_voltage = self.read_battery_voltage()
+        battery_charge_current = self.read_battery_charge_current()
         temp = self.read_junction_temperature()
         if filtered_is_charging is False:
             self.set_adc_continuous_mode(set_bit=False)
         if battery_voltage is None:
-            return 0, temp, charge_status
-        return self.calculate_lipo_percentage(
-            battery_voltage), temp, charge_status
+            return input_voltage, system_voltage, \
+                0, battery_voltage, temp, \
+                charge_status, battery_charge_current
+        return input_voltage, system_voltage, \
+            self.calculate_lipo_percentage(
+                battery_voltage), battery_voltage, temp, \
+            charge_status, battery_charge_current
 
     def run(self):
         try:
             while self.running:
                 print_status_and_fault_register(self.read_register(0x17))
                 is_charging = self.read_sensor_data(get_charge=True)
-                percentage, self.junction_temperature, \
-                    self.charge_status = self.read_sensor_data()
-                print(f"Junction Temperature: {self.junction_temperature}")
+                self.input_voltage, self.system_voltage, \
+                    percentage, self.battery_voltage, \
+                    self.junction_temperature, \
+                    self.charge_status, self.battery_charge_current \
+                    = self.read_sensor_data()
+                if self.input_voltage:
+                    print(f"Input Voltage: {self.input_voltage:.2f} V")
+                if self.system_voltage:
+                    print("System Voltage: "
+                          f"{self.system_voltage:.2f} V")
+                if self.battery_voltage:
+                    print("Battery Voltage: "
+                          f"{self.battery_voltage:.2f} V")
+                print("Battery charge Current: "
+                      f"{self.battery_charge_current:.2f} mA")
+                if self.junction_temperature:
+                    print("Junction Temperature: "
+                          f"{self.junction_temperature:.2f}")
                 if percentage is None or is_charging is None:
                     time.sleep(0.2)
                     continue
