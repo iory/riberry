@@ -1,10 +1,11 @@
+# flake8: noqa
 import os
-import re
+
 from SCons.Script import Import
 
 
 def validate_i2c_address(addr):
-    if not addr.startswith('0x'):
+    if not addr.startswith("0x"):
         print("\033[91mWarning: I2C address does not start with '0x'.\033[0m")
         return False
     try:
@@ -38,7 +39,9 @@ if I2C_ADDR:
 
 if LCD_ROTATION:
     if LCD_ROTATION not in ["0", "1", "2", "3"]:
-        print("\033[91mWarning: Invalid LCD_ROTATION value: {}. It should be 0, 1, 2, or 3.\033[0m".format(LCD_ROTATION))
+        print(
+            f"\033[91mWarning: Invalid LCD_ROTATION value: {LCD_ROTATION}. It should be 0, 1, 2, or 3.\033[0m"
+        )
         Exit(1)
     env.Append(CPPDEFINES=[f"LCD_ROTATION={LCD_ROTATION}"])
 else:

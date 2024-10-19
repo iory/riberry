@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
+import socket
 import subprocess
 import time
-import socket
 
 
 def parse_ip(route_get_output):
@@ -16,8 +16,8 @@ def parse_ip(route_get_output):
 def get_ros_ip():
     try:
         route_get = subprocess.check_output(
-            ["ip", "-o", "route", "get", "8.8.8.8"],
-            stderr=subprocess.DEVNULL).decode()
+            ["ip", "-o", "route", "get", "8.8.8.8"], stderr=subprocess.DEVNULL
+        ).decode()
         return parse_ip(route_get)
     except subprocess.CalledProcessError:
         return None
