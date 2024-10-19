@@ -86,6 +86,10 @@ class MP2760BatteryMonitor(threading.Thread):
         self.charging_history = []
 
         self.bus = smbus2.SMBus(self.bus_number)
+        while self.disable_ntc_protection() is None:
+            print('[MP2760BatteryMonitor] Try to disable NTC protection.')
+            time.sleep(1.0)
+
         self.lock = threading.Lock()
         self.running = True
 
@@ -134,6 +138,27 @@ class MP2760BatteryMonitor(threading.Thread):
         except Exception as e:
             print('[Battery Monitor] Error writing I2C: {}'.format(e))
             return
+
+    def disable_ntc_protection(self):
+        try:
+            word = self.bus.read_word_data(self.device_address, 0x0d)
+        except Exception as e:
+            print('[Battery Monitor] Error reading from I2C: {}'.format(e))
+            return
+        current_bit = (word >> 9) & 1
+        if current_bit == 0:
+            print(
+                '[Battery Monitor] 9bit is already set to the desired value. ',
+                'No action needed.')
+            return
+        print('[Battery Monitor] Disable NTC protection')
+        set_word = word & ~(1 << 9)
+        try:
+            self.bus.write_word_data(self.device_address, 0x0d, set_word)
+        except Exception as e:
+            print('[Battery Monitor] Error writing I2C: {}'.format(e))
+            return
+        return True
 
     def calculate_lipo_percentage(self, voltage):
         max_voltage = 8.4  # 100%
@@ -287,8 +312,9 @@ class MP2760BatteryMonitor(threading.Thread):
             while self.running:
                 print_status_and_fault_register(self.read_register(0x17))
                 is_charging = self.read_sensor_data(get_charge=True)
-                percentage, temp, self.charge_status = self.read_sensor_data()
-                print(f"Junction Temperature: {temp}")
+                percentage, self.junction_temperature, \
+                    self.charge_status = self.read_sensor_data()
+                print(f"Junction Temperature: {self.junction_temperature}")
                 if percentage is None or is_charging is None:
                     time.sleep(0.2)
                     continue
