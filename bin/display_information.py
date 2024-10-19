@@ -4,18 +4,18 @@ import os
 import socket
 import subprocess
 import sys
-import time
 import threading
-from collections import Counter
+import time
 
-import cv2
 from colorama import Fore
+import cv2
+from i2c_for_esp32 import WirePacker
 from pybsc.image_utils import squared_padding_image
 from pybsc import nsplit
-import smbus2
 
-from riberry.i2c_base import I2CBase
+from riberry.battery import MP2760BatteryMonitor
 from riberry.battery import PisugarBatteryReader
+from riberry.i2c_base import I2CBase
 
 
 # Ensure that the standard output is line-buffered. This makes sure that
@@ -86,11 +86,11 @@ def try_init_ros():
     prev_ros_display_image_param = None
     while not stop_event.is_set():
         try:
-            import rospy
-            from std_msgs.msg import String
-            from std_msgs.msg import Float32
-            import sensor_msgs.msg
             import cv_bridge
+            import rospy
+            import sensor_msgs.msg
+            from std_msgs.msg import Float32
+            from std_msgs.msg import String
 
             ros_ip = wait_and_get_ros_ip(300)
             print('Set ROS_IP={}'.format(ros_ip))
@@ -196,10 +196,10 @@ class DisplayInformation(I2CBase):
         if self.bus_number:
             if use_pisugar:
                 self.battery_reader = PisugarBatteryReader(self.bus_number)
-                self.battery_reader.daemon = True
-                self.battery_reader.start()
             else:
                 self.battery_reader = MP2760BatteryMonitor(self.bus_number)
+            self.battery_reader.daemon = True
+            self.battery_reader.start()
         else:
             self.battery_reader = None
 
