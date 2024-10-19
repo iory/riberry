@@ -81,7 +81,7 @@ class MP2760BatteryMonitor(threading.Thread):
 
     def calculate_lipo_percentage(self, voltage):
         max_voltage = 8.4  # 100%
-        min_voltage = 6.0  # 0%
+        min_voltage = 6.4  # 0%
 
         if voltage >= max_voltage:
             return 100
@@ -213,17 +213,19 @@ class MP2760BatteryMonitor(threading.Thread):
         if filtered_is_charging is False:
             self.set_adc_continuous_mode(set_bit=True)
         battery_voltage = self.read_battery_voltage()
+        temp = self.read_junction_temperature()
         if filtered_is_charging is False:
             self.set_adc_continuous_mode(set_bit=False)
         if battery_voltage is None:
-            return 0
-        return self.calculate_lipo_percentage(battery_voltage)
+            return 0, temp
+        return self.calculate_lipo_percentage(battery_voltage), temp
 
     def run(self):
         try:
             while self.running:
                 is_charging = self.read_sensor_data(get_charge=True)
-                percentage = self.read_sensor_data()
+                percentage, temp = self.read_sensor_data()
+                print(f"Junction Temperature: {temp}")
                 if percentage is None or is_charging is None:
                     time.sleep(0.2)
                     continue
