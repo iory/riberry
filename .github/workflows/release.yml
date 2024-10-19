@@ -22,10 +22,12 @@ jobs:
     - name: Check Formatting
       run: |
         flake8 riberry
+        flake8 bin
         grep -rlIP '[^\x00-\x7F]' riberry | grep '\.pyx\?' | sort > unicode.out; grep -rlI '# -\*- coding: \(utf-8\|latin-1\) -\*-' skrobot | grep '\.pyx\?' | sort > coding.out; comm -23 unicode.out coding.out > test_code.out; cat test_code.out;  test \! -s test_code.out
     - name: Check isort
       run: |
         isort -c riberry
+        isort -c bin
 
   pypi:
     name: Release To PyPi
