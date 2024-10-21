@@ -292,7 +292,7 @@ class DisplayInformation(I2CBase):
 
         while not stop_event.is_set():
             mode = atom_s3_mode
-            print(f'Mode: {mode} device_type: {self.device_type}')
+            print(f"Mode: {mode} device_type: {self.device_type}")
             if mode != "DisplayInformationMode" and mode != "DisplayQRcodeMode":
                 time.sleep(0.1)
                 continue

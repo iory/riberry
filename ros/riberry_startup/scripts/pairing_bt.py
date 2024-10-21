@@ -10,7 +10,7 @@ def known_devices():
     device_list = []
     mng_objs = dbus_tools.get_managed_objects()
     for path in mng_objs:
-        address = mng_objs[path].get('org.bluez.Device1', {}).get('Address')
+        address = mng_objs[path].get("org.bluez.Device1", {}).get("Address")
         if address:
             device_list.append(str(address))
     return device_list
@@ -25,7 +25,7 @@ def is_known_device(mac_addr):
 found_device: device.Device = None
 
 
-def on_device_found(device: device.Device, device_name='M5_SPEAKER_T1'):
+def on_device_found(device: device.Device, device_name="M5_SPEAKER_T1"):
     global found_device
     try:
         print(device.address)
@@ -38,13 +38,13 @@ def on_device_found(device: device.Device, device_name='M5_SPEAKER_T1'):
 
 def main():
     dongles = adapter.list_adapters()
-    print('dongles available: ', dongles)
+    print("dongles available: ", dongles)
     dongle = adapter.Adapter(dongles[0])
 
     if not dongle.powered:
         dongle.powered = True
-        print('Now powered: ', dongle.powered)
-    print('Start discovering')
+        print("Now powered: ", dongle.powered)
+    print("Start discovering")
 
     dongle.on_device_found = on_device_found
     dongle.nearby_discovery(timeout=20)
@@ -54,8 +54,8 @@ def main():
         found_device.pair()
         found_device.trusted = True
     else:
-        print('failed')
+        print("failed")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
