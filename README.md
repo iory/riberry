@@ -107,3 +107,12 @@ If you are concerned about the security of the network:
 ```
 # sudo rm -f /etc/NetworkManager/system-connections/*
 ```
+
+## Contributing
+
+### Automatic Formatting
+riberry uses `ruff` for both linting and formatting which is configured in `pyproject.toml`, you can run with:
+```
+ruff format
+ruff check --fix .
+```

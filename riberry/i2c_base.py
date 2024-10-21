@@ -1,25 +1,24 @@
 import fcntl
-import io
 import sys
 
 from filelock import FileLock
 from filelock import Timeout
 from i2c_for_esp32 import WirePacker
 
-
 if sys.hexversion < 0x03000000:
+
     def _b(x):
         return x
 else:
+
     def _b(x):
-        return x.encode('latin-1')
+        return x.encode("latin-1")
 
 
 class i2c:
-
     def __init__(self, device=0x42, bus=5):
-        self.fr = io.open("/dev/i2c-" + str(bus), "rb", buffering=0)
-        self.fw = io.open("/dev/i2c-" + str(bus), "wb", buffering=0)
+        self.fr = open("/dev/i2c-" + str(bus), "rb", buffering=0)
+        self.fw = open("/dev/i2c-" + str(bus), "wb", buffering=0)
         # set device address
         I2C_SLAVE = 0x0703
         fcntl.ioctl(self.fr, I2C_SLAVE, device)
@@ -41,7 +40,7 @@ class i2c:
 
 
 class I2CBase:
-    def __init__(self, i2c_addr, lock_path='/tmp/i2c-1.lock'):
+    def __init__(self, i2c_addr, lock_path="/tmp/i2c-1.lock"):
         self.i2c_addr = i2c_addr
         self.bus_number = None
         self.device_type = self.identify_device()
@@ -49,21 +48,22 @@ class I2CBase:
         self.setup_i2c()
 
     def setup_i2c(self):
-        if self.device_type == 'Raspberry Pi':
+        if self.device_type == "Raspberry Pi":
             import board
             import busio
+
             self.i2c = busio.I2C(board.SCL, board.SDA)
             self.bus_number = 1
-        elif self.device_type == 'Radxa Zero':
+        elif self.device_type == "Radxa Zero":
             import board
             import busio
+
             self.i2c = busio.I2C(board.SCL1, board.SDA1)
             self.bus_number = 3
-        elif self.device_type == 'Khadas VIM4':
+        elif self.device_type == "Khadas VIM4":
             self.i2c = i2c()
         else:
-            raise ValueError('Unknown device {}'.format(
-                self.device_type))
+            raise ValueError(f"Unknown device {self.device_type}")
 
     def i2c_write(self, packet):
         try:
@@ -76,7 +76,7 @@ class I2CBase:
         except OSError as e:
             print(e)
         except TimeoutError as e:
-            print('I2C Write error {}'.format(e))
+            print(f"I2C Write error {e}")
         finally:
             try:
                 self.lock.release()
@@ -89,7 +89,7 @@ class I2CBase:
             packer.write(ord(s))
         packer.end()
         if packer.available():
-            self.i2c_write(packer.buffer[:packer.available()])
+            self.i2c_write(packer.buffer[: packer.available()])
 
     def send_raw_bytes(self, raw_bytes):
         packer = WirePacker(buffer_size=len(raw_bytes) + 8)
@@ -97,21 +97,19 @@ class I2CBase:
             packer.write(r)
         packer.end()
         if packer.available():
-            self.i2c_write(packer.buffer[:packer.available()])
+            self.i2c_write(packer.buffer[: packer.available()])
 
     @staticmethod
     def identify_device():
         try:
-            with open('/proc/cpuinfo', 'r') as f:
+            with open("/proc/cpuinfo") as f:
                 cpuinfo = f.read()
-            if 'Raspberry Pi' in cpuinfo:
-                return 'Raspberry Pi'
-            with open('/proc/device-tree/model', 'r') as f:
-                model = f.read().strip().replace('\x00', '')
-            if 'Radxa' in model\
-               or 'ROCK Pi' in model\
-               or model == 'Khadas VIM4':
+            if "Raspberry Pi" in cpuinfo:
+                return "Raspberry Pi"
+            with open("/proc/device-tree/model") as f:
+                model = f.read().strip().replace("\x00", "")
+            if "Radxa" in model or "ROCK Pi" in model or model == "Khadas VIM4":
                 return model
-            return 'Unknown Device'
+            return "Unknown Device"
         except FileNotFoundError:
-            return 'Unknown Device'
+            return "Unknown Device"

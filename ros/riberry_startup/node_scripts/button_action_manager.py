@@ -2,11 +2,10 @@
 
 import threading
 
-import rospy
-
 from kxr_controller.kxr_interface import KXRROSRobotInterface
 from kxr_controller.msg import PressureControl
 from kxr_controller.msg import ServoOnOff
+import rospy
 from skrobot.model import RobotModel
 from std_msgs.msg import Int32
 
@@ -17,6 +16,7 @@ class ButtonActionManager(threading.Thread):
     The process may stop when creating a KXRROSRobotInterface instance.
     So the process was threaded so that it would not stop the main process.
     """
+
     def __init__(self):
         super().__init__(daemon=True)
         self.ri = None
@@ -26,21 +26,26 @@ class ButtonActionManager(threading.Thread):
         rospy.Subscriber(
             "/kxr_fullbody_controller/pressure_control_interface/state",
             PressureControl,
-            callback=self.pressure_control_cb, queue_size=1)
+            callback=self.pressure_control_cb,
+            queue_size=1,
+        )
         # Servo on off
         self.servo_on_states = None
         rospy.Subscriber(
             "/kxr_fullbody_controller/servo_on_off_real_interface/state",
-            ServoOnOff, callback=self.servo_on_off_cb, queue_size=1)
+            ServoOnOff,
+            callback=self.servo_on_off_cb,
+            queue_size=1,
+        )
         # Button
         rospy.Subscriber(
-            "/atom_s3_button_state", Int32,
-            callback=self.button_cb, queue_size=1)
+            "/atom_s3_button_state", Int32, callback=self.button_cb, queue_size=1
+        )
 
         self.start()
 
     def pressure_control_cb(self, msg):
-        self.pressure_control_state[f'{msg.board_idx}'] = msg
+        self.pressure_control_state[f"{msg.board_idx}"] = msg
 
     def servo_on_off_cb(self, msg):
         self.servo_on_states = msg
@@ -53,10 +58,10 @@ class ButtonActionManager(threading.Thread):
         """
         state = msg.data
         if state == 11:
-            rospy.loginfo('AtomS3 is pressed and holded. Toggle pressure control.')
+            rospy.loginfo("AtomS3 is pressed and holded. Toggle pressure control.")
             self.toggle_pressure_control()
         if state == 1:
-            rospy.loginfo('AtomS3 is pressed once. Toggle servo on off.')
+            rospy.loginfo("AtomS3 is pressed once. Toggle servo on off.")
             self.toggle_servo_on_off()
 
     def toggle_pressure_control(self):
@@ -68,7 +73,7 @@ class ButtonActionManager(threading.Thread):
             return
         board_ids = list(self.pressure_control_state.keys())
         for idx in board_ids:
-            state = self.pressure_control_state[f'{idx}']
+            state = self.pressure_control_state[f"{idx}"]
             if state.start_pressure == 0 and state.stop_pressure == 0:
                 start_pressure = -10
                 stop_pressure = -30
@@ -79,7 +84,8 @@ class ButtonActionManager(threading.Thread):
                 board_idx=int(idx),
                 start_pressure=start_pressure,
                 stop_pressure=stop_pressure,
-                release=(not state.release))
+                release=(not state.release),
+            )
 
     def toggle_servo_on_off(self):
         """
@@ -103,10 +109,10 @@ class ButtonActionManager(threading.Thread):
         """
         robot_model = RobotModel()
         namespace = ""
-        robot_model.load_urdf_from_robot_description(
-            namespace + '/robot_description_viz')
-        self.ri = KXRROSRobotInterface(  # NOQA
-            robot_model, namespace=namespace, controller_timeout=60.0)
+        robot_model.load_urdf_from_robot_description(namespace + "/robot_description_viz")
+        self.ri = KXRROSRobotInterface(
+            robot_model, namespace=namespace, controller_timeout=60.0
+        )
 
 
 if __name__ == "__main__":
@@ -114,7 +120,7 @@ if __name__ == "__main__":
     All AtomS3 clicking actions are integrated into this program
     to prevent different actions from being assigned to the same click.
     """
-    rospy.init_node('button_action_manager')
+    rospy.init_node("button_action_manager")
     ButtonActionManager()
     try:
         rospy.spin()
