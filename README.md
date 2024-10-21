@@ -13,6 +13,7 @@ catkin build riberry_startup
 After sourcing, install the systemd-related programs with the following commands:
 
 ```
+pip3 install -e .
 sudo ./install.py
 sudo reboot
 ```
