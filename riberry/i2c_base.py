@@ -40,7 +40,6 @@ class i2c:
 
 
 class I2CBase:
-
     def __init__(self, i2c_addr):
         self.i2c_addr = i2c_addr
         self.device_type = self.identify_device()
