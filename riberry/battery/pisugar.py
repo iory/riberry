@@ -76,13 +76,13 @@ class PisugarBatteryReader(threading.Thread):
                         cap = IP5209_CURVE[i][1]
                         if i == 0:
                             break
-                    if i > 0:
-                        vol_diff_v = vol - IP5209_CURVE[i][0]
-                        k_percent = IP5209_CURVE[i - 1][1] - IP5209_CURVE[i][1]
-                        k_voltage = IP5209_CURVE[i - 1][0] - IP5209_CURVE[i][0]
-                        k = k_percent / k_voltage
-                        cap += int(k * vol_diff_v)
-                        break
+                        if i > 0:
+                            vol_diff_v = vol - IP5209_CURVE[i][0]
+                            k_percent = IP5209_CURVE[i - 1][1] - IP5209_CURVE[i][1]
+                            k_voltage = IP5209_CURVE[i - 1][0] - IP5209_CURVE[i][0]
+                            k = k_percent / k_voltage
+                            cap += int(k * vol_diff_v)
+                            break
                 return cap
             except Exception as e:
                 print(f"[Pisugar Battery Reader] {e}")
