@@ -40,12 +40,13 @@ class i2c:
 
 
 class I2CBase:
-    def __init__(self, i2c_addr, lock_path="/tmp/i2c-1.lock"):
+
+    def __init__(self, i2c_addr):
         self.i2c_addr = i2c_addr
-        self.bus_number = None
         self.device_type = self.identify_device()
-        self.lock = FileLock(lock_path, timeout=10)
         self.setup_i2c()
+        lock_path = f"/tmp/i2c-{self.bus_number}.lock"
+        self.lock = FileLock(lock_path, timeout=10)
 
     def setup_i2c(self):
         if self.device_type == "Raspberry Pi":
