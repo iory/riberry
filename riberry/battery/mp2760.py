@@ -226,7 +226,7 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             charge_status = ChargeState(charge_status_value)
         except ValueError:
-            return 0
+            return ChargeState(0)
         return charge_status
 
     def read_input_voltage(self):
@@ -323,7 +323,7 @@ class MP2760BatteryMonitor(threading.Thread):
 
     def read_sensor_data(self, get_charge=False):
         charge_status = self.read_charge_status()
-        is_charging = charge_status != 0
+        is_charging = charge_status is not None and charge_status.value != 0
         if get_charge is True:
             return is_charging
         input_voltage = self.read_input_voltage()
