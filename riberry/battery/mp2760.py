@@ -114,7 +114,7 @@ class MP2760BatteryMonitor(threading.Thread):
             print("[MP2760BatteryMonitor] found.")
             return True
         except OSError as e:
-            print(f"[MP2760BatteryMonitor] {e} Device not found")
+            print(f"[MP2760BatteryMonitor] {e}. Device not found")
             return False
 
     def is_outlier(self, current, history, threshold):
