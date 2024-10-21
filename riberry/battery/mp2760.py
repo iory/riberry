@@ -106,6 +106,17 @@ class MP2760BatteryMonitor(threading.Thread):
         self.set_adc_continuous_mode(False)
         self.bus.close()
 
+    @staticmethod
+    def exists(self, bus_number=3, device_address=0x5C):
+        try:
+            with smbus2.SMBus(bus_number) as bus:
+                bus.read_byte(device_address)
+            print("[MP2760BatteryMonitor] found.")
+            return True
+        except OSError as e:
+            print(f"[MP2760BatteryMonitor] {e}. Device not found")
+            return False
+
     def is_outlier(self, current, history, threshold):
         if not history:
             return False

@@ -182,16 +182,13 @@ class DisplayInformation(I2CBase):
     def __init__(self, i2c_addr):
         super().__init__(i2c_addr)
         use_pisugar = False
-        try:
-            battery_monitor = MP2760BatteryMonitor(self.bus_number)
-            voltage = battery_monitor.read_battery_voltage()
-            if voltage is None:
-                print("[Display Information] Use Pisugar")
-                use_pisugar = True
-            else:
-                print("[Display Information] Use JSK Battery Board")
-        except Exception:
+
+        if MP2760BatteryMonitor.exists(self.bus_number):
             print("[Display Information] Use JSK Battery Board")
+        else:
+            print("[Display Information] Use Pisugar")
+            use_pisugar = True
+
         self.use_pisugar = use_pisugar
         if self.bus_number:
             if use_pisugar:
@@ -295,6 +292,7 @@ class DisplayInformation(I2CBase):
 
         while not stop_event.is_set():
             mode = atom_s3_mode
+            print(f'Mode: {mode} device_type: {self.device_type}')
             if mode != "DisplayInformationMode" and mode != "DisplayQRcodeMode":
                 time.sleep(0.1)
                 continue
