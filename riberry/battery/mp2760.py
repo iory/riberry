@@ -96,7 +96,9 @@ class MP2760BatteryMonitor(threading.Thread):
         while self.set_adc_continuous_mode(set_bit=True) is None:
             print("[MP2760BatteryMonitor] Try to enable adc continuous mode.")
             time.sleep(1.0)
-
+        self.limit_charge_current(400)
+        print("[MP2760BatteryMonitor] Charge current limit: ",
+              f"{self.read_charge_current_limit()}[mA]")
         self.lock = threading.Lock()
         self.running = True
 
@@ -175,6 +177,43 @@ class MP2760BatteryMonitor(threading.Thread):
             print(f"[Battery Monitor] Error writing I2C: {e}")
             return
         return True
+
+    def limit_charge_current(self, set_current):  # unit: [mA]
+        set_word = 0x0000
+        digits = list(range(13, 5, -1))
+        currents = [50 * 2**i for i in range(7, -1, -1)]
+        if (type(set_current) is not int or
+            set_current % 50 != 0 or
+            set_current < 50 or set_current > 6000):
+            print("[Battery Monitor] Current limit is not proper.")
+            return
+        for digit, current in zip(digits, currents):
+            bit = set_current // current
+            set_word += bit << digit
+            set_current -= bit * 50 * 2 ** (digit - 6)
+        try:
+            self.bus.write_word_data(self.device_address, 0x14, set_word)
+        except Exception as e:
+            print(f"[Battery Monitor] Error writing I2C: {e}")
+            return
+        return True
+
+    def read_charge_current_limit(self):  # unit: [mA]
+        try:
+            bits = self.bus.read_word_data(self.device_address, 0x14)
+        except Exception as e:
+            print(f"[Battery Monitor] Error reading from I2C: {e}")
+            return
+        current = 0
+        current += ((bits & 0x2000) >> 13) * 6400
+        current += ((bits & 0x1000) >> 12) * 3200
+        current += ((bits & 0x0800) >> 11) * 1600
+        current += ((bits & 0x0400) >> 10) * 800
+        current += ((bits & 0x0200) >> 9) * 400
+        current += ((bits & 0x0100) >> 8) * 200
+        current += ((bits & 0x0080) >> 7) * 100
+        current += ((bits & 0x0040) >> 6) * 50
+        return current
 
     def calculate_lipo_percentage(self, voltage):
         max_voltage = 8.4  # 100%
