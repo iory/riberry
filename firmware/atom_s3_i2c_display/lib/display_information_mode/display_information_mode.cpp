@@ -20,8 +20,10 @@ void DisplayInformationMode::task(void *parameter) {
     // Display information
     else {
       instance->atoms3lcd.drawBlack();
-      instance->atoms3lcd.printColorText(instance->atoms3lcd.color_str);
-      instance->atoms3i2c.setRequestStr(instance->getModeName());
+      if (instance->atoms3lcd.color_str.isEmpty())
+        instance->atoms3lcd.printColorText("Waiting for " + instance->getModeName());
+      else
+        instance->atoms3lcd.printColorText(instance->atoms3lcd.color_str);
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }

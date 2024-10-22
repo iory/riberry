@@ -41,7 +41,6 @@ void loop() {
     current_mode_index = (current_mode_index + 1) % num_modes;
     atoms3i2c.stopReceiveEvent();
     atoms3lcd.drawBlack();
-    atoms3lcd.printMessage("Wait for mode switch ...");
     delay(1000);
     atoms3lcd.resetLcdData();
     // Resume
