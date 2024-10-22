@@ -19,8 +19,11 @@ void DisplayQRcodeMode::task(void *parameter) {
     }
     // Display QR code
     else {
-      instance->atoms3lcd.drawQRcode(instance->atoms3lcd.qrCodeData);
-      instance->atoms3i2c.setRequestStr(instance->getModeName());
+      instance->atoms3lcd.drawBlack();
+      if (instance->atoms3lcd.qrCodeData.isEmpty())
+        instance->atoms3lcd.printColorText("Waiting for " + instance->getModeName());
+      else
+        instance->atoms3lcd.drawQRcode(instance->atoms3lcd.qrCodeData);
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }
