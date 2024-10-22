@@ -293,30 +293,31 @@ class DisplayInformation(I2CBase):
         while not stop_event.is_set():
             mode = atom_s3_mode
             print(f"Mode: {mode} device_type: {self.device_type}")
-            if mode != "DisplayInformationMode" and mode != "DisplayQRcodeMode":
-                time.sleep(0.1)
-                continue
-            if ros_display_image_flag and ros_display_image is not None:
-                self.display_image(ros_display_image)
-            else:
-                if get_ip_address() is None:
-                    if self.device_type == "Raspberry Pi":
-                        ssid = f"raspi-{get_mac_address()}"
-                    elif self.device_type == "Radxa Zero":
-                        ssid = f"radxa-{get_mac_address()}"
-                    else:
-                        ssid = f"radxa-{get_mac_address()}"
-                    self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
-                    time.sleep(3)
+            # Display the QR code when Wi-Fi is not connected,
+            # regardless of atom_s3_mode.
+            if get_ip_address() is None:
+                if self.device_type == "Raspberry Pi":
+                    ssid = f"raspi-{get_mac_address()}"
+                elif self.device_type == "Radxa Zero":
+                    ssid = f"radxa-{get_mac_address()}"
                 else:
-                    if mode == "DisplayInformationMode":
-                        self.display_information()
-                        time.sleep(3)
-                    elif mode == "DisplayQRcodeMode":
-                        self.display_qrcode()
-                        time.sleep(3)
-                    else:
-                        time.sleep(3)
+                    ssid = f"radxa-{get_mac_address()}"
+                self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
+                time.sleep(3)
+                continue
+            # Display data according to mode
+            if mode == "DisplayInformationMode":
+                self.display_information()
+                time.sleep(3)
+            elif mode == "DisplayQRcodeMode":
+                self.display_qrcode()
+                time.sleep(3)
+            elif mode == "DisplayImageMode":  # not implemented
+                if ros_display_image_flag and ros_display_image is not None:
+                    self.display_image(ros_display_image)
+                    time.sleep(3)
+            else:
+                time.sleep(0.1)
 
 
 if __name__ == "__main__":
