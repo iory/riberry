@@ -24,6 +24,7 @@ sys.stdout.reconfigure(line_buffering=True)
 
 
 pisugar_battery_percentage = None
+battery_junction_temperature = None
 debug_i2c_text = False
 
 
@@ -83,6 +84,7 @@ def try_init_ros():
     global ros_display_image_flag
     global ros_display_image
     global pisugar_battery_percentage
+    global battery_junction_temperature
     ros_display_image_param = None
     prev_ros_display_image_param = None
     while not stop_event.is_set():
@@ -116,6 +118,8 @@ def try_init_ros():
             )
             rospy.Subscriber("/atom_s3_mode", String, ros_mode_callback, queue_size=1)
             battery_pub = rospy.Publisher("/pisugar_battery", Float32, queue_size=1)
+            battery_temperature_pub = rospy.Publisher("/battery/junction_temperature",
+                                                      Float32, queue_size=1)
             ros_available = True
             rate = rospy.Rate(1)
             sub = None
@@ -123,6 +127,8 @@ def try_init_ros():
                 ros_display_image_param = rospy.get_param("/display_image", None)
                 if pisugar_battery_percentage is not None:
                     battery_pub.publish(pisugar_battery_percentage)
+                if battery_junction_temperature is not None:
+                    battery_temperature_pub.publish(battery_junction_temperature)
                 if prev_ros_display_image_param != ros_display_image_param:
                     ros_display_image_flag = False
                     if sub is not None:
@@ -236,6 +242,7 @@ class DisplayInformation(I2CBase):
         global ros_available
         global ros_additional_message
         global pisugar_battery_percentage
+        global battery_junction_temperature
 
         ip = get_ip_address()
         if ip is None:
@@ -247,6 +254,8 @@ class DisplayInformation(I2CBase):
             charging = self.battery_reader.get_is_charging()
             battery = self.battery_reader.get_filtered_percentage(charging)
             pisugar_battery_percentage = battery
+            if isinstance(self.battery_reader, MP2760BatteryMonitor):
+                battery_junction_temperature = self.battery_reader.junction_temperature
             if battery is None:
                 battery_str = "Bat: None"
             else:
