@@ -23,8 +23,12 @@ from riberry.i2c_base import I2CBase
 sys.stdout.reconfigure(line_buffering=True)
 
 
-pisugar_battery_percentage = None
+battery_percentage = None
 battery_junction_temperature = None
+input_voltage = None
+system_voltage = None
+charge_status = None
+battery_charge_current = None
 debug_i2c_text = False
 
 
@@ -83,8 +87,12 @@ def try_init_ros():
     global ros_additional_message
     global ros_display_image_flag
     global ros_display_image
-    global pisugar_battery_percentage
+    global battery_percentage
     global battery_junction_temperature
+    global input_voltage
+    global system_voltage
+    global charge_status
+    global battery_charge_current
     ros_display_image_param = None
     prev_ros_display_image_param = None
     while not stop_event.is_set():
@@ -93,6 +101,7 @@ def try_init_ros():
             import rospy
             import sensor_msgs.msg
             from std_msgs.msg import Float32
+            from std_msgs.msg import Int32
             from std_msgs.msg import String
 
             ros_ip = wait_and_get_ros_ip(300)
@@ -117,16 +126,39 @@ def try_init_ros():
                 "/atom_s3_additional_info", String, ros_callback, queue_size=1
             )
             rospy.Subscriber("/atom_s3_mode", String, ros_mode_callback, queue_size=1)
-            battery_pub = rospy.Publisher("/pisugar_battery", Float32, queue_size=1)
-            battery_temperature_pub = rospy.Publisher("/battery/junction_temperature",
-                                                      Float32, queue_size=1)
+            battery_pub = rospy.Publisher(
+                "/battery/remaining_battery", Float32, queue_size=1
+            )
+            battery_temperature_pub = rospy.Publisher(
+                "/battery/junction_temperature", Float32, queue_size=1
+            )
+            input_voltage_pub = rospy.Publisher(
+                "/battery/input_voltage", Float32, queue_size=1
+            )
+            system_voltage_pub = rospy.Publisher(
+                "/battery/system_voltage", Float32, queue_size=1
+            )
+            battery_charge_current_pub = rospy.Publisher(
+                "/battery/battery_charge_current", Float32, queue_size=1
+            )
+            charge_status_pub = rospy.Publisher(
+                "/battery/charge_status", Int32, queue_size=1
+            )
             ros_available = True
             rate = rospy.Rate(1)
             sub = None
             while not rospy.is_shutdown() and not stop_event.is_set():
                 ros_display_image_param = rospy.get_param("/display_image", None)
-                if pisugar_battery_percentage is not None:
-                    battery_pub.publish(pisugar_battery_percentage)
+                if battery_percentage is not None:
+                    battery_pub.publish(battery_percentage)
+                if input_voltage is not None:
+                    input_voltage_pub.publish(input_voltage)
+                if system_voltage is not None:
+                    system_voltage_pub.publish(system_voltage)
+                if charge_status is not None:
+                    charge_status_pub.publish(int(charge_status.value))
+                if battery_charge_current is not None:
+                    battery_charge_current_pub.publish(battery_charge_current)
                 if battery_junction_temperature is not None:
                     battery_temperature_pub.publish(battery_junction_temperature)
                 if prev_ros_display_image_param != ros_display_image_param:
@@ -241,8 +273,12 @@ class DisplayInformation(I2CBase):
     def display_information(self):
         global ros_available
         global ros_additional_message
-        global pisugar_battery_percentage
+        global battery_percentage
         global battery_junction_temperature
+        global input_voltage
+        global system_voltage
+        global charge_status
+        global battery_charge_current
 
         ip = get_ip_address()
         if ip is None:
@@ -253,9 +289,13 @@ class DisplayInformation(I2CBase):
         if self.battery_reader:
             charging = self.battery_reader.get_is_charging()
             battery = self.battery_reader.get_filtered_percentage(charging)
-            pisugar_battery_percentage = battery
+            battery_percentage = battery
             if isinstance(self.battery_reader, MP2760BatteryMonitor):
                 battery_junction_temperature = self.battery_reader.junction_temperature
+                input_voltage = self.battery_reader.input_voltage
+                system_voltage = self.battery_reader.system_voltage
+                charge_status = self.battery_reader.charge_status
+                battery_charge_current = self.battery_reader.battery_charge_current
             if battery is None:
                 battery_str = "Bat: None"
             else:
