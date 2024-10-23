@@ -97,8 +97,10 @@ class MP2760BatteryMonitor(threading.Thread):
             print("[MP2760BatteryMonitor] Try to enable adc continuous mode.")
             time.sleep(1.0)
         self.limit_charge_current(400)
-        print("[MP2760BatteryMonitor] Charge current limit: ",
-              f"{self.read_charge_current_limit()}[mA]")
+        print(
+            "[MP2760BatteryMonitor] Charge current limit: ",
+            f"{self.read_charge_current_limit()}[mA]",
+        )
         self.lock = threading.Lock()
         self.running = True
 
@@ -182,9 +184,12 @@ class MP2760BatteryMonitor(threading.Thread):
         set_word = 0x0000
         digits = list(range(13, 5, -1))
         currents = [50 * 2**i for i in range(7, -1, -1)]
-        if (type(set_current) is not int or
-            set_current % 50 != 0 or
-            set_current < 50 or set_current > 6000):
+        if (
+            type(set_current) is not int
+            or set_current % 50 != 0
+            or set_current < 50
+            or set_current > 6000
+        ):
             print("[Battery Monitor] Current limit is not proper.")
             return
         for digit, current in zip(digits, currents):
