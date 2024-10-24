@@ -2,16 +2,17 @@
 
 from enum import Enum
 import json
-import numpy as np
 import os
 from pathlib import Path
 
 from kxr_controller.kxr_interface import KXRROSRobotInterface
-from riberry.i2c_base import I2CBase
+import numpy as np
 import rospy
 from skrobot.model import RobotModel
 from std_msgs.msg import Int32
 from std_msgs.msg import String
+
+from riberry.i2c_base import I2CBase
 
 
 class State(Enum):
@@ -57,7 +58,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
         if msg.data == 3:
             self.ri.servo_off()
         if self.prev_state != self.state:
-            sent_str = 'State: {}'.format(self.state.name)
+            sent_str = f'State: {self.state.name}'
             rospy.loginfo(sent_str)
         self.prev_state = self.state
         # State transition
@@ -146,8 +147,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                 controller_actions = self.ri.controller_table[controller_type]
             else:
                 controller_actions = self.ri.controller_table[self.ri.controller_type]
-            is_interpolatings = map(
-                lambda action: action.is_interpolating(), controller_actions)
+            is_interpolatings = (action.is_interpolating() for action in controller_actions)
             return any(list(is_interpolatings))
         while not rospy.is_shutdown() and is_interpolating():
             if self.state == State.WAIT:
