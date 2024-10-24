@@ -5,6 +5,7 @@
 #include <display_qrcode_mode.h>
 #include <pressure_control_mode.h>
 #include <servo_control_mode.h>
+#include <teaching_mode.h>
 
 // Common tasks for AtomS3
 AtomS3Button atoms3button;
@@ -16,7 +17,8 @@ DisplayInformationMode display_information_mode(atoms3lcd, atoms3i2c);
 DisplayQRcodeMode display_qrcode_mode(atoms3lcd, atoms3i2c);
 PressureControlMode pressure_control_mode(atoms3lcd, atoms3i2c);
 ServoControlMode servo_control_mode(atoms3lcd, atoms3i2c);
-Mode* modes[] = { &display_information_mode, &display_qrcode_mode, &pressure_control_mode ,&servo_control_mode };
+TeachingMode teaching_mode(atoms3lcd, atoms3i2c);
+Mode* modes[] = { &display_information_mode, &display_qrcode_mode, &pressure_control_mode ,&servo_control_mode, &teaching_mode };
 int current_mode_index = 0;
 int num_modes = sizeof(modes) / sizeof(modes[0]);
 
