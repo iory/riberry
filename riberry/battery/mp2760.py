@@ -398,7 +398,8 @@ class MP2760BatteryMonitor(threading.Thread):
     def run(self):
         try:
             while self.running:
-                print_status_and_fault_register(self.read_register(0x17))
+                self.status_and_fault = self.read_register(0x17)
+                print_status_and_fault_register(self.status_and_fault)
                 is_charging = self.read_sensor_data(get_charge=True)
                 (
                     self.input_voltage,

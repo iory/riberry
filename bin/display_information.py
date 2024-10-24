@@ -29,6 +29,7 @@ input_voltage = None
 system_voltage = None
 charge_status = None
 battery_charge_current = None
+status_and_fault = None
 debug_i2c_text = False
 
 
@@ -93,6 +94,7 @@ def try_init_ros():
     global system_voltage
     global charge_status
     global battery_charge_current
+    global status_and_fault
     ros_display_image_param = None
     prev_ros_display_image_param = None
     while not stop_event.is_set():
@@ -103,6 +105,7 @@ def try_init_ros():
             from std_msgs.msg import Float32
             from std_msgs.msg import Int32
             from std_msgs.msg import String
+            from std_msgs.msg import UInt32
 
             ros_ip = wait_and_get_ros_ip(300)
             print(f"Set ROS_IP={ros_ip}")
@@ -144,6 +147,9 @@ def try_init_ros():
             charge_status_pub = rospy.Publisher(
                 "/battery/charge_status", Int32, queue_size=1
             )
+            status_and_fault_pub = rospy.Publisher(
+                "/battery/status_and_fault", UInt32, queue_size=1
+            )
             ros_available = True
             rate = rospy.Rate(1)
             sub = None
@@ -161,6 +167,8 @@ def try_init_ros():
                     battery_charge_current_pub.publish(battery_charge_current)
                 if battery_junction_temperature is not None:
                     battery_temperature_pub.publish(battery_junction_temperature)
+                if status_and_fault is not None:
+                    status_and_fault_pub.publish(status_and_fault)
                 if prev_ros_display_image_param != ros_display_image_param:
                     ros_display_image_flag = False
                     if sub is not None:
@@ -279,6 +287,7 @@ class DisplayInformation(I2CBase):
         global system_voltage
         global charge_status
         global battery_charge_current
+        global status_and_fault
 
         ip = get_ip_address()
         if ip is None:
@@ -296,6 +305,7 @@ class DisplayInformation(I2CBase):
                 system_voltage = self.battery_reader.system_voltage
                 charge_status = self.battery_reader.charge_status
                 battery_charge_current = self.battery_reader.battery_charge_current
+                status_and_fault = self.battery_reader.status_and_fault
             if battery is None:
                 battery_str = "Bat: None"
             else:
