@@ -189,6 +189,14 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
 
 
 if __name__ == '__main__':
+    # skrobot version check
+    from packaging import version
+    import skrobot
+    required_version = "0.0.44"
+    current_version = skrobot.__version__
+    if version.parse(current_version) < version.parse(required_version):
+        raise Exception(f"skrobot version is not greater than {required_version}. (current version: {current_version})\npip install scikit-robot -U")
+    # Main
     rospy.init_node('teaching_mode', anonymous=True)
     tm = TeachingMode(0x42)
     # To stop program by Ctrl-c
