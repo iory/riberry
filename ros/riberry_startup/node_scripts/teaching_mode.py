@@ -173,7 +173,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                     rospy.sleep(1)
                 elif self.state == State.RECORD:
                     sent_str = 'Record mode\n\n'\
-                        + 'single click:\n  start/stop recording'
+                        + 'single click:\n  stop recording'
                     self.send_string(sent_str)
                     self.record()
                     self.state = State.WAIT
