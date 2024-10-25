@@ -46,3 +46,65 @@ If you want to set the I2C address, set the `I2C_ADDR` environment variable to t
 ```
 I2C_ADDR=0x42 pio run -t upload
 ```
+
+## Control multiple modes
+
+The `atom_s3_i2c_display` includes multiple modes. This feature allows the robot to be controlled using both the `/i2c_button_state` and `/i2c_mode topics`, making control programming easier.
+
+### Program Structure
+
+- The AtomS3 firmware is paired with a corresponding rospy program on the computer. To use any mode, first update the AtomS3 firmware, then launch the matching rospy node.
+
+| AtomS3 Firmware | Computer rospy Node |
+| ------------- | ------------- |
+| display_information_mode.cpp | display_information.py |
+| display_qr_code_mode.cpp | display_information.py |
+| servo_control_mode.cpp | servo_control_mode.py |
+| pressure_control_mode.cpp | pressure_control_mode.py |
+| teaching_mode.cpp | teaching_mode.py |
+
+- `i2c_button_state_publisher.cpp` facilitates communication between these programs.
+The following sections provide details on the base code for the AtomS3 firmware.
+
+- `main.cpp` includes instances for each mode and stores them in a list. Each time a long click occurs, the active task switches to another mode.
+
+- `atom_s3_lcd.h` is a shared library for the AtomS3, containing functions for drawing on the LCD and holding variables needed for rendering data, such as jpegBuf and qrCodeData.
+
+- `atom_s3_i2c.h` is a shared library for I2C communication with the AtomS3. In the receiveEvent function, data is received from the I2C master and stored in the AtomS3LCD class object. The requestEvent function sends button state and mode information to the I2C master.
+
+- `atom_s3_button.h` is a shared library that detects which button was pressed and identifies the type of press.
+
+### Mode Descriptions
+
+- Display Information Mode
+
+  Displays the device's IP address and battery level.
+
+- Display QR Code Mode
+
+  Shows a QR code on the screen.
+
+- Servo Control Mode
+
+  Controls the Kondo servo. A single click toggles the servo on or off.
+
+- Pressure Control Mode
+
+  Controls pressure by toggling the pump and solenoid valve. The current pressure value is shown on the AtomS3 LCD. A single click toggles the vacuum on or off.
+
+- Teaching Mode
+
+  This mode includes three states: `WAIT`, `RECORD`, and `PLAY`.
+
+  In the `WAIT` state:
+  - A single click transitions to the `RECORD` state.
+  - A double click transitions to the `PLAY` state.
+  - A triple click turns off the servo.
+
+  In the `RECORD` state:
+  - A single click starts or stops recording motion.
+  - After recording, the state automatically returns to `WAIT`.
+
+  In the `PLAY` state:
+  - A single click starts or stops playing the recorded motion.
+  - After playback, the state automatically returns to `WAIT`.
