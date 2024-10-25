@@ -42,6 +42,8 @@ class PisugarBatteryReader(threading.Thread):
         self.percentage_history = []
         self.charging_history = []
 
+        self.vol_history = []
+
         self.bus = smbus2.SMBus(self.bus_number)
         self.lock = threading.Lock()
         self.running = True
@@ -70,6 +72,12 @@ class PisugarBatteryReader(threading.Thread):
                     vol = 2600 - (~vol_low + (~(vol_high & 0x1F)) * 256 + 1) * 27 // 100
                 else:
                     vol = 2600 + (vol_low + vol_high * 256) * 27 // 100
+
+                self._update_voltage_history(vol)
+                is_increasing = self._is_voltage_increasing_trend()
+                if get_charge is True:
+                    return is_increasing
+
                 cap = 0
                 for i in range(len(IP5209_CURVE)):
                     if vol >= IP5209_CURVE[i][0]:
@@ -90,6 +98,20 @@ class PisugarBatteryReader(threading.Thread):
         except Exception as e:
             print(f"[Pisugar Battery Reader] {e}")
             return None
+
+    def _update_voltage_history(self, vol):
+        self.vol_history.append(vol)
+        if len(self.vol_history) > self.history_size:
+            self.vol_history.pop(0)
+
+    def _is_voltage_increasing_trend(self):
+        if len(self.vol_history) < 2:
+            return False
+        total_slope = 0
+        for i in range(1, len(self.vol_history)):
+            total_slope += self.vol_history[i] - self.vol_history[i - 1]
+        average_slope = total_slope / (len(self.vol_history) - 1)
+        return average_slope > 0
 
     def is_outlier(self, current, history, threshold):
         if not history:
