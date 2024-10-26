@@ -28,7 +28,7 @@ class ChargeState(Enum):
 
 def print_status_and_fault_register(value):
     if value is None:
-        return
+        return "Could not read register."
     # Ensure the input is 16 bits
     if value > 0xFFFF or value < 0:
         raise ValueError("Input must be a 16-bit value (0x0000 - 0xFFFF).")
@@ -54,11 +54,18 @@ def print_status_and_fault_register(value):
     }
 
     # Iterate through the bits and print descriptions for the set bits
+    status_and_fault_list = []
     for bit in range(15, -1, -1):
         if bit not in descriptions:
             continue
         if (value >> bit) & 1:
-            print(f"Bit {bit}: {descriptions.get(bit, 'Unknown')}")
+            msg = f"Bit {bit}: {descriptions.get(bit, 'Unknown')}"
+            print(msg)
+            status_and_fault_list.append(msg)
+    if len(status_and_fault_list) == 0:
+        return "All green."
+    all_msg = "\n".join(status_and_fault_list)
+    return all_msg
 
 
 class MP2760BatteryMonitor(threading.Thread):
@@ -399,7 +406,9 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             while self.running:
                 self.status_and_fault = self.read_register(0x17)
-                print_status_and_fault_register(self.status_and_fault)
+                self.status_and_fault_string = print_status_and_fault_register(
+                    self.status_and_fault
+                )
                 is_charging = self.read_sensor_data(get_charge=True)
                 (
                     self.input_voltage,
