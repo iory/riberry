@@ -30,6 +30,7 @@ system_voltage = None
 charge_status = None
 battery_charge_current = None
 status_and_fault = None
+status_and_fault_string = None
 debug_i2c_text = False
 
 
@@ -95,6 +96,7 @@ def try_init_ros():
     global charge_status
     global battery_charge_current
     global status_and_fault
+    global status_and_fault_string
     ros_display_image_param = None
     prev_ros_display_image_param = None
     while not stop_event.is_set():
@@ -147,8 +149,14 @@ def try_init_ros():
             charge_status_pub = rospy.Publisher(
                 "/battery/charge_status", Int32, queue_size=1
             )
+            charge_status_string_pub = rospy.Publisher(
+                "/battery/charge_status_string", String, queue_size=1
+            )
             status_and_fault_pub = rospy.Publisher(
                 "/battery/status_and_fault", UInt32, queue_size=1
+            )
+            status_and_fault_string_pub = rospy.Publisher(
+                "/battery/status_and_fault_string", String, queue_size=1
             )
             ros_available = True
             rate = rospy.Rate(1)
@@ -163,12 +171,15 @@ def try_init_ros():
                     system_voltage_pub.publish(system_voltage)
                 if charge_status is not None:
                     charge_status_pub.publish(int(charge_status.value))
+                    charge_status_string_pub.publish(str(charge_status))
                 if battery_charge_current is not None:
                     battery_charge_current_pub.publish(battery_charge_current)
                 if battery_junction_temperature is not None:
                     battery_temperature_pub.publish(battery_junction_temperature)
                 if status_and_fault is not None:
                     status_and_fault_pub.publish(status_and_fault)
+                if status_and_fault_string is not None:
+                    status_and_fault_string_pub.publish(status_and_fault_string)
                 if prev_ros_display_image_param != ros_display_image_param:
                     ros_display_image_flag = False
                     if sub is not None:
@@ -288,6 +299,7 @@ class DisplayInformation(I2CBase):
         global charge_status
         global battery_charge_current
         global status_and_fault
+        global status_and_fault_string
 
         ip = get_ip_address()
         if ip is None:
@@ -306,6 +318,7 @@ class DisplayInformation(I2CBase):
                 charge_status = self.battery_reader.charge_status
                 battery_charge_current = self.battery_reader.battery_charge_current
                 status_and_fault = self.battery_reader.status_and_fault
+                status_and_fault_string = self.battery_reader.status_and_fault_string
             if battery is None:
                 battery_str = "Bat: None"
             else:
