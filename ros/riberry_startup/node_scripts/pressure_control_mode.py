@@ -32,7 +32,7 @@ class PressureControlMode(I2CBase):
         # Pressure control
         self.pressure_control_state = {}
         rospy.Subscriber(
-            "/kxr_fullbody_controller/pressure_control_interface/state",
+            "/fullbody_controller/pressure_control_interface/state",
             PressureControl,
             callback=self.pressure_control_cb,
             queue_size=1,
@@ -42,7 +42,7 @@ class PressureControlMode(I2CBase):
         self.pressures = {}
         for idx in range(38, 66):
             rospy.Subscriber(
-                f"/kxr_fullbody_controller/pressure/{idx}",
+                f"/fullbody_controller/pressure/{idx}",
                 Float32,
                 self.read_pressure,
                 callback_args=idx,

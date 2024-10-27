@@ -31,7 +31,7 @@ class ServoControlMode(I2CBase):
         # Servo on off
         self.servo_on_states = None
         rospy.Subscriber(
-            "/kxr_fullbody_controller/servo_on_off_real_interface/state",
+            "/fullbody_controller/servo_on_off_real_interface/state",
             ServoOnOff,
             callback=self.servo_on_off_cb,
             queue_size=1,
