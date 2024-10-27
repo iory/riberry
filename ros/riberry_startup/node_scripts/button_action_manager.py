@@ -24,7 +24,7 @@ class ButtonActionManager(threading.Thread):
         # Pressure control
         self.pressure_control_state = {}
         rospy.Subscriber(
-            "/kxr_fullbody_controller/pressure_control_interface/state",
+            "/fullbody_controller/pressure_control_interface/state",
             PressureControl,
             callback=self.pressure_control_cb,
             queue_size=1,
@@ -32,7 +32,7 @@ class ButtonActionManager(threading.Thread):
         # Servo on off
         self.servo_on_states = None
         rospy.Subscriber(
-            "/kxr_fullbody_controller/servo_on_off_real_interface/state",
+            "/fullbody_controller/servo_on_off_real_interface/state",
             ServoOnOff,
             callback=self.servo_on_off_cb,
             queue_size=1,
