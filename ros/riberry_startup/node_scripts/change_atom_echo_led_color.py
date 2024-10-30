@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 
 
-import board
-import busio
 from i2c_for_esp32 import WirePacker
 import rospy
 from std_msgs.msg import ColorRGBA
 
+from riberry.i2c_base import I2C
+
 if __name__ == "__main__":
     rospy.init_node("change_atom_echo_led_color")
 
-    i2c = busio.I2C(board.SCL3, board.SDA3)
-    i2c_addr = 0x41
-    while not i2c.try_lock():
-        pass
+    i2c = I2C(0x41, bus=3)
 
     def callback(msg):
         r, g, b = int(msg.r), int(msg.g), int(msg.b)
@@ -26,7 +23,7 @@ if __name__ == "__main__":
             packer.write(ord(s))
         packer.end()
         if packer.available():
-            i2c.writeto(i2c_addr, packer.buffer[: packer.available()])
+            i2c.write(packer.buffer[: packer.available()])
 
     sub = rospy.Subscriber("color_rgb", ColorRGBA, queue_size=1, callback=callback)
     rospy.loginfo('Change Atom echo led color node start.')
