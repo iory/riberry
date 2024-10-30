@@ -62,6 +62,9 @@ class I2CBase:
             self.bus_number = 3
         elif self.device_type == "Khadas VIM4":
             self.i2c = i2c()
+        elif self.device_type == "NVIDIA Jetson Xavier NX Developer Kit":
+            self.i2c = i2c(bus=8)
+            self.bus_number = 8
         else:
             raise ValueError(f"Unknown device {self.device_type}")
 
@@ -72,7 +75,12 @@ class I2CBase:
             print(e)
             return
         try:
-            self.i2c.writeto(self.i2c_addr, packet)
+            if isinstance(self.i2c, i2c):
+                self.i2c.write(packet)
+            elif isinstance(self.i2c, busio.I2C):  # NOQA
+                self.i2c.writeto(self.i2c_addr, packet)
+            else:
+                print("Unknown self.i2c instance type.")
         except OSError as e:
             print(e)
         except TimeoutError as e:
@@ -108,7 +116,9 @@ class I2CBase:
                 return "Raspberry Pi"
             with open("/proc/device-tree/model") as f:
                 model = f.read().strip().replace("\x00", "")
-            if "Radxa" in model or "ROCK Pi" in model or model == "Khadas VIM4":
+            if "Radxa" in model or "ROCK Pi" in model\
+               or model == "Khadas VIM4"\
+               or model == "NVIDIA Jetson Xavier NX Developer Kit":
                 return model
             return "Unknown Device"
         except FileNotFoundError:
