@@ -15,7 +15,8 @@ else:
         return x.encode("latin-1")
 
 
-class i2c:
+class I2C:
+
     def __init__(self, device=0x42, bus=5):
         self.fr = open("/dev/i2c-" + str(bus), "rb", buffering=0)
         self.fw = open("/dev/i2c-" + str(bus), "wb", buffering=0)
@@ -49,21 +50,15 @@ class I2CBase:
 
     def setup_i2c(self):
         if self.device_type == "Raspberry Pi":
-            import board
-            import busio
-
-            self.i2c = busio.I2C(board.SCL, board.SDA)
+            self.i2c = I2C(bus=1)
             self.bus_number = 1
         elif self.device_type == "Radxa Zero":
-            import board
-            import busio
-
-            self.i2c = busio.I2C(board.SCL1, board.SDA1)
+            self.i2c = I2C(bus=1)
             self.bus_number = 3
         elif self.device_type == "Khadas VIM4":
-            self.i2c = i2c()
+            self.i2c = I2C(bus=5)
         elif self.device_type == "NVIDIA Jetson Xavier NX Developer Kit":
-            self.i2c = i2c(bus=8)
+            self.i2c = I2C(bus=8)
             self.bus_number = 8
         else:
             raise ValueError(f"Unknown device {self.device_type}")
@@ -75,12 +70,7 @@ class I2CBase:
             print(e)
             return
         try:
-            if isinstance(self.i2c, i2c):
-                self.i2c.write(packet)
-            elif isinstance(self.i2c, busio.I2C):  # NOQA
-                self.i2c.writeto(self.i2c_addr, packet)
-            else:
-                print("Unknown self.i2c instance type.")
+            self.i2c.write(packet)
         except OSError as e:
             print(e)
         except TimeoutError as e:
