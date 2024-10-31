@@ -37,7 +37,7 @@ void AtomS3I2C::receiveEvent(int howMany) {
     }
     // Check for JPEG packet header and update length if found
     if (instance->atoms3lcd.readyJpeg == false
-        && str.length() == 5 && (str[0] == instance->atoms3lcd.jpegPacketHeader[0]) && (str[1] == instance->atoms3lcd.jpegPacketHeader[1]) && (str[2] == instance->atoms3lcd.jpegPacketHeader[2])) {
+        && str.length() == 5 && (str[0] == jpegPacketHeader[0]) && (str[1] == jpegPacketHeader[1]) && (str[2] == jpegPacketHeader[2])) {
         instance->atoms3lcd.jpegLength = (uint32_t)(str[3] << 8) | str[4];
         instance->atoms3lcd.currentJpegIndex = 0;
         instance->atoms3lcd.loadingJpeg = true;
@@ -45,7 +45,7 @@ void AtomS3I2C::receiveEvent(int howMany) {
     }
     // Continue receiving JPEG data if already in loading state
     else if (instance->atoms3lcd.loadingJpeg) {
-        if ((str[0] == instance->atoms3lcd.jpegPacketHeader[0]) && (str[1] == instance->atoms3lcd.jpegPacketHeader[1]) && (str[2] == instance->atoms3lcd.jpegPacketHeader[2])) {
+        if ((str[0] == jpegPacketHeader[0]) && (str[1] == jpegPacketHeader[1]) && (str[2] == jpegPacketHeader[2])) {
             instance->atoms3lcd.currentJpegIndex += str.length() - 3;
             // End loading if the entire JPEG is received
             if (instance->atoms3lcd.currentJpegIndex >= instance->atoms3lcd.jpegLength) {
@@ -59,7 +59,7 @@ void AtomS3I2C::receiveEvent(int howMany) {
         }
     }
     // Check for QR code header and store data if found
-    if (str.length() > 1 && str[0] == instance->atoms3lcd.qrCodeHeader) {
+    if (str.length() > 1 && str[0] == qrCodeHeader) {
         uint8_t qrCodeLength = str[1];  // Assuming the length of the QR code data is in the second byte
         instance->atoms3lcd.qrCodeData = str.substring(2, 2 + qrCodeLength);
         return;
@@ -109,7 +109,7 @@ void AtomS3I2C::task(void *parameter) {
   WireSlave.onReceive(receiveEvent);
   WireSlave.onRequest(requestEvent);
   while (true) {
-    WireSlave.update();    
+    WireSlave.update();
     vTaskDelay(pdMS_TO_TICKS(1));;  // let I2C and other ESP32 peripherals interrupts work
   }
 }

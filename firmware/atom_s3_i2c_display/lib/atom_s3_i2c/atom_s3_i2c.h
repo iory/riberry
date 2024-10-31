@@ -59,6 +59,9 @@ private:
   unsigned long lastReceiveTime = 0; /**< Last time data was received over I2C. */
   const unsigned long receiveTimeout = 15000; /**< Timeout duration for I2C communication (15 seconds). */
 
+  static constexpr uint8_t jpegPacketHeader[3] = { 0xFF, 0xD8, 0xEA }; /**< JPEG image packet header identifier. */
+  static constexpr uint8_t qrCodeHeader = 0x02; /**< QR code packet header identifier. */
+
   static String requestStr; /**< String to be sent on I2C request. */
 
   /**
