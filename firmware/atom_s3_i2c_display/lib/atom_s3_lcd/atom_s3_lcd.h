@@ -85,6 +85,7 @@ public:
   static constexpr uint8_t jpegPacketHeader[3] = { 0xFF, 0xD8, 0xEA }; /**< JPEG image packet header identifier. */
   uint8_t jpegBuf[8000]; /**< Buffer to store JPEG image data. */
   bool loadingJpeg = false; /**< Indicates whether the system is currently loading a JPEG image. */
+  bool readyJpeg = false; /**< Indicates whether the JPEG image has been fully loaded and is ready for use. */
   uint32_t jpegLength; /**< Length of the JPEG image data in bytes. */
   uint32_t currentJpegIndex = 0; /**< Current index in the JPEG buffer. */
 

@@ -36,7 +36,8 @@ void AtomS3I2C::receiveEvent(int howMany) {
         str += c;
     }
     // Check for JPEG packet header and update length if found
-    if (str.length() == 5 && (str[0] == instance->atoms3lcd.jpegPacketHeader[0]) && (str[1] == instance->atoms3lcd.jpegPacketHeader[1]) && (str[2] == instance->atoms3lcd.jpegPacketHeader[2])) {
+    if (instance->atoms3lcd.readyJpeg == false
+        && str.length() == 5 && (str[0] == instance->atoms3lcd.jpegPacketHeader[0]) && (str[1] == instance->atoms3lcd.jpegPacketHeader[1]) && (str[2] == instance->atoms3lcd.jpegPacketHeader[2])) {
         instance->atoms3lcd.jpegLength = (uint32_t)(str[3] << 8) | str[4];
         instance->atoms3lcd.currentJpegIndex = 0;
         instance->atoms3lcd.loadingJpeg = true;
@@ -49,6 +50,7 @@ void AtomS3I2C::receiveEvent(int howMany) {
             // End loading if the entire JPEG is received
             if (instance->atoms3lcd.currentJpegIndex >= instance->atoms3lcd.jpegLength) {
                 instance->atoms3lcd.loadingJpeg = false;
+                instance->atoms3lcd.readyJpeg = true;
             }
             return;
         } else {
