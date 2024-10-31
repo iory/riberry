@@ -2,6 +2,7 @@
 
 AtomS3I2C* AtomS3I2C::instance = nullptr;
 String AtomS3I2C::requestStr = ""; // Initialize the static requestStr
+String AtomS3I2C::forcedMode = ""; // Initialize the static requestStr
 
 AtomS3I2C::AtomS3I2C(AtomS3LCD &lcd, AtomS3Button &button)
   : atoms3lcd(lcd), atoms3button(button), receiveEventEnabled(true) {
@@ -63,6 +64,10 @@ void AtomS3I2C::receiveEvent(int howMany) {
         uint8_t qrCodeLength = str[1];  // Assuming the length of the QR code data is in the second byte
         instance->atoms3lcd.qrCodeData = str.substring(2, 2 + qrCodeLength);
         return;
+    }
+    // Check for force mode change
+    if (str.length() > 1 && str[0] == forceModeHeader[0] && str[1] == forceModeHeader[1] && str[2] == forceModeHeader[2]) {
+      forcedMode = str.substring(3);
     }
     instance->atoms3lcd.color_str = str;
 }

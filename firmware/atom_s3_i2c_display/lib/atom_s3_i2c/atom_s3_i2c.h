@@ -51,6 +51,8 @@ public:
   static constexpr int scl_pin = 39; /**< I2C SCL pin for default mode. */
 #endif
 
+  static String forcedMode;
+
 private:
   bool receiveEventEnabled;
   static AtomS3I2C* instance; /**< Singleton instance of AtomS3I2C for managing callbacks. */
@@ -61,6 +63,7 @@ private:
 
   static constexpr uint8_t jpegPacketHeader[3] = { 0xFF, 0xD8, 0xEA }; /**< JPEG image packet header identifier. */
   static constexpr uint8_t qrCodeHeader = 0x02; /**< QR code packet header identifier. */
+  static constexpr uint8_t forceModeHeader[3] = { 0xFF, 0xFE, 0xFD }; /**< Force mode packet header identifier. */
 
   static String requestStr; /**< String to be sent on I2C request. */
 
