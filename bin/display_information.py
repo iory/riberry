@@ -265,6 +265,11 @@ class DisplayInformation(I2CBase):
         print(header)
         self.send_raw_bytes(header)
 
+    def force_mode(self, mode_name):
+        header = [0xFF, 0xFE, 0xFD]
+        forceModebytes = (list (map(ord, mode_name)))
+        self.send_raw_bytes(header + forceModebytes)
+
     def run(self):
         global ros_display_image
         global ros_display_image_flag
@@ -278,6 +283,8 @@ class DisplayInformation(I2CBase):
             # Display the QR code when Wi-Fi is not connected,
             # regardless of atom_s3_mode.
             if get_ip_address() is None:
+                self.force_mode("DisplayQRcodeMode")
+                time.sleep(1)
                 self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
                 time.sleep(3)
                 continue
