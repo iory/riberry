@@ -2,7 +2,6 @@
 
 import os
 import socket
-import subprocess
 import sys
 import threading
 import time
@@ -13,9 +12,14 @@ from i2c_for_esp32 import WirePacker
 from pybsc import nsplit
 from pybsc.image_utils import squared_padding_image
 
+from riberry.battery import decide_battery_i2c_bus_number
 from riberry.battery import MP2760BatteryMonitor
 from riberry.battery import PisugarBatteryReader
 from riberry.i2c_base import I2CBase
+from riberry.network import get_ip_address
+from riberry.network import get_mac_address
+from riberry.network import get_ros_master_ip
+from riberry.network import wait_and_get_ros_ip
 
 # Ensure that the standard output is line-buffered. This makes sure that
 # each line of output is flushed immediately, which is useful for logging.
@@ -23,57 +27,7 @@ from riberry.i2c_base import I2CBase
 sys.stdout.reconfigure(line_buffering=True)
 
 
-battery_percentage = None
-battery_junction_temperature = None
-input_voltage = None
-system_voltage = None
-charge_status = None
-battery_charge_current = None
-status_and_fault = None
-status_and_fault_string = None
-debug_i2c_text = False
-
-
-def parse_ip(route_get_output):
-    tokens = route_get_output.split()
-    if "via" in tokens:
-        return tokens[tokens.index("via") + 5]
-    else:
-        return tokens[tokens.index("src") + 1]
-
-
-def get_ros_ip():
-    try:
-        route_get = subprocess.check_output(
-            ["ip", "-o", "route", "get", "8.8.8.8"], stderr=subprocess.DEVNULL
-        ).decode()
-        return parse_ip(route_get)
-    except subprocess.CalledProcessError:
-        return None
-
-
-def wait_and_get_ros_ip(retry=300):
-    for _ in range(retry):
-        ros_ip = get_ros_ip()
-        if ros_ip:
-            return ros_ip
-        time.sleep(1)
-    return None
-
-
-def get_mac_address(interface="wlan0"):
-    try:
-        mac_address = (
-            subprocess.check_output(["cat", f"/sys/class/net/{interface}/address"])
-            .decode("utf-8")
-            .strip()
-        )
-        mac_address = mac_address.replace(":", "")
-        return mac_address
-    except Exception as e:
-        print(f"Error obtaining MAC address: {e}")
-        return None
-
+battery_reader = None
 
 # Global variable for ROS availability and additional message
 ros_available = False
@@ -89,16 +43,18 @@ def try_init_ros():
     global ros_additional_message
     global ros_display_image_flag
     global ros_display_image
-    global battery_percentage
-    global battery_junction_temperature
-    global input_voltage
-    global system_voltage
-    global charge_status
-    global battery_charge_current
-    global status_and_fault
-    global status_and_fault_string
+    global battery_reader
     ros_display_image_param = None
     prev_ros_display_image_param = None
+
+    battery_junction_temperature = None
+    input_voltage = None
+    system_voltage = None
+    charge_status = None
+    battery_charge_current = None
+    status_and_fault = None
+    status_and_fault_string = None
+    battery_percentage = None
     while not stop_event.is_set():
         try:
             import cv_bridge
@@ -134,34 +90,47 @@ def try_init_ros():
             battery_pub = rospy.Publisher(
                 "/battery/remaining_battery", Float32, queue_size=1
             )
-            battery_temperature_pub = rospy.Publisher(
-                "/battery/junction_temperature", Float32, queue_size=1
-            )
-            input_voltage_pub = rospy.Publisher(
-                "/battery/input_voltage", Float32, queue_size=1
-            )
-            system_voltage_pub = rospy.Publisher(
-                "/battery/system_voltage", Float32, queue_size=1
-            )
-            battery_charge_current_pub = rospy.Publisher(
-                "/battery/battery_charge_current", Float32, queue_size=1
-            )
-            charge_status_pub = rospy.Publisher(
-                "/battery/charge_status", Int32, queue_size=1
-            )
-            charge_status_string_pub = rospy.Publisher(
-                "/battery/charge_status_string", String, queue_size=1
-            )
-            status_and_fault_pub = rospy.Publisher(
-                "/battery/status_and_fault", UInt32, queue_size=1
-            )
-            status_and_fault_string_pub = rospy.Publisher(
-                "/battery/status_and_fault_string", String, queue_size=1
-            )
+            if isinstance(battery_reader, MP2760BatteryMonitor):
+                battery_temperature_pub = rospy.Publisher(
+                    "/battery/junction_temperature", Float32, queue_size=1
+                )
+                input_voltage_pub = rospy.Publisher(
+                    "/battery/input_voltage", Float32, queue_size=1
+                )
+                system_voltage_pub = rospy.Publisher(
+                    "/battery/system_voltage", Float32, queue_size=1
+                )
+                battery_charge_current_pub = rospy.Publisher(
+                    "/battery/battery_charge_current", Float32, queue_size=1
+                )
+                charge_status_pub = rospy.Publisher(
+                    "/battery/charge_status", Int32, queue_size=1
+                )
+                charge_status_string_pub = rospy.Publisher(
+                    "/battery/charge_status_string", String, queue_size=1
+                )
+                status_and_fault_pub = rospy.Publisher(
+                    "/battery/status_and_fault", UInt32, queue_size=1
+                )
+                status_and_fault_string_pub = rospy.Publisher(
+                    "/battery/status_and_fault_string", String, queue_size=1
+                )
             ros_available = True
             rate = rospy.Rate(1)
             sub = None
             while not rospy.is_shutdown() and not stop_event.is_set():
+                if isinstance(battery_reader, MP2760BatteryMonitor):
+                    battery_junction_temperature = battery_reader.junction_temperature
+                    input_voltage = battery_reader.input_voltage
+                    system_voltage = battery_reader.system_voltage
+                    charge_status = battery_reader.charge_status
+                    battery_charge_current = battery_reader.battery_charge_current
+                    status_and_fault = battery_reader.status_and_fault
+                    status_and_fault_string = battery_reader.status_and_fault_string
+                    battery_percentage = battery_reader.get_filtered_percentage()
+                elif isinstance(battery_reader, PisugarBatteryReader):
+                    battery_percentage = battery_reader.get_filtered_percentage()
+
                 ros_display_image_param = rospy.get_param("/display_image", None)
                 if battery_percentage is not None:
                     battery_pub.publish(battery_percentage)
@@ -211,51 +180,9 @@ def try_init_ros():
             ros_additional_message = None
 
 
-def get_ip_address():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("8.8.8.8", 80))
-    except OSError as e:
-        print(e)
-    ip_address = s.getsockname()[0]
-    s.close()
-    if ip_address == "0.0.0.0":
-        return None
-    return ip_address
-
-
-def get_ros_master_ip():
-    master_str = os.getenv("ROS_MASTER_URI", default="None")
-    # https://[IP Address]:11311 -> [IP Address]
-    master_str = master_str.split(":")
-    if len(master_str) > 1:
-        master_ip = master_str[1].replace("/", "")
-    else:
-        return "none"
-    return master_ip
-
-
 class DisplayInformation(I2CBase):
     def __init__(self, i2c_addr):
         super().__init__(i2c_addr)
-        use_pisugar = False
-
-        if MP2760BatteryMonitor.exists(self.bus_number):
-            print("[Display Information] Use JSK Battery Board")
-        else:
-            print("[Display Information] Use Pisugar")
-            use_pisugar = True
-
-        self.use_pisugar = use_pisugar
-        if self.bus_number:
-            if use_pisugar:
-                self.battery_reader = PisugarBatteryReader(self.bus_number)
-            else:
-                self.battery_reader = MP2760BatteryMonitor(self.bus_number)
-            self.battery_reader.daemon = True
-            self.battery_reader.start()
-        else:
-            self.battery_reader = None
 
     def display_image(self, img):
         img = squared_padding_image(img, 128)
@@ -292,14 +219,7 @@ class DisplayInformation(I2CBase):
     def display_information(self):
         global ros_available
         global ros_additional_message
-        global battery_percentage
-        global battery_junction_temperature
-        global input_voltage
-        global system_voltage
-        global charge_status
-        global battery_charge_current
-        global status_and_fault
-        global status_and_fault_string
+        global battery_reader
 
         ip = get_ip_address()
         if ip is None:
@@ -307,18 +227,9 @@ class DisplayInformation(I2CBase):
         ip_str = f"{socket.gethostname()}:\n{Fore.YELLOW}{ip}{Fore.RESET}"
         master_str = "ROS_MASTER:\n" + Fore.RED + f"{get_ros_master_ip()}" + Fore.RESET
         battery_str = ""
-        if self.battery_reader:
-            charging = self.battery_reader.get_is_charging()
-            battery = self.battery_reader.get_filtered_percentage(charging)
-            battery_percentage = battery
-            if isinstance(self.battery_reader, MP2760BatteryMonitor):
-                battery_junction_temperature = self.battery_reader.junction_temperature
-                input_voltage = self.battery_reader.input_voltage
-                system_voltage = self.battery_reader.system_voltage
-                charge_status = self.battery_reader.charge_status
-                battery_charge_current = self.battery_reader.battery_charge_current
-                status_and_fault = self.battery_reader.status_and_fault
-                status_and_fault_string = self.battery_reader.status_and_fault_string
+        if battery_reader:
+            charging = battery_reader.get_is_charging()
+            battery = battery_reader.get_filtered_percentage()
             if battery is None:
                 battery_str = "Bat: None"
             else:
@@ -338,9 +249,6 @@ class DisplayInformation(I2CBase):
             sent_str += f"{ros_additional_message}\n"
             ros_additional_message = None
 
-        if debug_i2c_text:
-            print("send the following message")
-            print(sent_str)
         self.send_string(sent_str)
 
     def display_qrcode(self, target_url=None):
@@ -361,6 +269,8 @@ class DisplayInformation(I2CBase):
         global ros_display_image
         global ros_display_image_flag
         global atom_s3_mode
+        ssid = f'{self.identify_device()}-{get_mac_address()}'
+        ssid = ssid.replace(' ', '-')
 
         while not stop_event.is_set():
             mode = atom_s3_mode
@@ -368,12 +278,6 @@ class DisplayInformation(I2CBase):
             # Display the QR code when Wi-Fi is not connected,
             # regardless of atom_s3_mode.
             if get_ip_address() is None:
-                if self.device_type == "Raspberry Pi":
-                    ssid = f"raspi-{get_mac_address()}"
-                elif self.device_type == "Radxa Zero":
-                    ssid = f"radxa-{get_mac_address()}"
-                else:
-                    ssid = f"radxa-{get_mac_address()}"
                 self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
                 time.sleep(3)
                 continue
@@ -393,6 +297,16 @@ class DisplayInformation(I2CBase):
 
 
 if __name__ == "__main__":
+    battery_bus_number = decide_battery_i2c_bus_number()
+    if MP2760BatteryMonitor.exists(battery_bus_number):
+        print("[Display Information] Use JSK Battery Board")
+        battery_reader = MP2760BatteryMonitor(battery_bus_number)
+    else:
+        print("[Display Information] Use Pisugar")
+        battery_reader = PisugarBatteryReader(battery_bus_number)
+    battery_reader.daemon = True
+    battery_reader.start()
+
     display_thread = threading.Thread(target=DisplayInformation(0x42).run)
     display_thread.daemon = True
     display_thread.start()

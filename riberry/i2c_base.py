@@ -18,6 +18,7 @@ else:
 class I2C:
 
     def __init__(self, device=0x42, bus=5):
+        self.bus = bus
         self.fr = open("/dev/i2c-" + str(bus), "rb", buffering=0)
         self.fw = open("/dev/i2c-" + str(bus), "wb", buffering=0)
         # set device address
@@ -45,21 +46,18 @@ class I2CBase:
         self.i2c_addr = i2c_addr
         self.device_type = self.identify_device()
         self.setup_i2c()
-        lock_path = f"/tmp/i2c-{self.bus_number}.lock"
+        lock_path = f"/tmp/i2c-{self.i2c.bus}.lock"
         self.lock = FileLock(lock_path, timeout=10)
 
     def setup_i2c(self):
         if self.device_type == "Raspberry Pi":
-            self.i2c = I2C(bus=1)
-            self.bus_number = 1
+            self.i2c = I2C(self.i2c_addr, bus=1)
         elif self.device_type == "Radxa Zero":
-            self.i2c = I2C(bus=1)
-            self.bus_number = 3
+            self.i2c = I2C(self.i2c_addr, bus=1)
         elif self.device_type == "Khadas VIM4":
-            self.i2c = I2C(bus=5)
+            self.i2c = I2C(self.i2c_addr, bus=5)
         elif self.device_type == "NVIDIA Jetson Xavier NX Developer Kit":
-            self.i2c = I2C(bus=8)
-            self.bus_number = 8
+            self.i2c = I2C(self.i2c_addr, bus=8)
         else:
             raise ValueError(f"Unknown device {self.device_type}")
 
