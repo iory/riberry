@@ -291,7 +291,9 @@ class DisplayInformation(I2CBase):
             elif mode == "DisplayImageMode":  # not implemented
                 if ros_display_image_flag and ros_display_image is not None:
                     self.display_image(ros_display_image)
-                    time.sleep(3)
+                    # Set ros_display_image to None
+                    # after displaying the image to ensure it's not reused
+                    ros_display_image = None
             else:
                 time.sleep(0.1)
 
