@@ -66,7 +66,7 @@ The `atom_s3_i2c_display` includes multiple modes. This feature allows the robot
 - `i2c_button_state_publisher.cpp` facilitates communication between these programs.
 The following sections provide details on the base code for the AtomS3 firmware.
 
-- `main.cpp` includes instances for each mode and stores them in a list. Each time a long click occurs, the active task switches to another mode.
+- `main.cpp` includes instances for each mode and stores them in a list. Each time a long click occurs, the active task switches to another mode. Note that this program does not include instances of Servo Control Mode, Pressure Control Mode and Teachiing Mode by default.
 
 - `atom_s3_lcd.h` is a shared library for the AtomS3, containing functions for drawing on the LCD and holding variables needed for rendering data, such as jpegBuf and qrCodeData.
 
@@ -102,9 +102,11 @@ The following sections provide details on the base code for the AtomS3 firmware.
   - A triple click turns off the servo.
 
   In the `RECORD` state:
-  - A single click starts or stops recording motion.
+  - Recording motion automatically starts at the moment of transition from `WAIT` state to `RECORD` state
+  - A single click stops recording motion.
   - After recording, the state automatically returns to `WAIT`.
 
   In the `PLAY` state:
-  - A single click starts or stops playing the recorded motion.
+  - Playing motion automatically starts at the moment of transition from `WAIT` state to `PLAY` state
+  - A double click stops playing motion.
   - After playback, the state automatically returns to `WAIT`.
