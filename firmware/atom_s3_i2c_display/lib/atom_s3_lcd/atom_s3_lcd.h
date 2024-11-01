@@ -78,6 +78,8 @@ public:
   void resetQRcodeData();
   void resetLcdData();
 
+  bool mode_changed = false;
+
   // for color string
   String color_str; /**< Stores color-related text for display. */
 

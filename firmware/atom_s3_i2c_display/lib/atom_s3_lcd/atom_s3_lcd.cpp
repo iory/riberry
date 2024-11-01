@@ -134,4 +134,5 @@ void AtomS3LCD::resetLcdData() {
   resetColorStr();
   resetJpegBuf();
   resetQRcodeData();
+  mode_changed = true;
 }

@@ -19,6 +19,11 @@ void DisplayImageMode::task(void *parameter) {
     }
     // Display Image code
     else {
+      if (instance->atoms3lcd.mode_changed) {
+        instance->atoms3lcd.drawBlack();
+        instance->atoms3lcd.printColorText("Waiting for " + instance->getModeName() + ". \x1b[31mrosparam set \x1b[32m/display_image <Your Image Topic>\x1b[39m");
+        instance->atoms3lcd.mode_changed = false;
+      }
       if (instance->atoms3lcd.readyJpeg == true) {
         instance->atoms3lcd.drawImage(instance->atoms3lcd.jpegBuf, instance->atoms3lcd.jpegLength);
         instance->atoms3lcd.readyJpeg = false;
