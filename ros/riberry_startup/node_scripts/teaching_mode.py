@@ -172,7 +172,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                 + 'single click:\n  stop recording'
         elif self.state == State.PLAY:
             sent_str += 'Play mode\n\n'\
-                + 'double click:\n  start/stop playing'
+                + 'double click:\n  stop playing'
         self.send_string(sent_str)
 
     def main_loop(self):
