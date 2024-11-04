@@ -4,7 +4,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/local/bin/start-wifi-connect.sh
+ExecStart=/usr/local/bin/start-wifi-connect.py
 Restart=on-failure
 RestartSec=10
 SyslogIdentifier=%n
