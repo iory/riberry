@@ -276,6 +276,7 @@ class DisplayInformation(I2CBase):
         global atom_s3_mode
         ssid = f'{self.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
+        qrcode_mode_is_forced = False
 
         while not stop_event.is_set():
             mode = atom_s3_mode
@@ -283,8 +284,10 @@ class DisplayInformation(I2CBase):
             # Display the QR code when Wi-Fi is not connected,
             # regardless of atom_s3_mode.
             if get_ip_address() is None:
-                self.force_mode("DisplayQRcodeMode")
-                time.sleep(1)
+                if qrcode_mode_is_forced is False:
+                    self.force_mode("DisplayQRcodeMode")
+                    qrcode_mode_is_forced = True
+                    time.sleep(1)
                 self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
                 time.sleep(3)
                 continue
