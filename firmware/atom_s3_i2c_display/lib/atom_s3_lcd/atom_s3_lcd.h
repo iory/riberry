@@ -84,7 +84,6 @@ public:
   String color_str; /**< Stores color-related text for display. */
 
   // for image
-  static constexpr uint8_t jpegPacketHeader[3] = { 0xFF, 0xD8, 0xEA }; /**< JPEG image packet header identifier. */
   uint8_t jpegBuf[8000]; /**< Buffer to store JPEG image data. */
   bool loadingJpeg = false; /**< Indicates whether the system is currently loading a JPEG image. */
   bool readyJpeg = false; /**< Indicates whether the JPEG image has been fully loaded and is ready for use. */
@@ -92,7 +91,6 @@ public:
   uint32_t currentJpegIndex = 0; /**< Current index in the JPEG buffer. */
 
   // for QR code
-  static constexpr uint8_t qrCodeHeader = 0x02; /**< QR code packet header identifier. */
   static constexpr size_t ETH_ALEN = 6; /**< Size of an Ethernet address. */
   static constexpr uint16_t SPACING = 4; /**< Spacing used when rendering the QR code. */
   static constexpr uint8_t FONT = 1; /**< Default font used for displaying text. */
