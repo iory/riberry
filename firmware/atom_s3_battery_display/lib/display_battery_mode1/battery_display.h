@@ -6,7 +6,7 @@ class BatteryDisplay
 {
 public:
   BatteryDisplay(){};
-  BatteryDisplay(float bat_cell){bat_cell_ = bat_cell;}
+  BatteryDisplay(int bat_cell){bat_cell_ = bat_cell;}
   int getBatCell() {return bat_cell_;}
   void init(){};
 

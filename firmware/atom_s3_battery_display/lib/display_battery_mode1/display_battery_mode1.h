@@ -4,7 +4,7 @@
 #include <mode.h>
 #include <atom_s3_lcd.h>
 #include <atom_s3_i2c.h>
-#include "batterydisplay.h"
+#include "battery_display.h"
 
 // voltage unit: V
 class DisplayBatteryMode1 : public Mode
@@ -12,9 +12,6 @@ class DisplayBatteryMode1 : public Mode
 public:
   DisplayBatteryMode1(AtomS3LCD &lcd, AtomS3I2C &i2c);
   void createTask(uint8_t xCoreID) override;
-
-public:
-  void setVoltageRange(float newMaxVoltage, float newMinVoltage);
   void displayFrame();
 
 private:
@@ -23,5 +20,6 @@ private:
   AtomS3LCD &atoms3lcd;
   AtomS3I2C &atoms3i2c;
   static void task(void *parameter);
+  void updateVoltage(float voltage);
 };
 #endif // DISPLAY_INFORMATION_MODE_H
