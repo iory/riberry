@@ -14,6 +14,9 @@ if __name__ == "__main__":
 
     def callback(msg):
         r, g, b = int(msg.r), int(msg.g), int(msg.b)
+        r = min(max(0, r), 255)
+        g = min(max(0, g), 255)
+        b = min(max(0, b), 255)
         rospy.loginfo(
             f"Change Atom echo LED Color R:{r} G:{g} B:{b}"
         )
