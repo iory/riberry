@@ -32,7 +32,7 @@ battery_reader = None
 # Global variable for ROS availability and additional message
 ros_available = False
 ros_additional_message = None
-atom_s3_mode = None
+atom_s3_mode = "DisplayInformationMode"
 ros_display_image_flag = False
 ros_display_image = None
 stop_event = threading.Event()
