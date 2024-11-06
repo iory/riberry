@@ -68,7 +68,7 @@ inline void DisplayBatteryMode1::updateVoltage(float voltage)
   // Show voltage.
   instance->atoms3lcd.setTextColor(WHITE);
   instance->atoms3lcd.setCursor(2, 21);
-  instance->atoms3lcd.printf("%0.2f", battery_voltage_);
+  instance->atoms3lcd.printf("%0.2f", voltage);
   instance->atoms3lcd.drawString("V", LCD_W/2, 22, 1);
   instance->atoms3lcd.setCursor(LCD_W/2+25, 21);
   instance->atoms3lcd.print((uint8_t)(voltageRatio*100));

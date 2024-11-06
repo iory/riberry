@@ -9,6 +9,7 @@ public:
   BatteryDisplay(int bat_cell){bat_cell_ = bat_cell;}
   int getBatCell() {return bat_cell_;}
   void init(){};
+  float calcPercentage(float voltage);
 
   static constexpr float VOLTAGE_100P =  4.2;
   static constexpr float VOLTAGE_90P =  4.085;
@@ -21,19 +22,16 @@ public:
   static constexpr float VOLTAGE_20P =  3.747;
   static constexpr float VOLTAGE_10P =  3.1;
   static constexpr float VOLTAGE_0P =  3.0;
-
 private:
 
   int bat_cell_;
   float battery_voltage_;
-
-  float calcPercentage();
 };
 
 
-inline float BatteryDisplay::calcPercentage()
+inline float BatteryDisplay::calcPercentage(float voltage)
 {
-  float average_voltage = battery_voltage_ / bat_cell_;
+  float average_voltage = voltage / bat_cell_;
   // float input_cell = voltage / VOLTAGE_100P;
   float percentage = 0;
   if(average_voltage  > VOLTAGE_90P) percentage = (average_voltage - VOLTAGE_90P) / (VOLTAGE_100P - VOLTAGE_90P) * 10 + 90;
