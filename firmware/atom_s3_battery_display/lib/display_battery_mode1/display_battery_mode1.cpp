@@ -36,7 +36,7 @@ void DisplayBatteryMode1::task(void *parameter) {
 }
 
 void DisplayBatteryMode1::createTask(uint8_t xCoreID) {
-  TaskCreatePinnedToCore(task, "DisplayBatteryMode1", 2048, NULL, 1, &taskHandle, xCoreID);
+  xTaskCreatePinnedToCore(task, "DisplayBatteryMode1", 2048, NULL, 1, &taskHandle, xCoreID);
 }
 
 inline void DisplayBatteryMode1::displayFrame()
