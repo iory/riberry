@@ -30,8 +30,10 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
+# Include directories
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${PROJECT_SOURCE_DIR}/include
 )
 
 catkin_package(
