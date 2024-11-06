@@ -7,21 +7,24 @@
 
   <group if="$(eval len(arg('namespace')) > 0)" ns="$(arg namespace)" >
     <node name="imu_publisher"
-          pkg="riberry_startup" type="mpu6886_imu_publisher_node" >
+          pkg="riberry_startup" type="mpu6886_imu_publisher_node"
+          respawn="true" >
       <rosparam subst_value="true">
         loop_rate: $(arg loop_rate)
         frame_id: $(arg frame_id)
       </rosparam>
     </node>
     <!-- IMU filtering node. By default, filtering 82Hz motor vibration -->
-    <node pkg="riberry_startup" type="imu_filter" name="imu_filter_cpp" output="screen">
+    <node pkg="riberry_startup" type="imu_filter" name="imu_filter_cpp" output="screen"
+          respawn="true">
       <remap from="~imu" to="imu_publisher_node/imu" />
       <remap from="~imu_filtered" to="imu_publisher/imu_filtered" />
       <rosparam subst_value="true">
         sampling_frequency: $(arg loop_rate)
       </rosparam>
     </node>
-    <node pkg="jsk_topic_tools" type="lightweight_throttle" name="imu_throttle">
+    <node pkg="jsk_topic_tools" type="lightweight_throttle" name="imu_throttle"
+          respawn="true">
       <remap from="~input" to="imu_publisher/imu_filtered" />
       <remap from="~output" to="imu_publisher/imu_filtered_throttled" />
       <rosparam subst_value="true">
@@ -32,21 +35,24 @@
 
   <group unless="$(eval len(arg('namespace')) > 0)">
     <node name="imu_publisher"
-          pkg="riberry_startup" type="mpu6886_imu_publisher_node" >
+          pkg="riberry_startup" type="mpu6886_imu_publisher_node"
+          respawn="true" >
       <rosparam subst_value="true">
         loop_rate: $(arg loop_rate)
         frame_id: $(arg frame_id)
       </rosparam>
     </node>
     <!-- IMU filtering node. By default, filtering 82Hz motor vibration -->
-    <node pkg="riberry_startup" type="imu_filter" name="imu_filter_cpp" output="screen">
+    <node pkg="riberry_startup" type="imu_filter" name="imu_filter_cpp" output="screen"
+          respawn="true">
       <remap from="~imu" to="imu_publisher/imu" />
       <remap from="~imu_filtered" to="imu_publisher/imu_filtered" />
       <rosparam subst_value="true">
         sampling_frequency: $(arg loop_rate)
       </rosparam>
     </node>
-    <node pkg="jsk_topic_tools" type="lightweight_throttle" name="imu_throttle">
+    <node pkg="jsk_topic_tools" type="lightweight_throttle" name="imu_throttle"
+          respawn="true">
       <remap from="~input" to="imu_publisher/imu_filtered" />
       <remap from="~output" to="imu_publisher/imu_filtered_throttled" />
       <rosparam subst_value="true">
