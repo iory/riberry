@@ -60,8 +60,6 @@ inline void DisplayBatteryMode1::updateVoltage(float voltage)
   voltageRatio = constrain(voltageRatio, 0.0f, 1.0f);
 
   // Erase screen.
-  float LCD_H = instance->atoms3lcd.height()
-  float LCD_W = instance->atoms3lcd.width()
   instance->atoms3lcd.fillRect(1, 20, 60, 16, BLACK);
   instance->atoms3lcd.fillRect(LCD_W/2+17, 20, 32, 16, BLACK);
 

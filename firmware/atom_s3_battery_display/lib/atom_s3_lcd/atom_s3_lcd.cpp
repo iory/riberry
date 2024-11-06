@@ -19,6 +19,12 @@ void AtomS3LCD::clear() {
 void AtomS3LCD::printMessage(const String& message) {
     lcd.println(message);
 }
+void AtomS3LCD::printf(const String& message, float value) {
+  lcd.printf(message, value);
+}
+void AtomS3LCD::print(const uint8_t value) {
+  lcd.print(value);
+}
 
 uint16_t AtomS3LCD::colorMap(int code, bool isBackground) {
     if (isBackground) {
@@ -135,3 +141,31 @@ void AtomS3LCD::resetLcdData() {
   resetJpegBuf();
   resetQRcodeData();
 }
+void AtomS3LCD::fillRect(int x1, int y1, int w, int h, uint16_t color) {
+  lcd.fillRect(x1, y1, w, h, color);
+}
+void AtomS3LCD::fillRoundRect(int32_t x1, int32_t y1, int32_t w, int32_t h, int32_t radius, uint16_t color) {
+  lcd.fillRoundRect(x1, y1, w, h, radius, color);
+}
+
+void AtomS3LCD::setTextSize(int x) {
+  lcd.setTextSize(x);
+}
+void AtomS3LCD::setTextColor(uint16_t color){
+  lcd.setTextColor(color);
+};
+void AtomS3LCD::drawString(const String& message, int x, int y, int size){
+  lcd.drawString(message, x, y, size);
+};
+void AtomS3LCD::drawLine(int x1, int y1, int x2, int y2, uint16_t color){
+  lcd.drawLine(x1, y1, x2, y2, color);
+};
+void AtomS3LCD::drawRect(int x1, int y1, int x2, int y2, uint16_t color){
+  lcd.drawRect(x1, y1, x2, y2, color);
+};
+void AtomS3LCD::setCursor(int x, int y){
+  lcd.setCursor(x,y);
+};
+uint16_t AtomS3LCD::color565(int16_t red, int16_t green, int16_t blue){
+  lcd.color565(red,green,blue);
+};

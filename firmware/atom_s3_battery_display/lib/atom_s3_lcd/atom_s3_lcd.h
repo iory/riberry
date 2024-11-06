@@ -4,6 +4,13 @@
 #define LGFX_M5ATOMS3
 #include <LovyanGFX.hpp>
 #include <LGFX_AUTODETECT.hpp>
+#define LCD_W 128
+#define LCD_H 128
+// color
+#define MAROON 0x7800
+#define WHITE 0xffff
+#define YELLOW 0xffe0
+#define BLACK 0x0000
 
 /**
  * @brief Class to handle the LCD on the AtomS3 using the LovyanGFX library.
@@ -77,6 +84,18 @@ public:
   void resetJpegBuf();
   void resetQRcodeData();
   void resetLcdData();
+  void fillRect(int x1, int y1, int x2, int y2, uint16_t color);
+  void fillRoundRect(int32_t x1, int32_t y1, int32_t w, int32_t h, int32_t radius, uint16_t color);
+  void setTextSize(int x);
+  void setTextColor(uint16_t color);
+  void drawString(const String& message, int x, int y, int size);
+  void drawLine(int x1, int y1, int x2, int y2, uint16_t color);
+  void drawRect(int x1, int y1, int x2, int y2, uint16_t color);
+  void setCursor(int x, int y);
+  void printf(const String& message, float value);
+  void print(const uint8_t value);
+  uint16_t color565(int16_t red, int16_t green, int16_t blue);
+
 
   // for color string
   String color_str; /**< Stores color-related text for display. */
