@@ -4,6 +4,7 @@
 #include <mode.h>
 #include <atom_s3_lcd.h>
 #include <atom_s3_i2c.h>
+#include <string>
 #include "battery_display.h"
 
 // voltage unit: V

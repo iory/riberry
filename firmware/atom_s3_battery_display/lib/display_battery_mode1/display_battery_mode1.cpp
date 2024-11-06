@@ -25,7 +25,7 @@ void DisplayBatteryMode1::task(void *parameter) {
         instance->atoms3lcd.printColorText("Waiting for " + instance->getModeName());
       else
 	{
-	  float voltage = stof(instance->atoms3lcd.color_str);
+	  float voltage = std::stof(std::string(instance->atoms3lcd.color_str.c_str()));
 	  instance->updateVoltage(voltage);
 	  instance->displaFrame();
 	}
