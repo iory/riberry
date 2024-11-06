@@ -332,3 +332,7 @@ if __name__ == "__main__":
         print("Interrupted by user, shutting down...")
         stop_event.set()
         display_thread.join()
+    except Exception as e:
+        print(f"Error {e}, shutting down...")
+        stop_event.set()
+        display_thread.join()
