@@ -92,7 +92,7 @@ public:
   void drawLine(int x1, int y1, int x2, int y2, uint16_t color);
   void drawRect(int x1, int y1, int x2, int y2, uint16_t color);
   void setCursor(int x, int y);
-  void printf(const String& message, float value);
+  void printf(const char* message, float value);
   void print(const uint8_t value);
   uint16_t color565(int16_t red, int16_t green, int16_t blue);
 

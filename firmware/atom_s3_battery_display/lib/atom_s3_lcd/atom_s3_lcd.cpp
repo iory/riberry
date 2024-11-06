@@ -19,7 +19,7 @@ void AtomS3LCD::clear() {
 void AtomS3LCD::printMessage(const String& message) {
     lcd.println(message);
 }
-void AtomS3LCD::printf(const String& message, float value) {
+void AtomS3LCD::printf(const char* message, float value) {
   lcd.printf(message, value);
 }
 void AtomS3LCD::print(const uint8_t value) {
