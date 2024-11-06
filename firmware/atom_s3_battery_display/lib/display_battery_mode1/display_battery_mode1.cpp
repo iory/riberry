@@ -27,7 +27,7 @@ void DisplayBatteryMode1::task(void *parameter) {
 	{
 	  float voltage = std::stof(std::string(instance->atoms3lcd.color_str.c_str()));
 	  instance->updateVoltage(voltage);
-	  instance->displaFrame();
+	  instance->displayFrame();
 	}
         // instance->atoms3lcd.printColorText(instance->atoms3lcd.color_str);
       vTaskDelay(pdMS_TO_TICKS(1000));
