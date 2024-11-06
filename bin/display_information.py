@@ -66,6 +66,9 @@ def try_init_ros():
             from std_msgs.msg import UInt32
 
             ros_ip = wait_and_get_ros_ip(300)
+            if ros_ip is None:
+                print('Could not get ros ip. retry.')
+                continue
             print(f"Set ROS_IP={ros_ip}")
             os.environ["ROS_IP"] = ros_ip
 
@@ -327,5 +330,9 @@ if __name__ == "__main__":
         try_init_ros()
     except KeyboardInterrupt:
         print("Interrupted by user, shutting down...")
+        stop_event.set()
+        display_thread.join()
+    except Exception as e:
+        print(f"Error {e}, shutting down...")
         stop_event.set()
         display_thread.join()
