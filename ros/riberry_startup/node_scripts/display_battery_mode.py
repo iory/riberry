@@ -44,7 +44,7 @@ class DisplayBatteryMode(I2CBase):
         # sent_str = "Servo control mode\n\nSingle Click:\nServo on off"
         # self.send_string(sent_str)
         if self.mode=="DisplayBatteryMode1":
-            self.send_string("hoge")
+            self.send_string("12.0")
         elif self.mode=="DisplayBatteryMode2":
             self.send_string("fuga")
 
