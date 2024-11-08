@@ -85,12 +85,12 @@ inline void DisplayBatteryMode1::updateVoltage(float voltage)
     {
       int32_t rect_y = LCD_H - rect_h - (rect_h + 2) * k;
       uint16_t color = instance->atoms3lcd.color565(16,16,16); // OK
-    //   if(voltageRatio > float(k+1) / barNum)
-    //     {
-    //       color = instance->atoms3lcd.color565(
-    //                               (uint8_t)(255 - 255 * (k / float(barNum-1))),
-    //                               (uint8_t)(255 * (k / float(barNum-1))), 0);
-    //     }
-    //   // instance->atoms3lcd.fillRoundRect(rect_x, rect_y, rect_w, rect_h, radius, color);
+      if(voltageRatio > float(k+1) / barNum)
+        {
+          color = instance->atoms3lcd.color565(
+                                  (uint8_t)(255 - 255 * (k / float(barNum-1))),
+                                  (uint8_t)(255 * (k / float(barNum-1))), 0);
+        }
+      instance->atoms3lcd.fillRoundRect(rect_x, rect_y, rect_w, rect_h, radius, color);
     }
 }
