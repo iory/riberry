@@ -27,7 +27,8 @@ void DisplayBatteryMode1::task(void *parameter) {
 	{
 	  float voltage = std::stof(std::string(instance->atoms3lcd.color_str.c_str()));
 	  instance->updateVoltage(voltage);
-	  instance->displayFrame();
+	  // instance->displayFrame();
+	  // instance->atoms3lcd.printColorText(instance->atoms3lcd.color_str);
 	}
         // instance->atoms3lcd.printColorText(instance->atoms3lcd.color_str);
       vTaskDelay(pdMS_TO_TICKS(1000));
@@ -64,30 +65,32 @@ inline void DisplayBatteryMode1::updateVoltage(float voltage)
   instance->atoms3lcd.fillRect(LCD_W/2+17, 20, 32, 16, BLACK);
 
   // Show voltage.
-  instance->atoms3lcd.setTextColor(WHITE);
-  instance->atoms3lcd.setCursor(2, 21);
-  instance->atoms3lcd.printf("%0.2f", voltage);
-  instance->atoms3lcd.drawString("V", LCD_W/2, 22, 1);
-  instance->atoms3lcd.setCursor(LCD_W/2+25, 21);
-  instance->atoms3lcd.print((uint8_t)(voltageRatio*100));
-  instance->atoms3lcd.drawString("%", LCD_W-12, 22, 1);
+  instance->atoms3lcd.setTextColor(WHITE); //OK
+  instance->atoms3lcd.setCursor(2, 21); //OK
+  // instance->atoms3lcd.printf("%.2f", voltage); // NG
+  String voltage_str = String(voltage, 2);
+  instance->atoms3lcd.printMessage(voltage_str); //OK
+  // instance->atoms3lcd.drawString("V", LCD_W/2, 22, 1);
+  // instance->atoms3lcd.setCursor(LCD_W/2+25, 21);
+  // instance->atoms3lcd.print((uint8_t)(voltageRatio*100));
+  // instance->atoms3lcd.drawString("%", LCD_W-12, 22, 1);
 
-  // Show Meter
-  int32_t rect_x = 0;
-  int32_t rect_h = 7;
-  int32_t rect_w = LCD_W;
-  int32_t radius = 3;
-  uint8_t barNum = 10;
-  for(byte k = 0; k < barNum; k++)
-    {
-      int32_t rect_y = LCD_H - rect_h - (rect_h + 2) * k;
-      uint16_t color = instance->atoms3lcd.color565(16,16,16);
-      if(voltageRatio > float(k+1) / barNum)
-        {
-          color = instance->atoms3lcd.color565(
-                                  (uint8_t)(255 - 255 * (k / float(barNum-1))),
-                                  (uint8_t)(255 * (k / float(barNum-1))), 0);
-        }
-      instance->atoms3lcd.fillRoundRect(rect_x, rect_y, rect_w, rect_h, radius, color);
-    }
+  // // Show Meter
+  // int32_t rect_x = 0;
+  // int32_t rect_h = 7;
+  // int32_t rect_w = LCD_W;
+  // int32_t radius = 3;
+  // uint8_t barNum = 10;
+  // for(byte k = 0; k < barNum; k++)
+  //   {
+  //     int32_t rect_y = LCD_H - rect_h - (rect_h + 2) * k;
+  //     uint16_t color = instance->atoms3lcd.color565(16,16,16);
+  //     if(voltageRatio > float(k+1) / barNum)
+  //       {
+  //         color = instance->atoms3lcd.color565(
+  //                                 (uint8_t)(255 - 255 * (k / float(barNum-1))),
+  //                                 (uint8_t)(255 * (k / float(barNum-1))), 0);
+  //       }
+  //     instance->atoms3lcd.fillRoundRect(rect_x, rect_y, rect_w, rect_h, radius, color);
+  //   }
 }
