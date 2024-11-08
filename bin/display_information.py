@@ -292,15 +292,15 @@ class DisplayInformation(I2CBase):
                     qrcode_mode_is_forced = True
                     time.sleep(1)
                 self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
-                time.sleep(3)
+                time.sleep(1)
                 continue
             # Display data according to mode
             if mode == "DisplayInformationMode":
                 self.display_information()
-                time.sleep(3)
+                time.sleep(1)
             elif mode == "DisplayQRcodeMode":
                 self.display_qrcode()
-                time.sleep(3)
+                time.sleep(1)
             elif mode == "DisplayImageMode":  # not implemented
                 if ros_display_image_flag and ros_display_image is not None:
                     self.display_image(ros_display_image)
