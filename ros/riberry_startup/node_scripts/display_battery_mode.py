@@ -16,7 +16,7 @@ class DisplayBatteryMode(I2CBase):
         #     "/i2cbutton_state", Int32, callback=self.button_cb, queue_size=1
         # )
         rospy.Subscriber("/i2c_mode", String, callback=self.mode_cb, queue_size=1)
-        rospy.Subscriber("voltage_status", Float32, callback=self.voltage_cb, queue_size=1)
+        rospy.Subscriber("battery_voltage_status", Float32, callback=self.voltage_cb, queue_size=1)
         self.voltage = 0.0
 
         rospy.Timer(rospy.Duration(0.1), self.timer_callback)
