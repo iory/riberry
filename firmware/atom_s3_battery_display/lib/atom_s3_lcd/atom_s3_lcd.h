@@ -94,8 +94,7 @@ public:
   void setCursor(int x, int y);
   void printf(const char* message, float value);
   void print(const uint8_t value);
-  uint16_t color565(int16_t red, int16_t green, int16_t blue);
-
+  uint16_t color565(uint8_t red, uint8_t green, uint8_t blue);
 
   // for color string
   String color_str; /**< Stores color-related text for display. */
