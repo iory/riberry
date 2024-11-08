@@ -70,12 +70,12 @@ inline void DisplayBatteryMode1::updateVoltage(float voltage)
   // instance->atoms3lcd.printf("%.2f", voltage); // NG
   String voltage_str = String(voltage, 2);
   instance->atoms3lcd.printMessage(voltage_str); //OK
-  // instance->atoms3lcd.drawString("V", LCD_W/2, 22, 1);
-  // instance->atoms3lcd.setCursor(LCD_W/2+25, 21);
-  // instance->atoms3lcd.print((uint8_t)(voltageRatio*100));
-  // instance->atoms3lcd.drawString("%", LCD_W-12, 22, 1);
+  instance->atoms3lcd.drawString("V", LCD_W/2, 22, 1);
+  instance->atoms3lcd.setCursor(LCD_W/2+25, 21);
+  instance->atoms3lcd.print((uint8_t)(voltageRatio*100));
+  instance->atoms3lcd.drawString("%", LCD_W-12, 22, 1);
 
-  // // Show Meter
+  // Show Meter
   // int32_t rect_x = 0;
   // int32_t rect_h = 7;
   // int32_t rect_w = LCD_W;
