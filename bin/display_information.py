@@ -85,7 +85,7 @@ def try_init_ros():
                 bridge = cv_bridge.CvBridge()
                 ros_display_image = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
-            rospy.init_node("atom_s3_display_information_node", anonymous=True)
+            rospy.init_node("display_information", anonymous=False)
             rospy.Subscriber(
                 "/atom_s3_additional_info", String, ros_callback, queue_size=1
             )
