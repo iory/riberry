@@ -82,7 +82,10 @@ class I2CBase:
     def send_string(self, sent_str):
         packer = WirePacker(buffer_size=len(sent_str) + 8)
         for s in sent_str:
-            packer.write(ord(s))
+            try:
+                packer.write(ord(s))
+            except ValueError as e:
+                print(f'[ERROR] {e} Invalid character {s}')
         packer.end()
         if packer.available():
             self.i2c_write(packer.buffer[: packer.available()])
