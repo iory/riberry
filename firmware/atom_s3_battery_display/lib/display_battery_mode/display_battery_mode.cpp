@@ -1,14 +1,14 @@
-#include <display_battery_mode1.h>
+#include <display_battery_mode.h>
 // #include "M5AtomS3.h"
 
-DisplayBatteryMode1* DisplayBatteryMode1::instance = nullptr;
+DisplayBatteryMode* DisplayBatteryMode::instance = nullptr;
 
-DisplayBatteryMode1::DisplayBatteryMode1(AtomS3LCD &lcd, AtomS3I2C &i2c)
-  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayBatteryMode1"), batDisp_(4) {
+DisplayBatteryMode::DisplayBatteryMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
+  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayBatteryMode"), batDisp_(4) {
     instance = this;
 }
 
-void DisplayBatteryMode1::task(void *parameter) {
+void DisplayBatteryMode::task(void *parameter) {
   while (true) {
     instance->atoms3i2c.setRequestStr(instance->getModeName());
     // Check for I2C timeout
@@ -36,11 +36,11 @@ void DisplayBatteryMode1::task(void *parameter) {
   }
 }
 
-void DisplayBatteryMode1::createTask(uint8_t xCoreID) {
-  xTaskCreatePinnedToCore(task, "DisplayBatteryMode1", 2048, NULL, 1, &taskHandle, xCoreID);
+void DisplayBatteryMode::createTask(uint8_t xCoreID) {
+  xTaskCreatePinnedToCore(task, "DisplayBatteryMode", 2048, NULL, 1, &taskHandle, xCoreID);
 }
 
-inline void DisplayBatteryMode1::displayFrame()
+inline void DisplayBatteryMode::displayFrame()
 {
   // Show title.
   instance->atoms3lcd.fillRect(0, 0, LCD_W, 16, MAROON);
@@ -55,7 +55,7 @@ inline void DisplayBatteryMode1::displayFrame()
   instance->atoms3lcd.drawString("%", LCD_W-12, 22, 1);
 }
 
-inline void DisplayBatteryMode1::updateVoltage(float voltage)
+inline void DisplayBatteryMode::updateVoltage(float voltage)
 {
   float voltageRatio = batDisp_.calcPercentage(voltage) / 100;
   voltageRatio = constrain(voltageRatio, 0.0f, 1.0f);
