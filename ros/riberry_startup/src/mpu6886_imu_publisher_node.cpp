@@ -8,6 +8,8 @@
 #include <cstring>
 #include <cstdio>
 
+#include "riberry_startup/filelock.h"
+
 // MPU6886 Register Addresses and Configuration Constants
 #define ACCEL_XOUT_H 0x3b
 #define PWR_MGMT_1 0x6b
@@ -72,6 +74,7 @@ int main(int argc, char **argv) {
     int mpu6886_addr, queue_size;
     double loop_rate_hz;
     double wait_msec_to_read;
+    std::string i2c_lock_file;
 
     // Retrieve parameters or set default values using the private node handle
     nh_private.param<std::string>("i2c_device", i2c_device, "/dev/i2c-1");
@@ -80,6 +83,7 @@ int main(int argc, char **argv) {
     nh_private.param("queue_size", queue_size, 1);
     nh_private.param("loop_rate", loop_rate_hz, 500.0);
     nh_private.param("wait_msec_to_read", wait_msec_to_read, 1.0);
+    nh_private.param<std::string>("i2c_lock_file", i2c_lock_file, "/tmp/i2c-1.lock");
 
     // Get the node's namespace
     std::string full_namespace = ros::this_node::getNamespace();
@@ -116,15 +120,27 @@ int main(int argc, char **argv) {
     }
     initialize_sensor(fd, ACCEL_FS_SEL_2G, GYRO_FS_SEL_250DPS);
 
+    FileLock fileLock(i2c_lock_file.c_str());
+
     // Create a ROS publisher for the IMU data
     ros::Publisher imu_pub = nh_private.advertise<sensor_msgs::Imu>("imu", queue_size);
     sensor_msgs::Imu imu_msg;
     imu_msg.header.frame_id = frame_id;
 
     ros::Rate loop_rate(loop_rate_hz); // Publishing rate in Hz
+    int16_t accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
+    bool read;
     while (ros::ok()) {
-        int16_t accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
-        if (read_sensor_data(fd, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, wait_msec_to_read)) {
+        ros::spinOnce();
+        try {
+            fileLock.acquire();
+            read = read_sensor_data(fd, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, wait_msec_to_read);
+            fileLock.release();
+        } catch (const std::runtime_error& e) {
+            ROS_ERROR_STREAM("[mp6886 imu] An error occurred: " << e.what());
+            break;
+        }
+        if (read) {
             imu_msg.header.stamp = ros::Time::now();
 
             // Populate the IMU message
@@ -138,10 +154,9 @@ int main(int argc, char **argv) {
             // Publish the IMU message
             imu_pub.publish(imu_msg);
         } else {
-            ROS_ERROR("Failed to read from the sensor");
+            ROS_ERROR_THROTTLE(60.0, "[mp6886 imu]  Failed to read from the sensor");
         }
 
-        ros::spinOnce();
         loop_rate.sleep();
     }
 

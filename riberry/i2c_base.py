@@ -15,8 +15,10 @@ else:
         return x.encode("latin-1")
 
 
-class i2c:
+class I2C:
+
     def __init__(self, device=0x42, bus=5):
+        self.bus = bus
         self.fr = open("/dev/i2c-" + str(bus), "rb", buffering=0)
         self.fw = open("/dev/i2c-" + str(bus), "wb", buffering=0)
         # set device address
@@ -44,27 +46,18 @@ class I2CBase:
         self.i2c_addr = i2c_addr
         self.device_type = self.identify_device()
         self.setup_i2c()
-        lock_path = f"/tmp/i2c-{self.bus_number}.lock"
+        lock_path = f"/tmp/i2c-{self.i2c.bus}.lock"
         self.lock = FileLock(lock_path, timeout=10)
 
     def setup_i2c(self):
         if self.device_type == "Raspberry Pi":
-            import board
-            import busio
-
-            self.i2c = busio.I2C(board.SCL, board.SDA)
-            self.bus_number = 1
+            self.i2c = I2C(self.i2c_addr, bus=1)
         elif self.device_type == "Radxa Zero":
-            import board
-            import busio
-
-            self.i2c = busio.I2C(board.SCL1, board.SDA1)
-            self.bus_number = 3
+            self.i2c = I2C(self.i2c_addr, bus=1)
         elif self.device_type == "Khadas VIM4":
-            self.i2c = i2c()
+            self.i2c = I2C(self.i2c_addr, bus=5)
         elif self.device_type == "NVIDIA Jetson Xavier NX Developer Kit":
-            self.i2c = i2c(bus=8)
-            self.bus_number = 8
+            self.i2c = I2C(self.i2c_addr, bus=8)
         else:
             raise ValueError(f"Unknown device {self.device_type}")
 
@@ -75,12 +68,7 @@ class I2CBase:
             print(e)
             return
         try:
-            if isinstance(self.i2c, i2c):
-                self.i2c.write(packet)
-            elif isinstance(self.i2c, busio.I2C):  # NOQA
-                self.i2c.writeto(self.i2c_addr, packet)
-            else:
-                print("Unknown self.i2c instance type.")
+            self.i2c.write(packet)
         except OSError as e:
             print(e)
         except TimeoutError as e:
@@ -94,7 +82,10 @@ class I2CBase:
     def send_string(self, sent_str):
         packer = WirePacker(buffer_size=len(sent_str) + 8)
         for s in sent_str:
-            packer.write(ord(s))
+            try:
+                packer.write(ord(s))
+            except ValueError as e:
+                print(f'[ERROR] {e} Invalid character {s}')
         packer.end()
         if packer.available():
             self.i2c_write(packer.buffer[: packer.available()])

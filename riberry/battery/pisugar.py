@@ -22,7 +22,7 @@ IP5209_CURVE = [
 class PisugarBatteryReader(threading.Thread):
     def __init__(
         self,
-        bus_number=1,
+        bus_number=None,
         device_address=0x57,
         alpha=0.9,
         value_threshold=1000,

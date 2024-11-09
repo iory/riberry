@@ -210,6 +210,15 @@ class MP2760BatteryMonitor(threading.Thread):
             return
         return True
 
+    def write_default_value_to_0x10_register(self):
+        try:
+            self.bus.write_word_data(self.device_address, 0x10, 0x0A74)
+            print("[Battery Monitor] Successfully wrote 0x0A74 to register 0x10.")
+            return True
+        except Exception as e:
+            print(f"[Battery Monitor] Error writing to register 0x10: {e}")
+            return False
+
     def read_charge_current_limit(self):  # unit: [mA]
         try:
             bits = self.bus.read_word_data(self.device_address, 0x14)
@@ -404,7 +413,12 @@ class MP2760BatteryMonitor(threading.Thread):
 
     def run(self):
         try:
+            loop_count = 0
             while self.running:
+                loop_count += 1
+                if loop_count % 100 == 0:
+                    self.write_default_value_to_0x10_register()
+                    loop_count = 0
                 self.status_and_fault = self.read_register(0x17)
                 self.status_and_fault_string = print_status_and_fault_register(
                     self.status_and_fault

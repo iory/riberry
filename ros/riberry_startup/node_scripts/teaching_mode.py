@@ -43,6 +43,7 @@ class TeachingMode(I2CBase):
             "/atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
         self.prev_state = None
         self.state = State.WAIT
+        rospy.Timer(rospy.Duration(0.1), self.timer_callback)
 
     def mode_cb(self, msg):
         self.mode = msg.data
@@ -157,6 +158,23 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
             rospy.sleep(0.5)  # Save motion every 0.5s to smooth motion play
         rospy.loginfo('Play finished')
 
+    def timer_callback(self, event):
+        if self.mode != "TeachingMode":
+            return
+        sent_str = ''
+        if self.state == State.WAIT:
+            sent_str += 'Teaching mode\n\n'\
+                + 'single click:\n  record\n\n'\
+                + 'double click:\n  play\n\n'\
+                + 'triple click:\n  servo_off'
+        elif self.state == State.RECORD:
+            sent_str += 'Record mode\n\n'\
+                + 'single click:\n  stop recording'
+        elif self.state == State.PLAY:
+            sent_str += 'Play mode\n\n'\
+                + 'double click:\n  stop playing'
+        self.send_string(sent_str)
+
     def main_loop(self):
         rospy.loginfo('start teaching mode')
         try:
@@ -165,22 +183,11 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                     rospy.sleep(1)
                     continue
                 if self.state == State.WAIT:
-                    sent_str = 'Teaching mode\n\n'\
-                        + 'single click:\n  record\n\n'\
-                        + 'double click:\n  play\n\n'\
-                        + 'triple click:\n  servo_off'
-                    self.send_string(sent_str)
                     rospy.sleep(1)
                 elif self.state == State.RECORD:
-                    sent_str = 'Record mode\n\n'\
-                        + 'single click:\n  stop recording'
-                    self.send_string(sent_str)
                     self.record()
                     self.state = State.WAIT
                 elif self.state == State.PLAY:
-                    sent_str = 'Play mode\n\n'\
-                        + 'double click:\n  start/stop playing'
-                    self.send_string(sent_str)
                     self.play()
                     self.state = State.WAIT
         except KeyboardInterrupt:
