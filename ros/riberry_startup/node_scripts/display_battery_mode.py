@@ -11,7 +11,7 @@ import socket
 from colorama import Fore
 
 
-class DisplayBatteryMode(I2CBase):
+class DisplayBatteryModeWhole(I2CBase):
     def __init__(self, i2c_addr, lock_path="/tmp/i2c_display_battery_mode.lock"):
         super().__init__(i2c_addr)
 
@@ -30,7 +30,7 @@ class DisplayBatteryMode(I2CBase):
         When AtomS3 is ServoControlMode and single-click pressed,
         toggle servo control.
         """
-        if self.mode == "DisplayBatteryMode1":
+        if self.mode == "DisplayBatteryMode":
             self.voltage = msg.data
 
     def mode_cb(self, msg):
@@ -45,7 +45,7 @@ class DisplayBatteryMode(I2CBase):
         # Send message on AtomS3 LCD
         # sent_str = "Servo control mode\n\nSingle Click:\nServo on off"
         # self.send_string(sent_str)
-        if self.mode=="DisplayBatteryMode1":
+        if self.mode=="DisplayBatteryMode":
             self.send_string(str(self.voltage))
         elif self.mode=="DisplayBatteryMode2":
             self.send_string(self.display_network_information())
@@ -62,5 +62,5 @@ class DisplayBatteryMode(I2CBase):
 
 if __name__ == "__main__":
     rospy.init_node("display_battery_mode")
-    scm = DisplayBatteryMode(0x42)
+    scm = DisplayBatteryModeWhole(0x42)
     rospy.spin()
