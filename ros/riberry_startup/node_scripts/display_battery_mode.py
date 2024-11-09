@@ -47,7 +47,7 @@ class DisplayBatteryModeWhole(I2CBase):
         # self.send_string(sent_str)
         if self.mode=="DisplayBatteryMode":
             self.send_string(str(self.voltage))
-        elif self.mode=="DisplayBatteryMode2":
+        elif self.mode=="IpDisplayMode":
             self.send_string(self.display_network_information())
 
     def display_network_information(self):
