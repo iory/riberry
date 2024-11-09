@@ -5,13 +5,13 @@
 #include <atom_s3_lcd.h>
 #include <atom_s3_i2c.h>
 
-class IpDisplayMode : public Mode {
+class DisplayIpMode : public Mode {
 public:
-  IpDisplayMode(AtomS3LCD &lcd, AtomS3I2C &i2c);
+  DisplayIpMode(AtomS3LCD &lcd, AtomS3I2C &i2c);
   void createTask(uint8_t xCoreID) override;
 
 private:
-  static IpDisplayMode* instance; /**< Singleton instance of DisplayInformationMode. */
+  static DisplayIpMode* instance; /**< Singleton instance of DisplayInformationMode. */
   AtomS3LCD &atoms3lcd;
   AtomS3I2C &atoms3i2c;
 

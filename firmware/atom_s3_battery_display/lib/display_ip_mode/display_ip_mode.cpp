@@ -1,13 +1,13 @@
-#include <ip_display_mode.h>
+#include <display_ip_mode.h>
 
-IpDisplayMode* IpDisplayMode::instance = nullptr;
+DisplayIpMode* DisplayIpMode::instance = nullptr;
 
-IpDisplayMode::IpDisplayMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
-  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("IpDisplayMode") {
+DisplayIpMode::DisplayIpMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
+  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayIpMode") {
     instance = this;
 }
 
-void IpDisplayMode::task(void *parameter) {
+void DisplayIpMode::task(void *parameter) {
   while (true) {
     instance->atoms3i2c.setRequestStr(instance->getModeName());
     // Check for I2C timeout
@@ -29,6 +29,6 @@ void IpDisplayMode::task(void *parameter) {
   }
 }
 
-void IpDisplayMode::createTask(uint8_t xCoreID) {
-  xTaskCreatePinnedToCore(task, "IpDisplayMode", 2048, NULL, 1, &taskHandle, xCoreID);
+void DisplayIpMode::createTask(uint8_t xCoreID) {
+  xTaskCreatePinnedToCore(task, "DisplayIpMode", 2048, NULL, 1, &taskHandle, xCoreID);
 }

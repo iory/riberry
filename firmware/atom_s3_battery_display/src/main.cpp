@@ -2,7 +2,7 @@
 #include <atom_s3_i2c.h>
 #include <atom_s3_button.h>
 #include <display_battery_mode.h>
-#include <ip_display_mode.h>
+#include <display_ip_mode.h>
 
 // Common tasks for AtomS3
 AtomS3Button atoms3button;
@@ -11,8 +11,8 @@ AtomS3I2C atoms3i2c(atoms3lcd, atoms3button);
 
 // User-defined modes:
 DisplayBatteryMode display_battery_mode(atoms3lcd, atoms3i2c);
-IpDisplayMode ip_display_mode(atoms3lcd, atoms3i2c);
-Mode* modes[] = { &display_battery_mode, &ip_display_mode};
+DisplayIpMode display_ip_mode(atoms3lcd, atoms3i2c);
+Mode* modes[] = { &display_battery_mode, &display_ip_mode};
 int current_mode_index = 0;
 int num_modes = sizeof(modes) / sizeof(modes[0]);
 
