@@ -5,6 +5,10 @@ from std_msgs.msg import Int32, Float32
 from std_msgs.msg import String
 
 from riberry.i2c_base import I2CBase
+from riberry.network import get_ip_address
+from riberry.network import get_ros_master_ip
+import socket
+from colorama import Fore
 
 
 class DisplayBatteryMode(I2CBase):
@@ -44,7 +48,16 @@ class DisplayBatteryMode(I2CBase):
         if self.mode=="DisplayBatteryMode1":
             self.send_string(str(self.voltage))
         elif self.mode=="DisplayBatteryMode2":
-            self.send_string("fuga")
+            self.send_string(self.display_network_information())
+
+    def display_network_information(self):
+        ip = get_ip_address()
+        if ip is None:
+            ip = "no connection"
+        ip_str = f"{socket.gethostname()}:\n{Fore.YELLOW}{ip}{Fore.RESET}"
+        master_str = "ROS_MASTER:\n" + Fore.RED + f"{get_ros_master_ip()}" + Fore.RESET
+        sent_str = f"{ip_str}\n{master_str}\n"
+        return sent_str
 
 
 if __name__ == "__main__":
