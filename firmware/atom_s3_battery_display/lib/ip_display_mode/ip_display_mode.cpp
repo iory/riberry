@@ -1,13 +1,13 @@
-#include <display_battery_mode2.h>
+#include <ip_display_mode.h>
 
-DisplayBatteryMode2* DisplayBatteryMode2::instance = nullptr;
+IpDisplayMode* IpDisplayMode::instance = nullptr;
 
-DisplayBatteryMode2::DisplayBatteryMode2(AtomS3LCD &lcd, AtomS3I2C &i2c)
-  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayBatteryMode2") {
+IpDisplayMode::IpDisplayMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
+  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("IpDisplayMode") {
     instance = this;
 }
 
-void DisplayBatteryMode2::task(void *parameter) {
+void IpDisplayMode::task(void *parameter) {
   while (true) {
     instance->atoms3i2c.setRequestStr(instance->getModeName());
     // Check for I2C timeout
@@ -29,6 +29,6 @@ void DisplayBatteryMode2::task(void *parameter) {
   }
 }
 
-void DisplayBatteryMode2::createTask(uint8_t xCoreID) {
-  xTaskCreatePinnedToCore(task, "DisplayBatteryMode2", 2048, NULL, 1, &taskHandle, xCoreID);
+void IpDisplayMode::createTask(uint8_t xCoreID) {
+  xTaskCreatePinnedToCore(task, "IpDisplayMode", 2048, NULL, 1, &taskHandle, xCoreID);
 }
