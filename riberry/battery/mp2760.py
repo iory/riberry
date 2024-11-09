@@ -108,6 +108,11 @@ class MP2760BatteryMonitor(threading.Thread):
             "[MP2760BatteryMonitor] Charge current limit: ",
             f"{self.read_charge_current_limit()}[mA]",
         )
+        self.limit_input_current(500)
+        print(
+            "[MP2760BatteryMonitor] Input current limit: ",
+            f"{self.read_input_current_limit()}[mA]",
+        )
         self.lock = threading.Lock()
         self.running = True
 
@@ -197,7 +202,7 @@ class MP2760BatteryMonitor(threading.Thread):
             or set_current < 50
             or set_current > 6000
         ):
-            print("[Battery Monitor] Current limit is not proper.")
+            print("[Battery Monitor] Charge current limit is not proper.")
             return
         for digit, current in zip(digits, currents):
             bit = set_current // current
@@ -205,6 +210,29 @@ class MP2760BatteryMonitor(threading.Thread):
             set_current -= bit * 50 * 2 ** (digit - 6)
         try:
             self.bus.write_word_data(self.device_address, 0x14, set_word)
+        except Exception as e:
+            print(f"[Battery Monitor] Error writing I2C: {e}")
+            return
+        return True
+
+    def limit_input_current(self, set_current):  # unit: [mA]
+        set_word = 0x0000
+        digits = list(range(6, -1, -1))
+        currents = [50 * 2**i for i in range(6, -1, -1)]
+        if (
+            type(set_current) is not int
+            or set_current % 50 != 0
+            or set_current < 50
+            or set_current > 5000
+        ):
+            print("[Battery Monitor] Input current limit is not proper.")
+            return
+        for digit, current in zip(digits, currents):
+            bit = set_current // current
+            set_word += bit << digit
+            set_current -= bit * 50 * 2 ** (digit - 0)
+        try:
+            self.bus.write_word_data(self.device_address, 0x08, set_word)
         except Exception as e:
             print(f"[Battery Monitor] Error writing I2C: {e}")
             return
@@ -234,6 +262,22 @@ class MP2760BatteryMonitor(threading.Thread):
         current += ((bits & 0x0100) >> 8) * 200
         current += ((bits & 0x0080) >> 7) * 100
         current += ((bits & 0x0040) >> 6) * 50
+        return current
+
+    def read_input_current_limit(self):  # unit: [mA]
+        try:
+            bits = self.bus.read_word_data(self.device_address, 0x08)
+        except Exception as e:
+            print(f"[Battery Monitor] Error reading from I2C: {e}")
+            return
+        current = 0
+        current += ((bits & 0x0040) >> 6) * 3200
+        current += ((bits & 0x0020) >> 5) * 1600
+        current += ((bits & 0x0010) >> 4) * 800
+        current += ((bits & 0x0008) >> 3) * 400
+        current += ((bits & 0x0004) >> 2) * 200
+        current += ((bits & 0x0002) >> 1) * 100
+        current += ((bits & 0x0001) >> 0) * 50
         return current
 
     def calculate_lipo_percentage(self, voltage):
