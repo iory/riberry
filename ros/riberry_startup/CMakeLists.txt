@@ -25,8 +25,19 @@ endif()
 
 find_package(catkin REQUIRED COMPONENTS
   audio_common_msgs
+  message_generation
   roscpp
   sensor_msgs
+  std_msgs
+)
+
+add_message_files(
+  FILES
+  ImuFace.msg
+)
+
+generate_messages(
+  DEPENDENCIES
   std_msgs
 )
 
