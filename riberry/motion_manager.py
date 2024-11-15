@@ -1,6 +1,5 @@
 import json
 import os
-from pathlib import Path
 
 from kxr_controller.kxr_interface import KXRROSRobotInterface
 import numpy as np
@@ -25,8 +24,6 @@ class MotionManager:
             robot_model, namespace=namespace, controller_timeout=60.0
         )
         self.joint_names = self.ri.robot.joint_names
-        # Teaching motion json
-        self.json_filepath = os.path.join(str(Path.cwd()), 'teaching_motion.json')
         self.motion = []
         self._stop = False
 
@@ -55,11 +52,11 @@ class MotionManager:
     def servo_off(self):
         self.ri.servo_off()
 
-    def record(self):
+    def record(self, record_filepath):
         self._stop = False
         self.motion = []
-        with open(self.json_filepath, mode='w') as f:
-            rospy.loginfo(f'Start saving motion to {self.json_filepath}')
+        with open(record_filepath, mode='w') as f:
+            rospy.loginfo(f'Start saving motion to {record_filepath}')
             while not rospy.is_shutdown():
                 # Finish recording
                 if self._stop is True:
@@ -67,14 +64,14 @@ class MotionManager:
                 self.add_motion()
                 rospy.sleep(0.1)
             f.write(json.dumps(self.motion, indent=4, separators=(",", ": ")))
-            rospy.loginfo(f'Finish saving motion to {self.json_filepath}')
+            rospy.loginfo(f'Finish saving motion to {record_filepath}')
 
-    def play(self):
+    def play(self, play_filepath):
         self._stop = False
         # Load motion
-        if os.path.exists(self.json_filepath):
-            rospy.loginfo(f'Load motion data file {self.json_filepath}.')
-            with open(self.json_filepath) as f:
+        if os.path.exists(play_filepath):
+            rospy.loginfo(f'Load motion data file {play_filepath}.')
+            with open(play_filepath) as f:
                 self.motion = json.load(f)
         # Play motion
         rospy.loginfo('Play motion')
