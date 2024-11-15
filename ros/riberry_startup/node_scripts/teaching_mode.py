@@ -7,6 +7,7 @@ from std_msgs.msg import Int32
 from std_msgs.msg import String
 
 from riberry.i2c_base import I2CBase
+from riberry.motion_manager import MotionManager
 
 
 class State(Enum):
@@ -41,7 +42,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
         if self.mode != "TeachingMode":
             return
         if msg.data == 3:
-            self.ri.servo_off()
+            self.motion_manager.servo_off()
         if self.prev_state != self.state:
             sent_str = f'State: {self.state.name}'
             rospy.loginfo(sent_str)
@@ -54,9 +55,11 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                 self.state = State.PLAY
         elif self.state == State.RECORD:
             if msg.data == 1:
+                self.motion_manager.stop()
                 self.state = State.WAIT
         elif self.state == State.PLAY:
             if msg.data == 2:
+                self.motion_manager.stop()
                 self.state = State.WAIT
 
     def timer_callback(self, event):
@@ -84,7 +87,6 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                     rospy.sleep(1)
                     continue
                 if self.state == State.WAIT:
-                    self.motion_manager.stop()
                     rospy.sleep(1)
                 elif self.state == State.RECORD:
                     self.motion_manager.record()

@@ -28,7 +28,7 @@ class MotionManager:
         # Teaching motion json
         self.json_filepath = os.path.join(str(Path.cwd()), 'teaching_motion.json')
         self.motion = []
-        self.stop = False
+        self._stop = False
 
     def add_motion(self):
         """
@@ -50,15 +50,19 @@ class MotionManager:
         rospy.loginfo(f'Time: {elapsed_time}, joint_states: {joint_states}')
 
     def stop(self):
-        self.stop = True
+        self._stop = True
+
+    def servo_off(self):
+        self.ri.servo_off()
 
     def record(self):
+        self._stop = False
         self.motion = []
         with open(self.json_filepath, mode='w') as f:
             rospy.loginfo(f'Start saving motion to {self.json_filepath}')
             while not rospy.is_shutdown():
                 # Finish recording
-                if self.stop is True:
+                if self._stop is True:
                     break
                 self.add_motion()
                 rospy.sleep(0.1)
@@ -66,6 +70,7 @@ class MotionManager:
             rospy.loginfo(f'Finish saving motion to {self.json_filepath}')
 
     def play(self):
+        self._stop = False
         # Load motion
         if os.path.exists(self.json_filepath):
             rospy.loginfo(f'Load motion data file {self.json_filepath}.')
@@ -109,7 +114,7 @@ class MotionManager:
             is_interpolatings = (action.is_interpolating() for action in controller_actions)
             return any(list(is_interpolatings))
         while not rospy.is_shutdown() and is_interpolating():
-            if self.stop is True:
+            if self._stop is True:
                 self.ri.cancel_angle_vector()
                 rospy.loginfo('Play interrupted')
                 break
