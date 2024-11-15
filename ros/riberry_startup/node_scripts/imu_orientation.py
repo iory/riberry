@@ -22,6 +22,8 @@ class IMUOrientation:
         norm = np.linalg.norm(acc)
         if norm == 0:
             rospy.logwarn("Zero acceleration vector received.")
+            msg = ImuFace(face=ImuFace.NONE)
+            self.imu_orientation_pub.publish(msg)
             return
         acc_normalized = acc / norm
 
@@ -43,7 +45,7 @@ class IMUOrientation:
                 best_match = face
                 best_similarity = similarity
         if best_match is None:
-            return
+            best_match = ImuFace.NONE
 
         msg = ImuFace(face=best_match)
         self.imu_orientation_pub.publish(msg)
