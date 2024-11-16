@@ -28,7 +28,7 @@ class TeachingMode(I2CBase):
         self.play_list = SelectList()
         self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
         self.load_teaching_files()
-        self.play_file = None
+        self.playing = False
         self.mode = None
         # Button and mode callback
         rospy.Subscriber(
@@ -64,14 +64,14 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             elif msg.data == 3:
                 self.motion_manager.servo_off()
         elif self.state == State.RECORD:
-            # fnish recording
+            # finish recording
             if msg.data == 1:
                 self.motion_manager.stop()
                 self.state = State.WAIT
             elif msg.data == 3:
                 self.motion_manager.servo_off()
         elif self.state == State.PLAY:
-            if self.play_file is None:
+            if self.playing is False:
                 # select play file
                 if msg.data == 1:
                     self.play_list.increment_index()
@@ -80,6 +80,8 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                     self.play_file = self.play_list.selected_option()
                     if self.play_file is None:
                         self.state = State.WAIT
+                    else:
+                        self.playing = True
                 # delete play file
                 elif msg.data == 3:
                     delete_file = self.play_list.selected_option()
@@ -106,14 +108,14 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 + '3tap:\n servo_off'
         elif self.state == State.RECORD:
             sent_str += 'Record mode\n\n'\
-                + '1tap:\n  finish recording'
+                + '1tap: finish'
         elif self.state == State.PLAY:
-            if self.play_file is None:
+            if self.playing is False:
                 sent_str += 'Play mode\n'\
                     + ' 1tap: select\n'\
                     + ' 2tap: start\n'\
                     + ' 3tap: delete\n\n'
-                sent_str += self.play_list.string_list(5)
+                sent_str += self.play_list.string_options(5)
             else:
                 sent_str += 'Play mode\n\n'\
                     + f'{self.play_list.selected_option(True)}\n\n'\
@@ -160,11 +162,11 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                     self.state = State.WAIT
                 elif self.state == State.PLAY:
                     # wait for play file to be confirmed
-                    if self.play_file is None:
+                    if self.playing is False:
                         continue
                     else:
                         self.motion_manager.play(self.play_file)
-                        self.play_file = None
+                        self.playing = False
                         self.state = State.WAIT
         except KeyboardInterrupt:
             print('Finish teaching mode by KeyboardInterrupt')

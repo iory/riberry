@@ -12,7 +12,7 @@ class MotionManager:
         # skrobot version check
         from packaging import version
         import skrobot
-        required_version = "0.0.44"
+        required_version = "0.0.45"
         current_version = skrobot.__version__
         if version.parse(current_version) < version.parse(required_version):
             raise Exception(f"skrobot version is not greater than {required_version}. (current version: {current_version})\npip install scikit-robot -U")
@@ -101,16 +101,7 @@ class MotionManager:
         rospy.loginfo(f'{tms}')
         self.ri.angle_vector_sequence(avs, tms)
         # Check interruption by button
-        # use self.ri.is_interpolating() after the following PR is merged
-        # https://github.com/iory/scikit-robot/pull/396
-        def is_interpolating(controller_type=None):
-            if controller_type:
-                controller_actions = self.ri.controller_table[controller_type]
-            else:
-                controller_actions = self.ri.controller_table[self.ri.controller_type]
-            is_interpolatings = (action.is_interpolating() for action in controller_actions)
-            return any(list(is_interpolatings))
-        while not rospy.is_shutdown() and is_interpolating():
+        while not rospy.is_shutdown() and self.ri.is_interpolating():
             if self._stop is True:
                 self.ri.cancel_angle_vector()
                 rospy.loginfo('Play interrupted')

@@ -32,7 +32,7 @@ class SelectList:
         else:
             return selected
 
-    def string_list(self, max_num):
+    def string_options(self, max_num):
         sent_str = ''
         if not self.options:
             return sent_str
