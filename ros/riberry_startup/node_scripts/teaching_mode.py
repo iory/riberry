@@ -23,11 +23,12 @@ class TeachingMode(I2CBase):
     def __init__(self, i2c_addr, lock_path="/tmp/teaching_mode.lock"):
         super().__init__(i2c_addr)
         self.motion_manager = MotionManager()
-        self.ros_dir = os.path.join(os.environ["HOME"], ".ros")
-        self.select_list = SelectList()
-        self.select_list.add_extract_pattern(r"teaching_(.*?)\.json")
-        self.add_teaching_files()
-        self.motion_file = None
+        self.json_dir = os.path.join(os.environ["HOME"], ".ros/riberry")
+        os.makedirs(self.json_dir, exist_ok=True)
+        self.play_list = SelectList()
+        self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
+        self.load_teaching_files()
+        self.play_file = None
         self.mode = None
         # Button and mode callback
         rospy.Subscriber(
@@ -46,12 +47,10 @@ class TeachingMode(I2CBase):
         """
         Manage state by click
 Wait -> (Single-click) -> Record  -> (Single-click) -> Finish recording -> Wait
-Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
+Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) -> Abort -> Wait
 """
         if self.mode != "TeachingMode":
             return
-        if msg.data == 3:
-            self.motion_manager.servo_off()
         if self.prev_state != self.state:
             sent_str = f'State: {self.state.name}'
             rospy.loginfo(sent_str)
@@ -62,19 +61,36 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                 self.state = State.RECORD
             elif msg.data == 2:
                 self.state = State.PLAY
+            elif msg.data == 3:
+                self.motion_manager.servo_off()
         elif self.state == State.RECORD:
+            # fnish recording
             if msg.data == 1:
                 self.motion_manager.stop()
                 self.state = State.WAIT
+            elif msg.data == 3:
+                self.motion_manager.servo_off()
         elif self.state == State.PLAY:
-            if self.motion_file is None:
+            if self.play_file is None:
+                # select play file
                 if msg.data == 1:
-                    self.select_list.increment_index()
+                    self.play_list.increment_index()
+                # confirm play file
                 elif msg.data == 2:
-                    self.motion_file = self.select_list.get_selected()
-                    if self.motion_file is None:
+                    self.play_file = self.play_list.selected_option()
+                    if self.play_file is None:
                         self.state = State.WAIT
+                # delete play file
+                elif msg.data == 3:
+                    delete_file = self.play_list.selected_option()
+                    if delete_file is None:
+                        self.state = State.WAIT
+                    if os.path.exists(delete_file):
+                        os.remove(delete_file)
+                    self.play_list.remove_option(delete_file)
+                    self.state = State.WAIT
             else:
+                # stop playing
                 if msg.data == 2:
                     self.motion_manager.stop()
                     self.state = State.WAIT
@@ -85,43 +101,47 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
         sent_str = ''
         if self.state == State.WAIT:
             sent_str += 'Teaching mode\n\n'\
-                + 'single click:\n  record\n\n'\
-                + 'double click:\n  play\n\n'\
-                + 'triple click:\n  servo_off'
+                + '1tap:\n record\n\n'\
+                + '2tap:\n play\n\n'\
+                + '3tap:\n servo_off'
         elif self.state == State.RECORD:
             sent_str += 'Record mode\n\n'\
-                + 'single click:\n  stop recording'
+                + '1tap:\n  finish recording'
         elif self.state == State.PLAY:
-            if self.motion_file is None:
-                sent_str += 'Play mode\n\n'\
-                    + 'double click: start playing\n\n'
-                sent_str += self.select_list.get_list_string(5)
+            if self.play_file is None:
+                sent_str += 'Play mode\n'\
+                    + ' 1tap: select\n'\
+                    + ' 2tap: start\n'\
+                    + ' 3tap: delete\n\n'
+                sent_str += self.play_list.string_list(5)
             else:
                 sent_str += 'Play mode\n\n'\
-                    + f'{self.select_list.get_selected(True)}\n\n'\
-                    + 'double click:\n  stop playing'
+                    + f'{self.play_list.selected_option(True)}\n\n'\
+                    + '2tap:\n stop playing'
         self.send_string(sent_str)
 
-    def add_teaching_files(self):
+    def load_teaching_files(self):
         teaching_files = [
-            os.path.join(self.ros_dir, file) for file in os.listdir(self.ros_dir)
+            os.path.join(self.json_dir, file)
+            for file in os.listdir(self.json_dir)
             if file.startswith("teaching_") and file.endswith(".json")
         ]
-
         teaching_files_sorted = sorted(
             teaching_files,
             key=lambda f: os.path.getctime(f)
         )
         for file in teaching_files_sorted:
-            self.select_list.add_option(file)
+            self.play_list.add_option(file)
 
-    def get_json_filepath(self, filename=None):
-        if filename is not None:
-            json_filepath = os.path.join(self.ros_dir, f'teaching_{filename}.json')
-        else:
+    def get_json_path(self, filename=None):
+        if filename is None:
             current_time = datetime.now().strftime("%m%d_%H%M%S")
-            json_filepath = os.path.join(self.ros_dir, f'teaching_{current_time}.json')
-        return json_filepath
+            json_path = os.path.join(
+                self.json_dir, f'teaching_{current_time}.json')
+        else:
+            json_path = os.path.join(
+                self.json_dir, f'teaching_{filename}.json')
+        return json_path
 
     def main_loop(self):
         rospy.loginfo('start teaching mode')
@@ -133,16 +153,18 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                 if self.state == State.WAIT:
                     rospy.sleep(1)
                 elif self.state == State.RECORD:
-                    motion_path = self.get_json_filepath()
-                    self.motion_manager.record(motion_path)
-                    self.select_list.add_option(motion_path)
+                    # record until stopped
+                    json_path = self.get_json_path()
+                    self.motion_manager.record(json_path)
+                    self.play_list.add_option(json_path)
                     self.state = State.WAIT
                 elif self.state == State.PLAY:
-                    if self.motion_file is None:
+                    # wait for play file to be confirmed
+                    if self.play_file is None:
                         continue
                     else:
-                        self.motion_manager.play(self.motion_file)
-                        self.motion_file = None
+                        self.motion_manager.play(self.play_file)
+                        self.play_file = None
                         self.state = State.WAIT
         except KeyboardInterrupt:
             print('Finish teaching mode by KeyboardInterrupt')
