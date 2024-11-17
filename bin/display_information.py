@@ -27,7 +27,7 @@ from riberry.network import wait_and_get_ros_ip
 sys.stdout.reconfigure(line_buffering=True)
 
 
-battery_reader = None
+battery_readers = []
 
 # Global variable for ROS availability and additional message
 ros_available = False
@@ -43,7 +43,7 @@ def try_init_ros():
     global ros_additional_message
     global ros_display_image_flag
     global ros_display_image
-    global battery_reader
+    global battery_readers
     ros_display_image_param = None
     prev_ros_display_image_param = None
 
@@ -90,49 +90,56 @@ def try_init_ros():
                 "/atom_s3_additional_info", String, ros_callback, queue_size=1
             )
             rospy.Subscriber("/atom_s3_mode", String, ros_mode_callback, queue_size=1)
-            battery_pub = rospy.Publisher(
-                "/battery/remaining_battery", Float32, queue_size=1
-            )
-            if isinstance(battery_reader, MP2760BatteryMonitor):
-                battery_temperature_pub = rospy.Publisher(
-                    "/battery/junction_temperature", Float32, queue_size=1
-                )
-                input_voltage_pub = rospy.Publisher(
-                    "/battery/input_voltage", Float32, queue_size=1
-                )
-                system_voltage_pub = rospy.Publisher(
-                    "/battery/system_voltage", Float32, queue_size=1
-                )
-                battery_charge_current_pub = rospy.Publisher(
-                    "/battery/battery_charge_current", Float32, queue_size=1
-                )
-                charge_status_pub = rospy.Publisher(
-                    "/battery/charge_status", Int32, queue_size=1
-                )
-                charge_status_string_pub = rospy.Publisher(
-                    "/battery/charge_status_string", String, queue_size=1
-                )
-                status_and_fault_pub = rospy.Publisher(
-                    "/battery/status_and_fault", UInt32, queue_size=1
-                )
-                status_and_fault_string_pub = rospy.Publisher(
-                    "/battery/status_and_fault_string", String, queue_size=1
-                )
+            for battery_reader in battery_readers:
+                if isinstance(battery_reader, MP2760BatteryMonitor):
+                    battery_pub = rospy.Publisher(
+                        "/battery/remaining_battery", Float32, queue_size=1
+                    )
+                    battery_temperature_pub = rospy.Publisher(
+                        "/battery/junction_temperature", Float32, queue_size=1
+                    )
+                    input_voltage_pub = rospy.Publisher(
+                        "/battery/input_voltage", Float32, queue_size=1
+                    )
+                    system_voltage_pub = rospy.Publisher(
+                        "/battery/system_voltage", Float32, queue_size=1
+                    )
+                    battery_charge_current_pub = rospy.Publisher(
+                        "/battery/battery_charge_current", Float32, queue_size=1
+                    )
+                    charge_status_pub = rospy.Publisher(
+                        "/battery/charge_status", Int32, queue_size=1
+                    )
+                    charge_status_string_pub = rospy.Publisher(
+                        "/battery/charge_status_string", String, queue_size=1
+                    )
+                    status_and_fault_pub = rospy.Publisher(
+                        "/battery/status_and_fault", UInt32, queue_size=1
+                    )
+                    status_and_fault_string_pub = rospy.Publisher(
+                        "/battery/status_and_fault_string", String, queue_size=1
+                    )
+                elif isinstance(battery_reader, PisugarBatteryReader):
+                    pisugar_battery_pub = rospy.Publisher(
+                        "/battery/pisugar/remaining_battery", Float32, queue_size=1
+                    )
+
             ros_available = True
             rate = rospy.Rate(1)
             sub = None
             while not rospy.is_shutdown() and not stop_event.is_set():
-                if isinstance(battery_reader, MP2760BatteryMonitor):
-                    battery_junction_temperature = battery_reader.junction_temperature
-                    input_voltage = battery_reader.input_voltage
-                    system_voltage = battery_reader.system_voltage
-                    charge_status = battery_reader.charge_status
-                    battery_charge_current = battery_reader.battery_charge_current
-                    status_and_fault = battery_reader.status_and_fault
-                    status_and_fault_string = battery_reader.status_and_fault_string
-                    battery_percentage = battery_reader.get_filtered_percentage()
-                elif isinstance(battery_reader, PisugarBatteryReader):
-                    battery_percentage = battery_reader.get_filtered_percentage()
+                for battery_reader in battery_readers:
+                    if isinstance(battery_reader, MP2760BatteryMonitor):
+                        battery_junction_temperature = battery_reader.junction_temperature
+                        input_voltage = battery_reader.input_voltage
+                        system_voltage = battery_reader.system_voltage
+                        charge_status = battery_reader.charge_status
+                        battery_charge_current = battery_reader.battery_charge_current
+                        status_and_fault = battery_reader.status_and_fault
+                        status_and_fault_string = battery_reader.status_and_fault_string
+                        battery_percentage = battery_reader.get_filtered_percentage()
+                    elif isinstance(battery_reader, PisugarBatteryReader):
+                        pisugar_battery_pub.publish(battery_reader.get_filtered_percentage())
 
                 ros_display_image_param = rospy.get_param("/display_image", None)
                 if battery_percentage is not None:
@@ -222,7 +229,7 @@ class DisplayInformation(I2CBase):
     def display_information(self):
         global ros_available
         global ros_additional_message
-        global battery_reader
+        global battery_readers
 
         ip = get_ip_address()
         if ip is None:
@@ -230,22 +237,29 @@ class DisplayInformation(I2CBase):
         ip_str = f"{socket.gethostname()}:\n{Fore.YELLOW}{ip}{Fore.RESET}"
         master_str = "ROS_MASTER:\n" + Fore.RED + f"{get_ros_master_ip()}" + Fore.RESET
         battery_str = ""
-        if battery_reader:
-            charging = battery_reader.get_is_charging()
-            battery = battery_reader.get_filtered_percentage()
-            if battery is None:
-                battery_str = "Bat: None"
-            else:
-                if battery <= 20:
-                    battery_str = f"Bat: {Fore.RED}{int(battery)}%{Fore.RESET}"
+        if battery_readers:
+            for i, battery_reader in enumerate(battery_readers):
+                if i > 0:
+                    battery_str += '\n'
+                if isinstance(battery_reader, PisugarBatteryReader):
+                    prefix = 'PCBat'
                 else:
-                    battery_str = f"Bat: {Fore.GREEN}{int(battery)}%{Fore.RESET}"
-            if charging is True:
-                battery_str += "+"
-            elif charging is False:
-                battery_str += "-"
-            else:
-                battery_str += "?"
+                    prefix = 'ServoBat'
+                charging = battery_reader.get_is_charging()
+                battery = battery_reader.get_filtered_percentage()
+                if battery is None:
+                    battery_str += "{prefix}: None"
+                else:
+                    if battery <= 20:
+                        battery_str += f"{prefix}: {Fore.RED}{int(battery)}%{Fore.RESET}"
+                    else:
+                        battery_str += f"{prefix}: {Fore.GREEN}{int(battery)}%{Fore.RESET}"
+                if charging is True:
+                    battery_str += "+"
+                elif charging is False:
+                    battery_str += "-"
+                else:
+                    battery_str += "?"
         sent_str = f"{ip_str}\n{master_str}\n{battery_str}\n"
 
         if ros_available and ros_additional_message:
@@ -315,12 +329,13 @@ if __name__ == "__main__":
     battery_bus_number = decide_battery_i2c_bus_number()
     if MP2760BatteryMonitor.exists(battery_bus_number):
         print("[Display Information] Use JSK Battery Board")
-        battery_reader = MP2760BatteryMonitor(battery_bus_number)
-    else:
+        battery_readers.append(MP2760BatteryMonitor(battery_bus_number))
+    if PisugarBatteryReader.exists(battery_bus_number):
         print("[Display Information] Use Pisugar")
-        battery_reader = PisugarBatteryReader(battery_bus_number)
-    battery_reader.daemon = True
-    battery_reader.start()
+        battery_readers.append(PisugarBatteryReader(battery_bus_number))
+    for battery_reader in battery_readers:
+        battery_reader.daemon = True
+        battery_reader.start()
 
     display_thread = threading.Thread(target=DisplayInformation(0x42).run)
     display_thread.daemon = True
