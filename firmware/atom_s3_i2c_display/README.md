@@ -107,6 +107,8 @@ The following sections provide details on the base code for the AtomS3 firmware.
   - After recording, the state automatically returns to `WAIT`.
 
   In the `PLAY` state:
-  - Playing motion automatically starts at the moment of transition from `WAIT` state to `PLAY` state
-  - A double click stops playing motion.
-  - After playback, the state automatically returns to `WAIT`.
+  - A single click toggles the selected motion. The current selection is indicated by green.
+  - A double click starts playing the selected motion.
+    - After starting, a double click stops playing motion.
+  - A triple click deletes the selected motion.
+  - After playback or delete, the state automatically returns to `WAIT`.

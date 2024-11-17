@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 
+from datetime import datetime
 from enum import Enum
-import json
 import os
-from pathlib import Path
 
-from kxr_controller.kxr_interface import KXRROSRobotInterface
-import numpy as np
 import rospy
-from skrobot.model import RobotModel
 from std_msgs.msg import Int32
 from std_msgs.msg import String
 
 from riberry.i2c_base import I2CBase
+from riberry.motion_manager import MotionManager
+from riberry.select_list import SelectList
 
 
 class State(Enum):
@@ -20,22 +18,19 @@ class State(Enum):
     RECORD = 1
     PLAY = 2
 
+
 class TeachingMode(I2CBase):
     def __init__(self, i2c_addr, lock_path="/tmp/teaching_mode.lock"):
         super().__init__(i2c_addr)
-        # Create robot model to control pressure
-        robot_model = RobotModel()
-        namespace = ""
-        robot_model.load_urdf_from_robot_description(namespace + "/robot_description_viz")
-        self.ri = KXRROSRobotInterface(
-            robot_model, namespace=namespace, controller_timeout=60.0
-        )
-        self.joint_names = self.ri.robot.joint_names
-        # Teaching motion json
-        self.json_filepath = os.path.join(str(Path.cwd()), 'teaching_motion.json')
-        self.motion = []
-        # Button and mode callback
+        self.motion_manager = MotionManager()
+        self.json_dir = os.path.join(os.environ["HOME"], ".ros/riberry")
+        os.makedirs(self.json_dir, exist_ok=True)
+        self.play_list = SelectList()
+        self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
+        self.load_teaching_files()
+        self.playing = False
         self.mode = None
+        # Button and mode callback
         rospy.Subscriber(
             "/atom_s3_button_state",
             Int32, callback=self.button_cb, queue_size=1)
@@ -52,12 +47,10 @@ class TeachingMode(I2CBase):
         """
         Manage state by click
 Wait -> (Single-click) -> Record  -> (Single-click) -> Finish recording -> Wait
-Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
+Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) -> Abort -> Wait
 """
         if self.mode != "TeachingMode":
             return
-        if msg.data == 3:
-            self.ri.servo_off()
         if self.prev_state != self.state:
             sent_str = f'State: {self.state.name}'
             rospy.loginfo(sent_str)
@@ -68,95 +61,39 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                 self.state = State.RECORD
             elif msg.data == 2:
                 self.state = State.PLAY
+            elif msg.data == 3:
+                self.motion_manager.servo_off()
         elif self.state == State.RECORD:
+            # finish recording
             if msg.data == 1:
+                self.motion_manager.stop()
                 self.state = State.WAIT
+            elif msg.data == 3:
+                self.motion_manager.servo_off()
         elif self.state == State.PLAY:
-            if msg.data == 2:
-                self.state = State.WAIT
-
-    def add_motion(self):
-        """
-        Add current pose to self.motion
-"""
-        if len(self.motion) == 0:
-            self.start_time = rospy.Time.now()
-        joint_states = {}
-        av = self.ri.angle_vector()
-        for j, a in zip(self.joint_names, av):
-            joint_states[str(j)] = float(a)
-        now = rospy.Time.now()
-        elapsed_time = (now - self.start_time).to_sec()
-        self.motion.append({
-            'time': elapsed_time,
-            'joint_states': joint_states,
-        })
-        rospy.loginfo('Add new joint states')
-        rospy.loginfo(f'Time: {elapsed_time}, joint_states: {joint_states}')
-
-    def record(self):
-        self.motion = []
-        with open(self.json_filepath, mode='w') as f:
-            rospy.loginfo(f'Start saving motion to {self.json_filepath}')
-            while not rospy.is_shutdown():
-                # Finish recording
-                if self.state == State.WAIT:
-                    break
-                self.add_motion()
-                rospy.sleep(0.1)
-            f.write(json.dumps(self.motion, indent=4, separators=(",", ": ")))
-            rospy.loginfo(f'Finish saving motion to {self.json_filepath}')
-
-    def play(self):
-        # Load motion
-        if os.path.exists(self.json_filepath):
-            rospy.loginfo(f'Load motion data file {self.json_filepath}.')
-            with open(self.json_filepath) as f:
-                self.motion = json.load(f)
-        # Play motion
-        rospy.loginfo('Play motion')
-        self.ri.servo_on()
-        # To prevent sudden movement, take time to reach the initial motion
-        if 'joint_states' not in self.motion[0]:
-            print("First element must have 'joint_states' key.")
-            return
-        first_av = list(self.motion[0]['joint_states'].values())
-        self.ri.angle_vector(first_av, 3)
-        self.ri.wait_interpolation()
-        # Play the actions from the second one onward
-        prev_time = self.motion[0]['time']
-        avs = []
-        tms = []
-        for motion in self.motion[1:]:
-            current_time = motion['time']
-            # Send angle vector
-            if 'joint_states' in motion:
-                av = np.array(list(motion['joint_states'].values()))
-                avs.append(av)
-                tms.append(current_time - prev_time)
-            prev_time = current_time
-        rospy.loginfo('angle vectors')
-        rospy.loginfo(f'{avs}')
-        rospy.loginfo('times')
-        rospy.loginfo(f'{tms}')
-        self.ri.angle_vector_sequence(avs, tms)
-        # Check interruption by button
-        # use self.ri.is_interpolating() after the following PR is merged
-        # https://github.com/iory/scikit-robot/pull/396
-        def is_interpolating(controller_type=None):
-            if controller_type:
-                controller_actions = self.ri.controller_table[controller_type]
+            if self.playing is False:
+                if msg.data != 0 and len(self.play_list.options) <= 0:
+                    self.state = State.WAIT
+                    return
+                # select play file
+                if msg.data == 1:
+                    self.play_list.increment_index()
+                # confirm play file
+                elif msg.data == 2:
+                    self.play_file = self.play_list.selected_option()
+                    self.playing = True
+                # delete play file
+                elif msg.data == 3:
+                    delete_file = self.play_list.selected_option()
+                    if os.path.exists(delete_file):
+                        os.remove(delete_file)
+                    self.play_list.remove_option(delete_file)
+                    self.state = State.WAIT
             else:
-                controller_actions = self.ri.controller_table[self.ri.controller_type]
-            is_interpolatings = (action.is_interpolating() for action in controller_actions)
-            return any(list(is_interpolatings))
-        while not rospy.is_shutdown() and is_interpolating():
-            if self.state == State.WAIT:
-                self.ri.cancel_angle_vector()
-                rospy.loginfo('Play interrupted')
-                break
-            rospy.sleep(0.5)  # Save motion every 0.5s to smooth motion play
-        rospy.loginfo('Play finished')
+                # stop playing
+                if msg.data == 2:
+                    self.motion_manager.stop()
+                    self.state = State.WAIT
 
     def timer_callback(self, event):
         if self.mode != "TeachingMode":
@@ -164,16 +101,52 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
         sent_str = ''
         if self.state == State.WAIT:
             sent_str += 'Teaching mode\n\n'\
-                + 'single click:\n  record\n\n'\
-                + 'double click:\n  play\n\n'\
-                + 'triple click:\n  servo_off'
+                + '1tap:\n record\n\n'\
+                + '2tap:\n play\n\n'\
+                + '3tap:\n servo_off'
         elif self.state == State.RECORD:
             sent_str += 'Record mode\n\n'\
-                + 'single click:\n  stop recording'
+                + '1tap: finish'
         elif self.state == State.PLAY:
-            sent_str += 'Play mode\n\n'\
-                + 'double click:\n  stop playing'
+            if self.playing is False:
+                if len(self.play_list.options) <= 0:
+                    sent_str += 'Play mode\n\n'\
+                        + 'No motion\n'\
+                        + ' 1 tap: return'
+                else:
+                    sent_str += 'Play mode\n'\
+                        + ' 1tap: select\n'\
+                        + ' 2tap: start\n'\
+                        + ' 3tap: delete\n\n'
+                    sent_str += self.play_list.string_options(5)
+            else:
+                sent_str += 'Play mode\n\n'\
+                    + f'{self.play_list.selected_option(True)}\n\n'\
+                    + '2tap:\n stop playing'
         self.send_string(sent_str)
+
+    def load_teaching_files(self):
+        teaching_files = [
+            os.path.join(self.json_dir, file)
+            for file in os.listdir(self.json_dir)
+            if file.startswith("teaching_") and file.endswith(".json")
+        ]
+        teaching_files_sorted = sorted(
+            teaching_files,
+            key=lambda f: os.path.getctime(f)
+        )
+        for file in teaching_files_sorted:
+            self.play_list.add_option(file)
+
+    def get_json_path(self, filename=None):
+        if filename is None:
+            current_time = datetime.now().strftime("%m%d_%H%M%S")
+            json_path = os.path.join(
+                self.json_dir, f'teaching_{current_time}.json')
+        else:
+            json_path = os.path.join(
+                self.json_dir, f'teaching_{filename}.json')
+        return json_path
 
     def main_loop(self):
         rospy.loginfo('start teaching mode')
@@ -185,24 +158,25 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Abort -> Wait
                 if self.state == State.WAIT:
                     rospy.sleep(1)
                 elif self.state == State.RECORD:
-                    self.record()
+                    # record until stopped
+                    json_path = self.get_json_path()
+                    self.motion_manager.record(json_path)
+                    self.play_list.add_option(json_path)
                     self.state = State.WAIT
                 elif self.state == State.PLAY:
-                    self.play()
-                    self.state = State.WAIT
+                    # wait for play file to be confirmed
+                    if self.playing is False:
+                        continue
+                    else:
+                        self.motion_manager.play(self.play_file)
+                        self.playing = False
+                        self.state = State.WAIT
         except KeyboardInterrupt:
             print('Finish teaching mode by KeyboardInterrupt')
             exit()
 
 
 if __name__ == '__main__':
-    # skrobot version check
-    from packaging import version
-    import skrobot
-    required_version = "0.0.44"
-    current_version = skrobot.__version__
-    if version.parse(current_version) < version.parse(required_version):
-        raise Exception(f"skrobot version is not greater than {required_version}. (current version: {current_version})\npip install scikit-robot -U")
     # Main
     rospy.init_node('teaching_mode', anonymous=True)
     tm = TeachingMode(0x42)
