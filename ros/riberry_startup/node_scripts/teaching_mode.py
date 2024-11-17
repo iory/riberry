@@ -72,21 +72,19 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 self.motion_manager.servo_off()
         elif self.state == State.PLAY:
             if self.playing is False:
+                if msg.data != 0 and len(self.play_list.options) <= 0:
+                    self.state = State.WAIT
+                    return
                 # select play file
                 if msg.data == 1:
                     self.play_list.increment_index()
                 # confirm play file
                 elif msg.data == 2:
                     self.play_file = self.play_list.selected_option()
-                    if self.play_file is None:
-                        self.state = State.WAIT
-                    else:
-                        self.playing = True
+                    self.playing = True
                 # delete play file
                 elif msg.data == 3:
                     delete_file = self.play_list.selected_option()
-                    if delete_file is None:
-                        self.state = State.WAIT
                     if os.path.exists(delete_file):
                         os.remove(delete_file)
                     self.play_list.remove_option(delete_file)
@@ -111,11 +109,16 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 + '1tap: finish'
         elif self.state == State.PLAY:
             if self.playing is False:
-                sent_str += 'Play mode\n'\
-                    + ' 1tap: select\n'\
-                    + ' 2tap: start\n'\
-                    + ' 3tap: delete\n\n'
-                sent_str += self.play_list.string_options(5)
+                if len(self.play_list.options) <= 0:
+                    sent_str += 'Play mode\n\n'\
+                        + 'No motion\n'\
+                        + ' 1 tap: return'
+                else:
+                    sent_str += 'Play mode\n'\
+                        + ' 1tap: select\n'\
+                        + ' 2tap: start\n'\
+                        + ' 3tap: delete\n\n'
+                    sent_str += self.play_list.string_options(5)
             else:
                 sent_str += 'Play mode\n\n'\
                     + f'{self.play_list.selected_option(True)}\n\n'\

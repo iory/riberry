@@ -19,9 +19,10 @@ class SelectList:
             self.idx = 0
 
     def increment_index(self):
-        self.idx += 1
-        if self.idx >= len(self.options):
-            self.idx = 0
+        if len(self.options) == 0:
+            return -1
+        self.idx = (self.idx + 1) % len(self.options)
+        return self.idx
 
     def selected_option(self, extract=False):
         if len(self.options) <= self.idx:
