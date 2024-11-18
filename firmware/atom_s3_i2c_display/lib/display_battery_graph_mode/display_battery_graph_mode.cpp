@@ -38,9 +38,11 @@ void DisplayBatteryGraphMode::task(void *parameter) {
           token = strtok(NULL, ",");
           index++;
         }
-        instance->updateGraph(percentages, index, duration);
+        if (index > 0) {
+          instance->updateGraph(percentages, index, duration);
+        }
       }
-      vTaskDelay(pdMS_TO_TICKS(1000));
+      vTaskDelay(pdMS_TO_TICKS(10000));
     }
   }
 }
@@ -78,7 +80,7 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length, int 
     }
   }
   // x label text
-  String x_label = "duration:" + String(duration);
+  String x_label = "duration:" + String(duration) + "[s]";
   instance->atoms3lcd.setCursor(LCD_W/2-x_label.length()*5/2, LCD_H-x_label_h);
   instance->atoms3lcd.printColorText(x_label);
   instance->atoms3lcd.setTextSize(1.5); // Restore default size for other modes

@@ -12,14 +12,15 @@ class DisplayBatteryGraphMode(I2CBase):
         super().__init__(i2c_addr)
 
         self.mode = None
-        self.display_duration = 600 # Assume battery topic is 1Hz
+        self.display_duration = rospy.get_param("~display_duration", 3600)
+        # Assume battery topic is 1Hz
         self.display_bins = 10
         self.battery_percentages = [0] * self.display_duration
         rospy.Subscriber("/atom_s3_mode", String,
                          callback=self.mode_cb, queue_size=1)
         rospy.Subscriber("/battery/remaining_battery", Float32,
                          callback=self.battery_cb, queue_size=1)
-        rospy.Timer(rospy.Duration(1), self.timer_callback)
+        rospy.Timer(rospy.Duration(10), self.timer_callback)
 
     def mode_cb(self, msg):
         """
