@@ -136,3 +136,27 @@ void AtomS3LCD::resetLcdData() {
   resetQRcodeData();
   mode_changed = true;
 }
+
+void AtomS3LCD::setTextSize(int x) {
+  lcd.setTextSize(x);
+}
+
+void AtomS3LCD::fillRect(int x1, int y1, int w, int h, uint16_t color) {
+  lcd.fillRect(x1, y1, w, h, color);
+}
+
+void AtomS3LCD::drawLine(int x1, int y1, int x2, int y2, uint16_t color){
+  lcd.drawLine(x1, y1, x2, y2, color);
+};
+
+void AtomS3LCD::drawPixel(int x, int y, uint16_t color){
+  lcd.drawPixel(x, y, color);
+};
+
+void AtomS3LCD::setCursor(int x, int y){
+  lcd.setCursor(x,y);
+};
+
+uint16_t AtomS3LCD::color565(uint8_t red, uint8_t green, uint8_t blue){
+  return lcd.color565(red,green,blue);
+};
