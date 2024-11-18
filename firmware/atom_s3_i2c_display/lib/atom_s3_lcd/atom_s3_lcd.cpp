@@ -137,7 +137,7 @@ void AtomS3LCD::resetLcdData() {
   mode_changed = true;
 }
 
-void AtomS3LCD::setTextSize(int x) {
+void AtomS3LCD::setTextSize(float x) {
   lcd.setTextSize(x);
 }
 

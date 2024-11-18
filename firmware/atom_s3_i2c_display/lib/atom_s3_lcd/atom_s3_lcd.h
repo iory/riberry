@@ -80,7 +80,7 @@ public:
   void resetJpegBuf();
   void resetQRcodeData();
   void resetLcdData();
-  void setTextSize(int x);
+  void setTextSize(float x);
   void fillRect(int x1, int y1, int x2, int y2, uint16_t color);
   void drawLine(int x1, int y1, int x2, int y2, uint16_t color);
   void drawPixel(int x, int y, uint16_t color);
