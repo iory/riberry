@@ -172,3 +172,21 @@ class PisugarBatteryReader(threading.Thread):
     def stop(self):
         self.running = False
         self.join()
+
+    @staticmethod
+    def exists(self, bus_number=3):
+        try:
+            with smbus2.SMBus(bus_number) as bus:
+                bus.read_byte(0x57)
+            print("[PisugarBatteryReader] pisugar3 found.")
+            return True
+        except OSError:
+            pass
+        try:
+            with smbus2.SMBus(bus_number) as bus:
+                bus.read_byte(0x75)
+            print("[PisugarBatteryReader] pisugar2 found.")
+            return True
+        except OSError:
+            return False
+        return False
