@@ -11,7 +11,7 @@ public:
   void createTask(uint8_t xCoreID) override;
 
 private:
-  static const int32_t title_h = 20;
+  static const int32_t title_h = 30;
   static const int32_t y_label_w = 18;
   static const int32_t y_line_w = 1;
   static const int32_t x_label_h = 8;
@@ -23,7 +23,7 @@ private:
   AtomS3I2C &atoms3i2c;
 
   static void task(void *parameter);
-  void updateGraph(float* buffer, int buffer_length, int duration);
+  void updateGraph(float* buffer, int buffer_length, String status, int duration);
   uint16_t calculateColor(float percentage);
 };
 
