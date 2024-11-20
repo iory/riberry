@@ -36,6 +36,7 @@ atom_s3_mode = "DisplayInformationMode"
 ros_display_image_flag = False
 ros_display_image = None
 stop_event = threading.Event()
+wifi_connected = False
 
 
 def try_init_ros():
@@ -291,6 +292,7 @@ class DisplayInformation(I2CBase):
         global ros_display_image
         global ros_display_image_flag
         global atom_s3_mode
+        global wifi_connected
         ssid = f'{self.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
         qrcode_mode_is_forced = False
@@ -301,6 +303,7 @@ class DisplayInformation(I2CBase):
             # Display the QR code when Wi-Fi is not connected,
             # regardless of atom_s3_mode.
             if get_ip_address() is None:
+                wifi_connected = False
                 if qrcode_mode_is_forced is False:
                     self.force_mode("DisplayQRcodeMode")
                     qrcode_mode_is_forced = True
@@ -308,6 +311,10 @@ class DisplayInformation(I2CBase):
                 self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
                 time.sleep(1)
                 continue
+            else:
+                if wifi_connected is False:
+                    self.force_mode("DisplayInformationMode")
+                wifi_connected = True
             # Display data according to mode
             if mode == "DisplayInformationMode":
                 self.display_information()
