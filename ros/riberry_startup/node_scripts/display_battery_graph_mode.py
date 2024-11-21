@@ -32,7 +32,12 @@ class DisplayBatteryGraphMode(I2CBase):
         """
         Check AtomS3 mode.
         """
+        previous_mode = self.mode
         self.mode = msg.data
+        if self.mode == "DisplayBatteryGraphMode":
+            if previous_mode != self.mode:
+                rospy.loginfo('start display battery graph mode')
+                self.send_data()
 
     def battery_cb(self, msg):
         for i in range(self.display_duration-1):
@@ -40,7 +45,10 @@ class DisplayBatteryGraphMode(I2CBase):
         self.battery_percentages[-1] = msg.data
 
     def status_cb(self, msg):
+        previous_status = self.charge_status
         self.charge_status = msg.data
+        if previous_status != self.charge_status:
+            self.send_data()
 
     def current_cb(self, msg):
         self.charge_current = int(msg.data)
@@ -48,6 +56,9 @@ class DisplayBatteryGraphMode(I2CBase):
     def timer_callback(self, event):
         if self.mode != "DisplayBatteryGraphMode":
             return
+        self.send_data()
+
+    def send_data(self):
         sent_str = f'{self.charge_status},{self.charge_current},{self.display_duration},'
         for i in range(self.display_bins):
             percentage = self.battery_percentages[

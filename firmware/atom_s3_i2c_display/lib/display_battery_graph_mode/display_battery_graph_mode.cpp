@@ -19,10 +19,10 @@ void DisplayBatteryGraphMode::task(void *parameter) {
     }
     // Display information
     else {
-      instance->atoms3lcd.drawBlack();
-      if (instance->atoms3lcd.color_str.isEmpty())
+      if (instance->atoms3lcd.color_str.isEmpty()) {
+        instance->atoms3lcd.drawBlack();
         instance->atoms3lcd.printColorText("Waiting for " + instance->getModeName());
-      else {
+      }else {
         int index = 0;
         // Split by comma
         char* token = strtok(const_cast<char*>(instance->atoms3lcd.color_str.c_str()), ",");
@@ -54,7 +54,7 @@ void DisplayBatteryGraphMode::task(void *parameter) {
           instance->updateGraph(percentages, index, charge_status, charge_current, duration);
         }
       }
-      vTaskDelay(pdMS_TO_TICKS(10000));
+      vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }
 }
