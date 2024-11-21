@@ -28,7 +28,13 @@ void DisplayBatteryGraphMode::task(void *parameter) {
         char* token = strtok(const_cast<char*>(instance->atoms3lcd.color_str.c_str()), ",");
         String charge_status = "";
         if (token != NULL) {
-          charge_status = token; // Convert string to integer
+          charge_status = token;
+          token = strtok(NULL, ",");
+        }
+
+        String charge_current = "";
+        if (token != NULL) {
+          charge_current = token; // Convert string to integer
           token = strtok(NULL, ",");
         }
 
@@ -45,7 +51,7 @@ void DisplayBatteryGraphMode::task(void *parameter) {
           index++;
         }
         if (index > 0) {
-          instance->updateGraph(percentages, index, charge_status, duration);
+          instance->updateGraph(percentages, index, charge_status, charge_current, duration);
         }
       }
       vTaskDelay(pdMS_TO_TICKS(10000));
@@ -57,31 +63,41 @@ void DisplayBatteryGraphMode::createTask(uint8_t xCoreID) {
   xTaskCreatePinnedToCore(task, "Display Battery Graph Mode", 2048, NULL, 1, &taskHandle, xCoreID);
 }
 
-void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length, String status, int duration) {
+void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
+                                          String status, String current, int duration) {
   int gap = 1; // width between bar to bar
   int buffer_w = (graph_w - (buffer_length - 1) * gap) / buffer_length;
 
   instance->atoms3lcd.drawBlack();
+  drawBatteryIcon(0, 0, 35, 20, (int)buffer[buffer_length-1]);
   // top text
-  instance->atoms3lcd.setTextSize(1.8);
-  instance->atoms3lcd.printColorText("Bat " + String(buffer[buffer_length-1]) + "%\n");
-  instance->atoms3lcd.setTextSize(1.5);
-  String status_color = "\x1b[40m";
+  String line1 = "";
+  String line2 = "";
   if (status == "No charging") {
-    status_color = "\x1b[41m";
+    line1 = "\x1b[31mNo";
+    line2 = "\x1b[31mcharging";
   }else if (status == "Trickle charge") {
-    status_color = "\x1b[43m";
+    line1 = "\x1b[33mTrickle";
+    line2 = " " + current + "mA";
   }else if (status == "Pre charge") {
-    status_color = "\x1b[43m";
+    line1 = String("\x1b[33m") + status;
+    line2 = " " + current + "mA";
   }else if (status == "CC charge") {
-    status_color = "\x1b[42m";
+    line1 = String("\x1b[32m") + status;
+    line2 = " " + current + "mA";
   }else if (status == "CV charge") {
-    status_color = "\x1b[42m";
+    line1 = String("\x1b[32m") + status;
+    line2 = " " + current + "mA";
   }else if (status == "Charge termination") {
-    status_color = "\x1b[44m";
+    line1 = "\x1b[34mCharge";
+    line2 = "\x1b[34mtermination";
   }
-  instance->atoms3lcd.printColorText(status_color + status);
-
+  instance->atoms3lcd.setTextSize(1.4);
+  instance->atoms3lcd.setCursor(41, 0);
+  instance->atoms3lcd.printColorText(line1);
+  instance->atoms3lcd.setCursor(41, 14);
+  instance->atoms3lcd.printColorText(line2);
+  instance->atoms3lcd.drawLine(0, title_h-9, LCD_W, title_h-9, TFT_WHITE );
   // y label text
   instance->atoms3lcd.setTextSize(1);
   instance->atoms3lcd.setCursor(0, title_h);
@@ -91,8 +107,7 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length, Stri
   instance->atoms3lcd.setCursor(0, title_h + graph_h);
   instance->atoms3lcd.printColorText("  0");
   // y axis line
-  instance->atoms3lcd.drawLine(y_label_w, title_h, y_label_w, LCD_H-(x_label_h+2)-1, 0xffff);
-
+  instance->atoms3lcd.drawLine(y_label_w, title_h, y_label_w, LCD_H-(x_label_h+2)-1, TFT_WHITE );
   // bar graph
   for (int i = 0; i < buffer_length; i++) {
     if (buffer[i] == 0)
@@ -100,10 +115,10 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length, Stri
     int scaled_percentage = buffer[i] * (graph_h-1) / 100;
     for (int j = 0; j <= scaled_percentage; j++) {
       uint16_t color = calculateColor(j * 100 / (graph_h-1));
-      instance->atoms3lcd.fillRect((y_label_w+y_line_w)+i*(buffer_w+gap), LCD_H-(x_label_h+2)-j-1, buffer_w, 1, color);
+      instance->atoms3lcd.fillRect((y_label_w+y_line_w)+i*(buffer_w+gap), LCD_H-(x_label_h+2)-j-1,
+                                   buffer_w, 1, color);
     }
   }
-
   // x label text
   String x_label = "duration:" + String(duration) + "[s]";
   instance->atoms3lcd.setCursor(LCD_W/2-x_label.length()*5/2, LCD_H-x_label_h);
@@ -122,4 +137,26 @@ uint16_t DisplayBatteryGraphMode::calculateColor(float percentage) {
     green = 255;
   }
   return instance->atoms3lcd.color565(red, green, 0);
+}
+
+void DisplayBatteryGraphMode::drawBatteryIcon(int x, int y, int width, int height, int batteryLevel) {
+  int borderWidth = 2;
+  int tipWidth = height / 4;
+  int tipHeight = height / 2;
+
+  // Drawing the outer frame
+  instance->atoms3lcd.drawRect(x, y, width - tipWidth, height, TFT_WHITE );
+  // Drawing the tip
+  instance->atoms3lcd.fillRect(x + width - tipWidth, y + height / 4, tipWidth, tipHeight, TFT_WHITE );
+  // Filling in the contents with white
+  instance->atoms3lcd.fillRect(x + borderWidth, y + borderWidth,
+                               width - tipWidth - borderWidth * 2, height - borderWidth * 2, TFT_WHITE );
+
+  // Displaying remaining volume in black
+  String percentage = "\x1b[30m\x1b[47m" + String(batteryLevel);
+  int textX = (batteryLevel >= 100) ? (x + 3) : (x + 7);
+  int textY = y + height / 4;
+  instance->atoms3lcd.setTextSize(1.5);
+  instance->atoms3lcd.setCursor(textX, textY);
+  instance->atoms3lcd.printColorText(percentage);
 }

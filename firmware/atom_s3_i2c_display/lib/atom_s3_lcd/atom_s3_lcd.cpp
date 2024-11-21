@@ -145,6 +145,10 @@ void AtomS3LCD::fillRect(int x1, int y1, int w, int h, uint16_t color) {
   lcd.fillRect(x1, y1, w, h, color);
 }
 
+void AtomS3LCD::drawRect(int x1, int y1, int w, int h, uint16_t color) {
+  lcd.drawRect(x1, y1, w, h, color);
+}
+
 void AtomS3LCD::drawLine(int x1, int y1, int x2, int y2, uint16_t color){
   lcd.drawLine(x1, y1, x2, y2, color);
 };

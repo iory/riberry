@@ -82,6 +82,7 @@ public:
   void resetLcdData();
   void setTextSize(float x);
   void fillRect(int x1, int y1, int x2, int y2, uint16_t color);
+  void drawRect(int x1, int y1, int x2, int y2, uint16_t color);
   void drawLine(int x1, int y1, int x2, int y2, uint16_t color);
   void drawPixel(int x, int y, uint16_t color);
   void setCursor(int x, int y);

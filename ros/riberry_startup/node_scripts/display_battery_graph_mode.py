@@ -13,6 +13,7 @@ class DisplayBatteryGraphMode(I2CBase):
 
         self.mode = None
         self.charge_status = 'No data'
+        self.charge_current = 0
         self.display_duration = rospy.get_param("~display_duration", 3600)
         # Assume battery topic is 1Hz
         self.display_bins = 10
@@ -23,6 +24,8 @@ class DisplayBatteryGraphMode(I2CBase):
                          callback=self.battery_cb, queue_size=1)
         rospy.Subscriber("/battery/charge_status_string", String,
                          callback=self.status_cb, queue_size=1)
+        rospy.Subscriber("/battery/battery_charge_current", Float32,
+                         callback=self.current_cb, queue_size=1)
         rospy.Timer(rospy.Duration(10), self.timer_callback)
 
     def mode_cb(self, msg):
@@ -39,10 +42,13 @@ class DisplayBatteryGraphMode(I2CBase):
     def status_cb(self, msg):
         self.charge_status = msg.data
 
+    def current_cb(self, msg):
+        self.charge_current = int(msg.data)
+
     def timer_callback(self, event):
         if self.mode != "DisplayBatteryGraphMode":
             return
-        sent_str = f'{self.charge_status},{self.display_duration},'
+        sent_str = f'{self.charge_status},{self.charge_current},{self.display_duration},'
         for i in range(self.display_bins):
             percentage = self.battery_percentages[
                 int((i+1)*self.display_duration/self.display_bins)-1]
