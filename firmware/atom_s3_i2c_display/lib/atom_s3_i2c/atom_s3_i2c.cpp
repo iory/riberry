@@ -2,12 +2,12 @@
 
 AtomS3I2C* AtomS3I2C::instance = nullptr;
 String AtomS3I2C::requestStr = ""; // Initialize the static requestStr
-String AtomS3I2C::forcedMode = ""; // Initialize the static requestStr
+String AtomS3I2C::forcedMode = ""; // Initialize the static forcedMode
+String AtomS3I2C::selectedModesStr = ""; // Initialize the static selectedModesStr
 
 AtomS3I2C::AtomS3I2C(AtomS3LCD &lcd, AtomS3Button &button)
   : atoms3lcd(lcd), atoms3button(button), receiveEventEnabled(true) {
   instance = this;
-  createTask(0);
 }
 
 void AtomS3I2C::updateLastReceiveTime() {
@@ -16,6 +16,26 @@ void AtomS3I2C::updateLastReceiveTime() {
 
 bool AtomS3I2C::checkTimeout() {
   return millis() - lastReceiveTime > receiveTimeout;
+}
+
+// カンマ区切りの文字列を分割して配列に格納する関数
+int AtomS3I2C::splitString(const String &input, char delimiter, String output[], int maxParts) {
+  int start = 0;
+  int index = 0;
+  while (true) {
+    int end = input.indexOf(delimiter, start);
+    if (end == -1) { // 区切り文字が見つからない場合
+      if (index < maxParts) {
+        output[index++] = input.substring(start); // 最後の部分を追加
+      }
+      break;
+    }
+    if (index < maxParts) {
+      output[index++] = input.substring(start, end);
+    }
+    start = end + 1; // 次の部分へ進む
+  }
+  return index; // 分割された部分の数を返す
 }
 
 // Receive data over I2C and store it in the atoms3lcd instance (color_str, jpegBuf, qrCodeData)
@@ -68,6 +88,10 @@ void AtomS3I2C::receiveEvent(int howMany) {
     // Check for force mode change
     if (str.length() > 1 && str[0] == forceModeHeader[0] && str[1] == forceModeHeader[1] && str[2] == forceModeHeader[2]) {
       forcedMode = str.substring(3);
+    }
+    // Check for selected modes
+    if (str.length() > 1 && str[0] == selectedModesHeader[0] && str[1] == selectedModesHeader[1] && str[2] == selectedModesHeader[2]) {
+      selectedModesStr = str.substring(3);
     }
     instance->atoms3lcd.color_str = str;
 }

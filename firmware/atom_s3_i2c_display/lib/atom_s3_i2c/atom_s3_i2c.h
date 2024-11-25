@@ -33,6 +33,8 @@ public:
    */
   bool checkTimeout();
 
+  int splitString(const String &input, char delimiter, String output[], int maxParts);
+  
   void stopReceiveEvent();
   void startReceiveEvent();
   static void setRequestStr(const String &str);
@@ -52,6 +54,7 @@ public:
 #endif
 
   static String forcedMode;
+  static String selectedModesStr;
 
 private:
   bool receiveEventEnabled;
@@ -64,6 +67,7 @@ private:
   static constexpr uint8_t jpegPacketHeader[3] = { 0xFF, 0xD8, 0xEA }; /**< JPEG image packet header identifier. */
   static constexpr uint8_t qrCodeHeader = 0x02; /**< QR code packet header identifier. */
   static constexpr uint8_t forceModeHeader[3] = { 0xFF, 0xFE, 0xFD }; /**< Force mode packet header identifier. */
+  static constexpr uint8_t selectedModesHeader[3] = { 0xFC, 0xFB, 0xFA }; /**< Selected modes packet header identifier. */
 
   static String requestStr; /**< String to be sent on I2C request. */
 
