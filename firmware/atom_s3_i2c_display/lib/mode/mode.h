@@ -34,6 +34,10 @@ public:
     return eTaskGetState(taskHandle) == eSuspended;
   }
 
+  bool isTaskCreated() {
+    return taskHandle != NULL;
+  }
+
   void waitForTaskSuspended() {
     while (!isTaskSuspended()) {
       vTaskDelay(pdMS_TO_TICKS(100));

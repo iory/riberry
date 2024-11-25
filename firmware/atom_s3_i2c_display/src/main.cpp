@@ -25,10 +25,6 @@ void setup() {
   uint8_t eachModeCoreID = 1;
   atoms3modemanager.initializeAllModes(eachModeCoreID);
   atoms3modemanager.startCurrentMode();
-
-  // Start mode manager
-  uint8_t modeManagerCoreID = 0;
-  atoms3modemanager.createTask(modeManagerCoreID);
 }
 
 void loop() {

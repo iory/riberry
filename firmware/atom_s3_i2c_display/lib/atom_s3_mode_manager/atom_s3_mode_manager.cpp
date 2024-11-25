@@ -9,6 +9,7 @@ AtomS3ModeManager::AtomS3ModeManager(AtomS3LCD &lcd, AtomS3Button &button, AtomS
   : atoms3lcd(lcd), atoms3button(button), atoms3i2c(i2c)
 {
   instance = this;
+  createTask(0);
 }
 
 void AtomS3ModeManager::task(void *parameter) {
@@ -51,7 +52,9 @@ void AtomS3ModeManager::createTask(uint8_t xCoreID) {
 void AtomS3ModeManager::initializeAllModes(uint8_t xCoreID) {
   // Start user-defined mode
   for (int i = 0; i < allModes.size(); i++) {
-    allModes[i]->createTask(xCoreID);
+    if (!allModes[i]->isTaskCreated()) {
+      allModes[i]->createTask(xCoreID);
+    }
     allModes[i]->suspendTask();
   }
 }
