@@ -47,8 +47,9 @@ class DisplayBatteryGraphMode(I2CBase):
     def status_cb(self, msg):
         previous_status = self.charge_status
         self.charge_status = msg.data
-        if previous_status != self.charge_status:
-            self.send_data()
+        if self.mode == "DisplayBatteryGraphMode":
+            if previous_status != self.charge_status:
+                self.send_data()
 
     def current_cb(self, msg):
         self.charge_current = int(msg.data)
