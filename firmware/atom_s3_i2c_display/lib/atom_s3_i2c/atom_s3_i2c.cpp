@@ -49,11 +49,7 @@ void AtomS3I2C::receiveEvent(int howMany) {
     String str;
     // Read data from the I2C bus
     while (0 < WireSlave.available()) {
-        char c = WireSlave.read();  // receive byte as a character
-        // If currently loading JPEG, store the data in jpegBuf
-        if (instance->atoms3lcd.loadingJpeg && str.length() >= 3) {
-            instance->atoms3lcd.jpegBuf[instance->atoms3lcd.currentJpegIndex + str.length() - 3] = c;
-        }
+        char c = WireSlave.read();  // receive byte as a character;
         str += c;
     }
 
@@ -65,7 +61,7 @@ void AtomS3I2C::receiveEvent(int howMany) {
     PacketType packetType = static_cast<PacketType>(str[0]);
     switch (packetType) {
         case JPEG:
-            handleJpegPacket(str);
+            handleJpegPacket(str.substring(1));
             break;
 
         case QR_CODE:
@@ -104,14 +100,21 @@ void AtomS3I2C::receiveEvent(int howMany) {
 }
 
 void AtomS3I2C::handleJpegPacket(const String& str) {
-    if (str.length() == 3 && !instance->atoms3lcd.readyJpeg) {
+    if (str.length() == 2 && !instance->atoms3lcd.readyJpeg) {
         // Initialize JPEG loading
-        instance->atoms3lcd.jpegLength = (static_cast<uint32_t>(str[1]) << 8) | static_cast<uint8_t>(str[2]);
+        instance->atoms3lcd.jpegLength = (static_cast<uint32_t>(str[0]) << 8) | static_cast<uint8_t>(str[1]);
         instance->atoms3lcd.currentJpegIndex = 0;
         instance->atoms3lcd.loadingJpeg = true;
     } else if (instance->atoms3lcd.loadingJpeg) {
+        size_t index = instance->atoms3lcd.currentJpegIndex;
+        size_t strLength = str.length();
         // Continue loading JPEG data
-        instance->atoms3lcd.currentJpegIndex += str.length() - 1;
+        if (index + strLength <= sizeof(instance->atoms3lcd.jpegBuf)) {
+          memcpy(instance->atoms3lcd.jpegBuf + index, str.c_str(), strLength);
+            instance->atoms3lcd.currentJpegIndex += strLength;
+        } else {
+            instance->atoms3lcd.loadingJpeg = false;
+        }
         if (instance->atoms3lcd.currentJpegIndex >= instance->atoms3lcd.jpegLength) {
             instance->atoms3lcd.loadingJpeg = false;
             instance->atoms3lcd.readyJpeg = true;
