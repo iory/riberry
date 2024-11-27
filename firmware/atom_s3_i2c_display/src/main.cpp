@@ -6,6 +6,7 @@
 #include <display_qrcode_mode.h>
 #include <display_image_mode.h>
 #include <display_battery_graph_mode.h>
+#include <display_odom_mode.h>
 #include <servo_control_mode.h>
 #include <pressure_control_mode.h>
 #include <teaching_mode.h>
@@ -21,11 +22,13 @@ DisplayInformationMode display_information_mode(atoms3lcd, atoms3i2c);
 DisplayQRcodeMode display_qrcode_mode(atoms3lcd, atoms3i2c);
 DisplayImageMode display_image_mode(atoms3lcd, atoms3i2c);
 DisplayBatteryGraphMode display_battery_graph_mode(atoms3lcd, atoms3i2c);
+DisplayOdomMode display_odom_mode(atoms3lcd, atoms3i2c);
 ServoControlMode servo_control_mode(atoms3lcd, atoms3i2c);
 PressureControlMode pressure_control_mode(atoms3lcd, atoms3i2c);
 TeachingMode teaching_mode(atoms3lcd, atoms3i2c);
 const std::vector<Mode*> allModes =
   {&display_information_mode, &display_qrcode_mode, &display_image_mode, &display_battery_graph_mode,
+   &display_odom_mode,
    &servo_control_mode, &pressure_control_mode, &teaching_mode,
   };
 
