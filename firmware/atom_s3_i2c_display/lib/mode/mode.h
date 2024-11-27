@@ -30,15 +30,15 @@ public:
     }
   }
 
-  bool isTaskSuspended() {
+  bool isTaskSuspended() const {
     return eTaskGetState(taskHandle) == eSuspended;
   }
 
-  bool isTaskCreated() {
+  bool isTaskCreated() const {
     return taskHandle != NULL;
   }
 
-  void waitForTaskSuspended() {
+  void waitForTaskSuspended() const {
     while (!isTaskSuspended()) {
       vTaskDelay(pdMS_TO_TICKS(100));
     }

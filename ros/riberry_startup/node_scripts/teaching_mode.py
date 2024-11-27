@@ -9,6 +9,7 @@ from std_msgs.msg import Int32
 from std_msgs.msg import String
 
 from riberry.i2c_base import I2CBase
+from riberry.i2c_base import PacketType
 from riberry.motion_manager import MotionManager
 from riberry.select_list import SelectList
 
@@ -20,7 +21,7 @@ class State(Enum):
 
 
 class TeachingMode(I2CBase):
-    def __init__(self, i2c_addr, lock_path="/tmp/teaching_mode.lock"):
+    def __init__(self, i2c_addr):
         super().__init__(i2c_addr)
         self.motion_manager = MotionManager()
         self.json_dir = os.path.join(os.environ["HOME"], ".ros/riberry")
@@ -98,7 +99,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
     def timer_callback(self, event):
         if self.mode != "TeachingMode":
             return
-        sent_str = ''
+        sent_str = chr(PacketType.TEACHING_MODE)
         if self.state == State.WAIT:
             sent_str += 'Teaching mode\n\n'\
                 + '1tap:\n record\n\n'\

@@ -3,7 +3,6 @@
 AtomS3Button::AtomS3Button(int pin, bool activeLow, bool pullupActive)
   : btn(pin, activeLow, pullupActive), currentButtonState(RESET), clicked(false), doubleClicked(false), longPressed(false) {
   begin();
-  createTask(0);
 }
 
 void AtomS3Button::begin() {

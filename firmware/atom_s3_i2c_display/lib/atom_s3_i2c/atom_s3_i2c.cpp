@@ -2,12 +2,12 @@
 
 AtomS3I2C* AtomS3I2C::instance = nullptr;
 String AtomS3I2C::requestStr = ""; // Initialize the static requestStr
-String AtomS3I2C::forcedMode = ""; // Initialize the static requestStr
+String AtomS3I2C::forcedMode = ""; // Initialize the static forcedMode
+String AtomS3I2C::selectedModesStr = ""; // Initialize the static selectedModesStr
 
 AtomS3I2C::AtomS3I2C(AtomS3LCD &lcd, AtomS3Button &button)
   : atoms3lcd(lcd), atoms3button(button), receiveEventEnabled(true) {
   instance = this;
-  createTask(0);
 }
 
 void AtomS3I2C::updateLastReceiveTime() {
@@ -18,7 +18,27 @@ bool AtomS3I2C::checkTimeout() {
   return millis() - lastReceiveTime > receiveTimeout;
 }
 
-// Receive data over I2C and store it in the atoms3lcd instance (color_str, jpegBuf, qrCodeData)
+// カンマ区切りの文字列を分割して配列に格納する関数
+int AtomS3I2C::splitString(const String &input, char delimiter, String output[], int maxParts) {
+  int start = 0;
+  int index = 0;
+  while (true) {
+    int end = input.indexOf(delimiter, start);
+    if (end == -1) { // 区切り文字が見つからない場合
+      if (index < maxParts) {
+        output[index++] = input.substring(start); // 最後の部分を追加
+      }
+      break;
+    }
+    if (index < maxParts) {
+      output[index++] = input.substring(start, end);
+    }
+    start = end + 1; // 次の部分へ進む
+  }
+  return index; // 分割された部分の数を返す
+}
+
+// Receive data over I2C and store it in the atoms3lcd instance
 // No rendering is done; lcd update is handled by other tasks
 void AtomS3I2C::receiveEvent(int howMany) {
     if (instance->receiveEventEnabled == false)
@@ -29,47 +49,98 @@ void AtomS3I2C::receiveEvent(int howMany) {
     String str;
     // Read data from the I2C bus
     while (0 < WireSlave.available()) {
-        char c = WireSlave.read();  // receive byte as a character
-        // If currently loading JPEG, store the data in jpegBuf
-        if (instance->atoms3lcd.loadingJpeg && str.length() >= 3) {
-            instance->atoms3lcd.jpegBuf[instance->atoms3lcd.currentJpegIndex + str.length() - 3] = c;
-        }
+        char c = WireSlave.read();  // receive byte as a character;
         str += c;
     }
-    // Check for JPEG packet header and update length if found
-    if (instance->atoms3lcd.readyJpeg == false
-        && str.length() == 5 && (str[0] == jpegPacketHeader[0]) && (str[1] == jpegPacketHeader[1]) && (str[2] == jpegPacketHeader[2])) {
-        instance->atoms3lcd.jpegLength = (uint32_t)(str[3] << 8) | str[4];
+
+    // Parse the first byte as PacketType
+    if (str.length() < 1) {
+        return;  // Invalid packet
+    }
+
+    PacketType packetType = static_cast<PacketType>(str[0]);
+    switch (packetType) {
+        case JPEG:
+            handleJpegPacket(str.substring(1));
+            break;
+
+        case QR_CODE:
+            handleQrCodePacket(str);
+            break;
+
+        case FORCE_MODE:
+            handleForceModePacket(str);
+            break;
+
+        case SELECTED_MODE:
+            handleSelectedModePacket(str);
+            break;
+
+        case DISPLAY_BATTERY_GRAPH_MODE:
+            instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+            break;
+
+        case SERVO_CONTROL_MODE:
+            instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+            break;
+
+        case PRESSURE_CONTROL_MODE:
+            instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+            break;
+
+        case TEACHING_MODE:
+            instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+            break;
+
+        default:
+            // Handle TEXT or unknown packets
+            instance->atoms3lcd.color_str = str;
+            break;
+    }
+}
+
+void AtomS3I2C::handleJpegPacket(const String& str) {
+    if (str.length() == 2 && !instance->atoms3lcd.readyJpeg) {
+        // Initialize JPEG loading
+        instance->atoms3lcd.jpegLength = (static_cast<uint32_t>(str[0]) << 8) | static_cast<uint8_t>(str[1]);
         instance->atoms3lcd.currentJpegIndex = 0;
         instance->atoms3lcd.loadingJpeg = true;
-        return;
-    }
-    // Continue receiving JPEG data if already in loading state
-    else if (instance->atoms3lcd.loadingJpeg) {
-        if ((str[0] == jpegPacketHeader[0]) && (str[1] == jpegPacketHeader[1]) && (str[2] == jpegPacketHeader[2])) {
-            instance->atoms3lcd.currentJpegIndex += str.length() - 3;
-            // End loading if the entire JPEG is received
-            if (instance->atoms3lcd.currentJpegIndex >= instance->atoms3lcd.jpegLength) {
-                instance->atoms3lcd.loadingJpeg = false;
-                instance->atoms3lcd.readyJpeg = true;
-            }
-            return;
+    } else if (instance->atoms3lcd.loadingJpeg) {
+        size_t index = instance->atoms3lcd.currentJpegIndex;
+        size_t strLength = str.length();
+        // Continue loading JPEG data
+        if (index + strLength <= sizeof(instance->atoms3lcd.jpegBuf)) {
+          memcpy(instance->atoms3lcd.jpegBuf + index, str.c_str(), strLength);
+            instance->atoms3lcd.currentJpegIndex += strLength;
         } else {
-          // Stop loading if a wrong packet is received
-          instance->atoms3lcd.loadingJpeg = false;
+            instance->atoms3lcd.loadingJpeg = false;
         }
+        if (instance->atoms3lcd.currentJpegIndex >= instance->atoms3lcd.jpegLength) {
+            instance->atoms3lcd.loadingJpeg = false;
+            instance->atoms3lcd.readyJpeg = true;
+        }
+    } else {
+        instance->atoms3lcd.loadingJpeg = false;  // Reset if invalid packet received
     }
-    // Check for QR code header and store data if found
-    if (str.length() > 1 && str[0] == qrCodeHeader) {
-        uint8_t qrCodeLength = str[1];  // Assuming the length of the QR code data is in the second byte
+}
+
+void AtomS3I2C::handleQrCodePacket(const String& str) {
+    if (str.length() > 1) {
+        uint8_t qrCodeLength = static_cast<uint8_t>(str[1]);
         instance->atoms3lcd.qrCodeData = str.substring(2, 2 + qrCodeLength);
-        return;
     }
-    // Check for force mode change
-    if (str.length() > 1 && str[0] == forceModeHeader[0] && str[1] == forceModeHeader[1] && str[2] == forceModeHeader[2]) {
-      forcedMode = str.substring(3);
+}
+
+void AtomS3I2C::handleForceModePacket(const String& str) {
+    if (str.length() > 1) {
+        forcedMode = str.substring(1);
     }
-    instance->atoms3lcd.color_str = str;
+}
+
+void AtomS3I2C::handleSelectedModePacket(const String& str) {
+    if (str.length() > 1) {
+        selectedModesStr = str.substring(1);
+    }
 }
 
 void AtomS3I2C::stopReceiveEvent() {

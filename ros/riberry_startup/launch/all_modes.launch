@@ -1,0 +1,47 @@
+<launch>
+
+  <!-- Usage -->
+  <!-- Comment out all nodes and mode_names params except the one you want to use -->
+
+  <node name="set_mode"
+        pkg="riberry_startup" type="set_mode.py"
+        output="screen"
+        respawn="true">
+    <rosparam>
+      <!-- The order of the mode_names is the order of the AtomS3 screen -->
+      mode_names:
+      - DisplayInformationMode <!-- Enabled by display_information.service -->
+      - DisplayQRcodeMode <!-- Enabled by display_information.service -->
+      - DisplayImageMode <!-- Enabled by display_information.service -->
+      - DisplayBatteryGraphMode
+      - ServoControlMode
+      - PressureControlMode
+      - TeachingMode
+    </rosparam>
+  </node>
+
+  <node name="display_battery_graph_mode"
+        pkg="riberry_startup" type="display_battery_graph_mode.py"
+        output="screen"
+        respawn="true">
+  </node>
+
+  <node name="servo_control_mode"
+        pkg="riberry_startup" type="servo_control_mode.py"
+        output="screen"
+        respawn="true">
+  </node>
+
+  <node name="pressure_control_mode"
+        pkg="riberry_startup" type="pressure_control_mode.py"
+        output="screen"
+        respawn="true">
+  </node>
+
+  <node name="teaching_mode"
+        pkg="riberry_startup" type="teaching_mode.py"
+        output="screen"
+        respawn="true">
+  </node>
+
+</launch>

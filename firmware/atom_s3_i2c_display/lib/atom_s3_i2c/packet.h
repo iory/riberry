@@ -1,0 +1,11 @@
+enum PacketType : uint8_t {
+    TEXT = 0x00,
+    JPEG = 0x01,
+    QR_CODE = 0x02,
+    FORCE_MODE = 0x03,
+    SELECTED_MODE = 0x04,
+    DISPLAY_BATTERY_GRAPH_MODE = 0x05,
+    SERVO_CONTROL_MODE = 0x06,
+    PRESSURE_CONTROL_MODE = 0x07,
+    TEACHING_MODE = 0x08,
+};

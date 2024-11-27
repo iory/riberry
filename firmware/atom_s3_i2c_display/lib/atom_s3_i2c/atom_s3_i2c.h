@@ -6,6 +6,8 @@
 #include <atom_s3_lcd.h>
 #include <atom_s3_button.h>
 
+#include "packet.h"
+
 /**
  * @brief Handles I2C communication for AtomS3, including receiving and sending data via I2C bus.
  */
@@ -33,6 +35,8 @@ public:
    */
   bool checkTimeout();
 
+  int splitString(const String &input, char delimiter, String output[], int maxParts);
+  
   void stopReceiveEvent();
   void startReceiveEvent();
   static void setRequestStr(const String &str);
@@ -52,6 +56,7 @@ public:
 #endif
 
   static String forcedMode;
+  static String selectedModesStr;
 
 private:
   bool receiveEventEnabled;
@@ -64,6 +69,7 @@ private:
   static constexpr uint8_t jpegPacketHeader[3] = { 0xFF, 0xD8, 0xEA }; /**< JPEG image packet header identifier. */
   static constexpr uint8_t qrCodeHeader = 0x02; /**< QR code packet header identifier. */
   static constexpr uint8_t forceModeHeader[3] = { 0xFF, 0xFE, 0xFD }; /**< Force mode packet header identifier. */
+  static constexpr uint8_t selectedModesHeader[3] = { 0xFC, 0xFB, 0xFA }; /**< Selected modes packet header identifier. */
 
   static String requestStr; /**< String to be sent on I2C request. */
 
@@ -78,6 +84,10 @@ private:
    * @param howMany Number of bytes received.
    */
   static void receiveEvent(int howMany);
+  static void handleJpegPacket(const String& str);
+  static void handleQrCodePacket(const String& str);
+  static void handleForceModePacket(const String& str);
+  static void handleSelectedModePacket(const String& str);
 
   /**
    * @brief Called when the master requests data from the I2C slave.
