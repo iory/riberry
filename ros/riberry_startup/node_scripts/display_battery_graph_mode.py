@@ -4,11 +4,11 @@ from std_msgs.msg import Float32
 from std_msgs.msg import String
 
 from riberry.i2c_base import I2CBase
+from riberry.i2c_base import PacketType
 
 
 class DisplayBatteryGraphMode(I2CBase):
-    def __init__(self, i2c_addr,
-                 lock_path="/tmp/i2c_display_battery_graph_mode.lock"):
+    def __init__(self, i2c_addr):
         super().__init__(i2c_addr)
 
         self.mode = None
@@ -60,7 +60,8 @@ class DisplayBatteryGraphMode(I2CBase):
         self.send_data()
 
     def send_data(self):
-        sent_str = f'{self.charge_status},{self.charge_current},{self.display_duration},'
+        sent_str = [chr(PacketType.DISPLAY_BATTERY_GRAPH_MODE)]
+        sent_str += f'{self.charge_status},{self.charge_current},{self.display_duration},'
         for i in range(self.display_bins):
             percentage = self.battery_percentages[
                 int((i+1)*self.display_duration/self.display_bins)-1]

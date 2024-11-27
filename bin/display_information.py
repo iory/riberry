@@ -16,6 +16,7 @@ from riberry.battery import decide_battery_i2c_bus_number
 from riberry.battery import MP2760BatteryMonitor
 from riberry.battery import PisugarBatteryReader
 from riberry.i2c_base import I2CBase
+from riberry.i2c_base import PacketType
 from riberry.network import get_ip_address
 from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
@@ -203,9 +204,8 @@ class DisplayInformation(I2CBase):
         jpg_size = len(jpg_img)
 
         header = []
-        header += [0xFF, 0xD8, 0xEA]
+        header += [PacketType.JPEG]
         header += [(jpg_size & 0xFF00) >> 8, (jpg_size & 0x00FF) >> 0]
-
         packer = WirePacker(buffer_size=1000)
         for h in header:
             packer.write(h)
@@ -218,8 +218,7 @@ class DisplayInformation(I2CBase):
 
         for pack in nsplit(jpg_img, n=50):
             packer.reset()
-            for h in [0xFF, 0xD8, 0xEA]:
-                packer.write(h)
+            packer.write(PacketType.JPEG)
             for h in pack:
                 packer.write(h)
             packer.end()
@@ -261,7 +260,8 @@ class DisplayInformation(I2CBase):
                     battery_str += "-"
                 else:
                     battery_str += "?"
-        sent_str = f"{ip_str}\n{master_str}\n{battery_str}\n"
+        sent_str = [chr(PacketType.TEXT)]
+        sent_str += f"{ip_str}\n{master_str}\n{battery_str}\n"
 
         if ros_available and ros_additional_message:
             sent_str += f"{ros_additional_message}\n"
@@ -270,7 +270,7 @@ class DisplayInformation(I2CBase):
         self.send_string(sent_str)
 
     def display_qrcode(self, target_url=None):
-        header = [0x02]
+        header = [PacketType.QR_CODE]
         if target_url is None:
             ip = get_ip_address()
             if ip is None:
@@ -284,7 +284,7 @@ class DisplayInformation(I2CBase):
         self.send_raw_bytes(header)
 
     def force_mode(self, mode_name):
-        header = [0xFF, 0xFE, 0xFD]
+        header = [PacketType.FORCE_MODE]
         forceModebytes = (list (map(ord, mode_name)))
         self.send_raw_bytes(header + forceModebytes)
 

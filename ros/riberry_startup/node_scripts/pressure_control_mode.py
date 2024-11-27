@@ -9,10 +9,11 @@ from std_msgs.msg import Int32
 from std_msgs.msg import String
 
 from riberry.i2c_base import I2CBase
+from riberry.i2c_base import PacketType
 
 
 class PressureControlMode(I2CBase):
-    def __init__(self, i2c_addr, lock_path="/tmp/i2c_pressure_control_mode.lock"):
+    def __init__(self, i2c_addr):
         super().__init__(i2c_addr)
         # Create robot model to control pressure
         robot_model = RobotModel()
@@ -100,7 +101,8 @@ class PressureControlMode(I2CBase):
     def timer_callback(self, event):
         if self.mode != "PressureControlMode":
             return
-        sent_str = "pressure [kPa]\n"
+        sent_str = chr(PacketType.PRESSURE_CONTROL_MODE)
+        sent_str += "pressure [kPa]\n"
         for idx, value in self.pressures.items():
             if value is None:
                 continue
