@@ -6,6 +6,8 @@
 #include <atom_s3_lcd.h>
 #include <atom_s3_button.h>
 
+#include "packet.h"
+
 /**
  * @brief Handles I2C communication for AtomS3, including receiving and sending data via I2C bus.
  */
@@ -82,6 +84,10 @@ private:
    * @param howMany Number of bytes received.
    */
   static void receiveEvent(int howMany);
+  static void handleJpegPacket(const String& str);
+  static void handleQrCodePacket(const String& str);
+  static void handleForceModePacket(const String& str);
+  static void handleSelectedModePacket(const String& str);
 
   /**
    * @brief Called when the master requests data from the I2C slave.

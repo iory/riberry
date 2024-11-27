@@ -3,6 +3,7 @@
 import rospy
 
 from riberry.i2c_base import I2CBase
+from riberry.i2c_base import PacketType
 
 
 class SetMode(I2CBase):
@@ -20,7 +21,7 @@ class SetMode(I2CBase):
             return ""
 
     def timer_callback(self, event):
-        header = [0xFC, 0xFB, 0xFA]
+        header = [PacketType.SELECTED_MODE]
         forceModebytes = (list (map(ord, self.mode_names)))
         rospy.loginfo_throttle(60, f"Mode names: {self.mode_names}")
         self.send_raw_bytes(header + forceModebytes)

@@ -8,10 +8,11 @@ from std_msgs.msg import Int32
 from std_msgs.msg import String
 
 from riberry.i2c_base import I2CBase
+from riberry.i2c_base import PacketType
 
 
 class ServoControlMode(I2CBase):
-    def __init__(self, i2c_addr, lock_path="/tmp/i2c_servo_control_mode.lock"):
+    def __init__(self, i2c_addr):
         super().__init__(i2c_addr)
         # Create robot model to control servo
         robot_model = RobotModel()
@@ -80,7 +81,8 @@ class ServoControlMode(I2CBase):
         if self.mode != "ServoControlMode":
             return
         # Send message on AtomS3 LCD
-        sent_str = "Servo control mode\n\nSingle Click:\nServo on off"
+        sent_str = chr(PacketType.SERVO_CONTROL_MODE)
+        sent_str += "Servo control mode\n\nSingle Click:\nServo on off"
         self.send_string(sent_str)
 
 
