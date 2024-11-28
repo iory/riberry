@@ -23,19 +23,22 @@
           respawn="true"
           output="screen">
       <param name="/i2c_device" value="$(arg i2c_device)" />
+      <remap from="/i2c_mode" to="/atom_s3_mode" />
     </node>
-    <node name="atom_s3_buttery_mode"
+    <node name="display_odom_mode"
           pkg="riberry_startup" type="display_odom_mode.py"
           respawn="true"
           output="screen">
       <remap from="/uav/cog/odom" to="/$(arg ns)/uav/cog/odom" />
+      <remap from="~remaining_battery" to="/$(arg ns)/remaining_battery" />
+      <remap from="~battery_voltage" to="/$(arg ns)/battery_voltage_status" />
     </node>
 
     <node name="display_battery_graph_mode"
           pkg="riberry_startup" type="display_battery_graph_mode.py"
           output="screen"
           respawn="true">
-      <remap from="/battery/remaining_battery" to="/$(arg ns)/battery_voltage_status" />
+      <remap from="/battery/remaining_battery" to="/$(arg ns)/remaining_battery" />
       <rosparam subst_value="true">
         display_duration: $(arg display_duration)
       </rosparam>

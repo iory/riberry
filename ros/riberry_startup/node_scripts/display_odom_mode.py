@@ -6,6 +6,7 @@ from colorama import Fore
 from nav_msgs.msg import Odometry
 import rospy
 from std_msgs.msg import String
+from std_msgs.msg import Float32
 
 from riberry.i2c_base import I2CBase
 from riberry.i2c_base import PacketType
@@ -18,13 +19,24 @@ class DisplayOdomMode(I2CBase):
         super().__init__(i2c_addr)
 
         self.mode = None
+        self.min_battery_voltage = rospy.get_param("~min_battery_voltage", 14.0)
+        self.max_battery_voltage = rospy.get_param("~max_battery_voltage", 16.0)
+        self.battery_pub = rospy.Publisher("~remaining_battery", Float32, queue_size=1)
         rospy.Subscriber("/i2c_mode", String, callback=self.mode_cb, queue_size=1)
         rospy.Subscriber(
             "uav/cog/odom", Odometry, callback=self.odometory_cb, queue_size=1
         )
+        rospy.Subscriber(
+            "~battery_voltage", Float32, callback=self.battery_cb, queue_size=1
+        )
         self.odom = Odometry()
 
         rospy.Timer(rospy.Duration(0.1), self.timer_callback)
+
+    def battery_cb(self, msg):
+        rem = max(msg.data - self.min_battery_voltage, 0.0) / (
+            self.max_battery_voltage - self.min_battery_voltage)
+        self.battery_pub.publish(Float32(data=rem))
 
     def odometory_cb(self, msg):
         self.odom = msg
