@@ -1,6 +1,7 @@
 import json
 import os
 
+from apriltag_ros.msg import AprilTagDetectionArray
 from kxr_controller.kxr_interface import KXRROSRobotInterface
 import numpy as np
 import rospy
@@ -27,7 +28,14 @@ class MotionManager:
             robot_model, namespace=namespace, controller_timeout=60.0
         )
         self.joint_names = self.ri.robot.joint_names
+        self.start_time = None
         self.motion = []
+        # Marker
+        rospy.Subscriber(
+            "tag_detections", AprilTagDetectionArray,
+            callback=self.marker_cb, queue_size=1)
+        self.markers = []
+        self.marker_msg = None
         self._stop = False
 
     def add_motion(self):
@@ -49,6 +57,26 @@ class MotionManager:
         rospy.loginfo('Add new joint states')
         rospy.loginfo(f'Time: {elapsed_time}, joint_states: {joint_states}')
 
+    def marker_cb(self, msg):
+        self.marker_msg = msg
+
+    def add_marker(self):
+        # self.add_motion() is not called yet
+        if self.start_time is None:
+            return
+        # No marker message has come
+        if self.marker_msg is None or len(self.marker_msg.detections) == 0::
+            return
+        now = rospy.Time.now()
+        elapsed_time = (now - self.start_time).to_sec()
+        marker = self.marker_msg.detections[0]
+        self.markers.append({
+            'time': elapsed_time,
+            'marker': marker,
+        })
+        rospy.loginfo('Add new marker')
+        rospy.loginfo(f'Time: {elapsed_time}, marker: {marker}')
+
     def stop(self):
         self._stop = True
 
@@ -65,6 +93,7 @@ class MotionManager:
                 if self._stop is True:
                     break
                 self.add_motion()
+                self.add_marker()
                 rospy.sleep(0.1)
             f.write(json.dumps(self.motion, indent=4, separators=(",", ": ")))
             rospy.loginfo(f'Finish saving motion to {record_filepath}')
