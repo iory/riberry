@@ -8,4 +8,5 @@ enum PacketType : uint8_t {
     SERVO_CONTROL_MODE = 0x06,
     PRESSURE_CONTROL_MODE = 0x07,
     TEACHING_MODE = 0x08,
+    DISPLAY_ODOM_MODE = 0x09,
 };

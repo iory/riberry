@@ -92,6 +92,10 @@ void AtomS3I2C::receiveEvent(int howMany) {
             instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
             break;
 
+        case DISPLAY_ODOM_MODE:
+           instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+           break;
+
         default:
             // Handle TEXT or unknown packets
             instance->atoms3lcd.color_str = str;

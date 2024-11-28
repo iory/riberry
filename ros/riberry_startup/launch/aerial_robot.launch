@@ -1,0 +1,48 @@
+<launch>
+
+  <arg name="ns" />
+  <arg name="display_duration" default="300" />
+  <arg name="i2c_device" default="/dev/i2c-5" doc="Path to the I2C device. The default is /dev/i2c-5 for VIM4, but for Jetson Xavier, use /dev/i2c-5." />
+
+  <node name="set_mode"
+        pkg="riberry_startup" type="set_mode.py"
+        output="screen"
+        respawn="true">
+    <rosparam>
+      <!-- The order of the mode_names is the order of the AtomS3 screen -->
+      mode_names:
+      - DisplayInformationMode
+      - DisplayBatteryGraphMode
+      - DisplayOdomMode
+    </rosparam>
+  </node>
+
+  <group if="$(eval len(arg('ns')) > 0)" ns="$(arg ns)" >
+    <node name="atom_s3_button_publisher"
+          pkg="riberry_startup" type="i2c_button_state_publisher"
+          respawn="true"
+          output="screen">
+      <param name="/i2c_device" value="$(arg i2c_device)" />
+      <remap from="/i2c_mode" to="/atom_s3_mode" />
+    </node>
+    <node name="display_odom_mode"
+          pkg="riberry_startup" type="display_odom_mode.py"
+          respawn="true"
+          output="screen">
+      <remap from="/uav/cog/odom" to="/$(arg ns)/uav/cog/odom" />
+      <remap from="~remaining_battery" to="/$(arg ns)/remaining_battery" />
+      <remap from="~battery_voltage" to="/$(arg ns)/battery_voltage_status" />
+    </node>
+
+    <node name="display_battery_graph_mode"
+          pkg="riberry_startup" type="display_battery_graph_mode.py"
+          output="screen"
+          respawn="true">
+      <remap from="/battery/remaining_battery" to="/$(arg ns)/remaining_battery" />
+      <rosparam subst_value="true">
+        display_duration: $(arg display_duration)
+      </rosparam>
+    </node>
+  </group>
+
+</launch>
