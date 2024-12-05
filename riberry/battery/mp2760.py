@@ -103,6 +103,9 @@ class MP2760BatteryMonitor(threading.Thread):
         while self.set_adc_continuous_mode(set_bit=True) is None:
             print("[MP2760BatteryMonitor] Try to enable adc continuous mode.")
             time.sleep(1.0)
+        while self.set_safety_timer(set_bit=True) is None:
+            print("[MP2760BatteryMonitor] Try to enable safety timer.")
+            time.sleep(1.0)
         self.limit_charge_current(400)
         print(
             "[MP2760BatteryMonitor] Charge current limit: ",
@@ -187,6 +190,25 @@ class MP2760BatteryMonitor(threading.Thread):
         set_word = word & ~(1 << 9)
         try:
             self.bus.write_word_data(self.device_address, 0x0D, set_word)
+        except Exception as e:
+            print(f"[Battery Monitor] Error writing I2C: {e}")
+            return
+        return True
+
+    def set_safety_timer(self, set_bit=True):
+        try:
+            word = self.bus.read_word_data(self.device_address, 0x12)
+        except Exception as e:
+            print(f"[Battery Monitor] Error reading from I2C: {e}")
+            return
+        if set_bit is True:
+            print("[Battery Monitor] sefety timer is enabled.")
+            set_word = word | (1 << 13)
+        else:
+            print("[Battery Monitor] sefety timer is disabled.")
+            set_word = word & ~(1 << 13)
+        try:
+            self.bus.write_word_data(self.device_address, 0x12, set_word)
         except Exception as e:
             print(f"[Battery Monitor] Error writing I2C: {e}")
             return
