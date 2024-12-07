@@ -49,7 +49,7 @@ void AtomS3ModeManager::task(void *parameter) {
     // If no mode is added, do nothing
     if (selectedModes.size() == 0) {
       instance->atoms3lcd.drawBlack();
-      instance->atoms3lcd.printMessage("Waiting for modes to be added...");
+      instance->atoms3lcd.printColorText("Waiting for modes to be added...\n");
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }
@@ -120,7 +120,7 @@ void AtomS3ModeManager::changeMode(int suspend_mode_index, int resume_mode_index
   selectedModes[suspend_mode_index]->waitForTaskSuspended();
   instance->atoms3i2c.stopReceiveEvent();
   instance->atoms3lcd.drawBlack();
-  instance->atoms3lcd.printMessage("Wait for mode switch ...");
+  instance->atoms3lcd.printColorText("Wait for mode switch ...\n");
   vTaskDelay(pdMS_TO_TICKS(1000));
   instance->atoms3lcd.resetLcdData();
   // Resume

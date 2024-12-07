@@ -13,7 +13,7 @@ void DisplayQRcodeMode::task(void *parameter) {
     // Check for I2C timeout
     if (instance->atoms3i2c.checkTimeout()) {
       instance->atoms3lcd.drawNoDataReceived();
-      instance->atoms3lcd.printMessage(instance->getModeName());
+      instance->atoms3lcd.printColorText(instance->getModeName() + "\n");
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }

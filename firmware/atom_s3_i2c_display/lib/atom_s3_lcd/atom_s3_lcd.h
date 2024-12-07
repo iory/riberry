@@ -38,13 +38,6 @@ public:
   void printWaitMessage(int i2cAddress);
 
   /**
-   * @brief Print a message to the LCD screen.
-   *
-   * @param message The message to be printed.
-   */
-  void printMessage(const String& message);
-
-  /**
    * @brief Print colored text using ANSI-style escape sequences.
    *
    * @param input The input string containing ANSI escape codes.

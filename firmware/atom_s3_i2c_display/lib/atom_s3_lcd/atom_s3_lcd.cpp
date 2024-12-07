@@ -16,10 +16,6 @@ void AtomS3LCD::clear() {
     lcd.clear();
 }
 
-void AtomS3LCD::printMessage(const String& message) {
-    lcd.println(message);
-}
-
 uint16_t AtomS3LCD::colorMap(int code, bool isBackground) {
     if (isBackground) {
         switch (code) {
@@ -78,7 +74,7 @@ void AtomS3LCD::printColorText(const String& input) {
 }
 
 void AtomS3LCD::printWaitMessage(int i2cAddress) {
-    printMessage("Wait for I2C input.");
+    printColorText("Wait for I2C input.\n");
 #ifdef USE_GROVE
     printColorText("\x1b[31mGROVE\x1b[39m Mode\n");
 #else
