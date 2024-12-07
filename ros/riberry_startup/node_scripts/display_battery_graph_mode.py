@@ -26,7 +26,7 @@ class DisplayBatteryGraphMode(I2CBase):
                          callback=self.status_cb, queue_size=1)
         rospy.Subscriber("/battery/battery_charge_current", Float32,
                          callback=self.current_cb, queue_size=1)
-        rospy.Timer(rospy.Duration(10), self.timer_callback)
+        rospy.Timer(rospy.Duration(1), self.timer_callback)
 
     def mode_cb(self, msg):
         """

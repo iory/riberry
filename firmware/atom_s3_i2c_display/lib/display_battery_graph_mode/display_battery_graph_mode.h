@@ -19,6 +19,7 @@ private:
   static const int32_t graph_w = LCD_W - y_label_w - y_line_w; //109
   static DisplayBatteryGraphMode* instance;
   static const int max_buffer_length = 100;
+  String charge_status;
   AtomS3LCD &atoms3lcd;
   AtomS3I2C &atoms3i2c;
 
