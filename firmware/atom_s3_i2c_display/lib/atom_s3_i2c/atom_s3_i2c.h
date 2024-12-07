@@ -35,7 +35,7 @@ public:
    */
   bool checkTimeout();
 
-  int splitString(const String &input, char delimiter, String output[], int maxParts);
+  int splitString(const String &input, char delimiter, char* output[], int maxParts);
   
   void stopReceiveEvent();
   void startReceiveEvent();

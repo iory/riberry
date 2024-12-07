@@ -24,32 +24,26 @@ void DisplayBatteryGraphMode::task(void *parameter) {
         instance->atoms3lcd.drawBlack();
         instance->atoms3lcd.printColorText("Waiting for " + instance->getModeName());
       }else {
-        int index = 0;
         // Split by comma
-        char* token = strtok(const_cast<char*>(instance->atoms3lcd.color_str.c_str()), ",");
+        char* parts[max_buffer_length + 3];
+        int numParts = instance->atoms3i2c.splitString(instance->atoms3lcd.color_str,
+                                                       ',', parts, max_buffer_length + 3);
+
         String new_charge_status = "";
-        if (token != NULL) {
-          new_charge_status = token;
-          token = strtok(NULL, ",");
-        }
+        if (numParts > 0)
+          new_charge_status = String(parts[0]);
 
         String charge_current = "";
-        if (token != NULL) {
-          charge_current = token; // Convert string to integer
-          token = strtok(NULL, ",");
-        }
+        if (numParts > 1)
+          charge_current = String(parts[1]);
 
         int duration = 0;
-        if (token != NULL) {
-          duration = atoi(token); // Convert string to integer
-          token = strtok(NULL, ",");
-        }
+        if (numParts > 2)
+          duration = atoi(parts[2]); // Convert string to integer
 
-        float percentages[max_buffer_length]; // Receive less than 100 floats
-        while (token != NULL && index < max_buffer_length) {
-          percentages[index] = atof(token); // Convert string to float
-          token = strtok(NULL, ",");
-          index++;
+        float percentages[max_buffer_length];
+        for (int i = 3; i < numParts && i - 3 < max_buffer_length; ++i) {
+          percentages[i - 3] = atof(parts[i]); // Convert string to float
         }
 
         // Not redraw until 10 seconds have passed
@@ -60,8 +54,8 @@ void DisplayBatteryGraphMode::task(void *parameter) {
           continue;
         }
 
-        if (index > 0) {
-          instance->updateGraph(percentages, index, new_charge_status, charge_current, duration);
+        if (numParts > 0) {
+          instance->updateGraph(percentages, numParts-3, new_charge_status, charge_current, duration);
         }
         instance->atoms3lcd.setLastDrawTime(currentTime);
       }
