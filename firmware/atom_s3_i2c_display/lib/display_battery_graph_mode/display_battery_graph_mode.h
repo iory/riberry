@@ -18,7 +18,8 @@ private:
   static const int32_t graph_h = LCD_H - title_h - x_label_h - 2; //83
   static const int32_t graph_w = LCD_W - y_label_w - y_line_w; //109
   static DisplayBatteryGraphMode* instance;
-  static const int max_buffer_length = 100;
+  // これを100など大きくしすぎるとプログラムが落ちる
+  static const int max_buffer_length = 20;
   String charge_status;
   AtomS3LCD &atoms3lcd;
   AtomS3I2C &atoms3i2c;
