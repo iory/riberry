@@ -18,25 +18,33 @@ bool AtomS3I2C::checkTimeout() {
   return millis() - lastReceiveTime > receiveTimeout;
 }
 
-// カンマ区切りの文字列を分割して配列に格納する関数
-int AtomS3I2C::splitString(const String &input, char delimiter, String output[], int maxParts) {
+// Use char* instead of String for output[] argument
+// to minimize dynamic memory usage and reduce the risk of fragmentation.
+int AtomS3I2C::splitString(const String &input, char delimiter, char* output[], int maxParts) {
   int start = 0;
   int index = 0;
+
   while (true) {
     int end = input.indexOf(delimiter, start);
     if (end == -1) { // 区切り文字が見つからない場合
       if (index < maxParts) {
-        output[index++] = input.substring(start); // 最後の部分を追加
+        String part = input.substring(start);       // 最後の部分を取得
+        output[index] = strdup(part.c_str());       // strdupで動的メモリにコピー
+        index++;
       }
       break;
     }
     if (index < maxParts) {
-      output[index++] = input.substring(start, end);
+      String part = input.substring(start, end);   // 区切り文字までの部分を取得
+      output[index] = strdup(part.c_str());        // strdupで動的メモリにコピー
+      index++;
     }
     start = end + 1; // 次の部分へ進む
   }
+
   return index; // 分割された部分の数を返す
 }
+
 
 // Receive data over I2C and store it in the atoms3lcd instance
 // No rendering is done; lcd update is handled by other tasks

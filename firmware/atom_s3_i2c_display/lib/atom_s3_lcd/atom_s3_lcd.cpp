@@ -164,3 +164,11 @@ void AtomS3LCD::setCursor(int x, int y){
 uint16_t AtomS3LCD::color565(uint8_t red, uint8_t green, uint8_t blue){
   return lcd.color565(red,green,blue);
 };
+
+unsigned long AtomS3LCD::getLastDrawTime() {
+    return lastDrawTime;
+}
+
+void AtomS3LCD::setLastDrawTime(unsigned long time) {
+  lastDrawTime = time;
+}

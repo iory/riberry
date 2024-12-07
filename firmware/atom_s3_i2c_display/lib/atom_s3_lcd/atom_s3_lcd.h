@@ -87,6 +87,8 @@ public:
   void drawPixel(int x, int y, uint16_t color);
   void setCursor(int x, int y);
   uint16_t color565(uint8_t red, uint8_t green, uint8_t blue);
+  unsigned long getLastDrawTime();
+  void setLastDrawTime(unsigned long time);
 
   bool mode_changed = false;
 
@@ -115,7 +117,7 @@ private:
 #else
   static constexpr int lcd_rotation = 1; /**< Current rotation of the LCD. */
 #endif
-
+  unsigned long lastDrawTime = 0;
   /**
    * @brief Convert ANSI color codes to RGB565 values for foreground or background.
    *

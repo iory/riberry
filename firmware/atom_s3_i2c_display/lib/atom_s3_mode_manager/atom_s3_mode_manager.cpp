@@ -26,16 +26,21 @@ void AtomS3ModeManager::task(void *parameter) {
       instance->deleteSelectedModes();
       // Add selected modes
       selectedModesStr = instance->atoms3i2c.selectedModesStr;
-      String* selectedModesStrList = new String[allModes->size()];
+      char** selectedModesStrList = (char**)malloc(allModes->size() * sizeof(char*));
+      if (selectedModesStrList == nullptr) {
+        // メモリ確保失敗時の処理
+        Serial.println("Failed to allocate memory for selectedModesStrList.");
+        return;
+      }
       int modeCount = instance->atoms3i2c.splitString(selectedModesStr, ',', selectedModesStrList, allModes->size());
       for (int i = 0; i < modeCount; i++) {
         for (Mode *mode : *allModes) {
-          if (mode->getModeName().equals(selectedModesStrList[i])) {
+          if (mode->getModeName().equals(String(selectedModesStrList[i]))) {
             instance->addSelectedMode(*mode); // ポインタから参照に変換
           }
         }
       }
-      delete[] selectedModesStrList;
+      free(selectedModesStrList);
       // Start task
       current_mode_index = 0;
       instance->initializeSelectedModes();

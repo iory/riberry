@@ -19,40 +19,45 @@ void DisplayBatteryGraphMode::task(void *parameter) {
     }
     // Display information
     else {
+      unsigned long currentTime = millis();
       if (instance->atoms3lcd.color_str.isEmpty()) {
         instance->atoms3lcd.drawBlack();
         instance->atoms3lcd.printColorText("Waiting for " + instance->getModeName());
       }else {
-        int index = 0;
         // Split by comma
-        char* token = strtok(const_cast<char*>(instance->atoms3lcd.color_str.c_str()), ",");
-        String charge_status = "";
-        if (token != NULL) {
-          charge_status = token;
-          token = strtok(NULL, ",");
-        }
+        char* parts[max_buffer_length + 3];
+        int numParts = instance->atoms3i2c.splitString(instance->atoms3lcd.color_str,
+                                                       ',', parts, max_buffer_length + 3);
+
+        String new_charge_status = "";
+        if (numParts > 0)
+          new_charge_status = String(parts[0]);
 
         String charge_current = "";
-        if (token != NULL) {
-          charge_current = token; // Convert string to integer
-          token = strtok(NULL, ",");
-        }
+        if (numParts > 1)
+          charge_current = String(parts[1]);
 
         int duration = 0;
-        if (token != NULL) {
-          duration = atoi(token); // Convert string to integer
-          token = strtok(NULL, ",");
+        if (numParts > 2)
+          duration = atoi(parts[2]); // Convert string to integer
+
+        float percentages[max_buffer_length];
+        for (int i = 3; i < numParts && i - 3 < max_buffer_length; ++i) {
+          percentages[i - 3] = atof(parts[i]); // Convert string to float
         }
 
-        float percentages[max_buffer_length]; // Receive less than 100 floats
-        while (token != NULL && index < max_buffer_length) {
-          percentages[index] = atof(token); // Convert string to float
-          token = strtok(NULL, ",");
-          index++;
+        // Not redraw until 10 seconds have passed
+        bool skipDrawing = (new_charge_status == instance->charge_status) &&
+          (currentTime - instance->atoms3lcd.getLastDrawTime() < 10000);
+        if (skipDrawing) {
+          vTaskDelay(pdMS_TO_TICKS(1000));
+          continue;
         }
-        if (index > 0) {
-          instance->updateGraph(percentages, index, charge_status, charge_current, duration);
+
+        if (numParts > 0) {
+          instance->updateGraph(percentages, numParts-3, new_charge_status, charge_current, duration);
         }
+        instance->atoms3lcd.setLastDrawTime(currentTime);
       }
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
@@ -64,7 +69,7 @@ void DisplayBatteryGraphMode::createTask(uint8_t xCoreID) {
 }
 
 void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
-                                          String status, String current, int duration) {
+                                          String new_charge_status, String current, int duration) {
   int gap = 1; // width between bar to bar
   int buffer_w = (graph_w - (buffer_length - 1) * gap) / buffer_length;
 
@@ -73,22 +78,22 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
   // top text
   String line1 = "";
   String line2 = "";
-  if (status == "No charging") {
+  if (new_charge_status == "No charging") {
     line1 = "\x1b[31mNo";
     line2 = "\x1b[31mcharging";
-  }else if (status == "Trickle charge") {
+  }else if (new_charge_status == "Trickle charge") {
     line1 = "\x1b[33mTrickle";
     line2 = " " + current + "mA";
-  }else if (status == "Pre charge") {
-    line1 = String("\x1b[33m") + status;
+  }else if (new_charge_status == "Pre charge") {
+    line1 = String("\x1b[33m") + new_charge_status;
     line2 = " " + current + "mA";
-  }else if (status == "CC charge") {
-    line1 = String("\x1b[32m") + status;
+  }else if (new_charge_status == "CC charge") {
+    line1 = String("\x1b[32m") + new_charge_status;
     line2 = " " + current + "mA";
-  }else if (status == "CV charge") {
-    line1 = String("\x1b[32m") + status;
+  }else if (new_charge_status == "CV charge") {
+    line1 = String("\x1b[32m") + new_charge_status;
     line2 = " " + current + "mA";
-  }else if (status == "Charge termination") {
+  }else if (new_charge_status == "Charge termination") {
     line1 = "\x1b[34mCharge";
     line2 = "\x1b[34mtermination";
   }
@@ -124,6 +129,8 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
   instance->atoms3lcd.setCursor(LCD_W/2-x_label.length()*5/2, LCD_H-x_label_h);
   instance->atoms3lcd.printColorText(x_label);
   instance->atoms3lcd.setTextSize(1.5); // Restore default size for other modes
+
+  instance->charge_status = new_charge_status;
 }
 
 // Gradation from red to yellow to green
