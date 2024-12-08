@@ -189,7 +189,7 @@ void AtomS3I2C::setRequestStr(const String &str) {
 void AtomS3I2C::task(void *parameter) {
   bool success = WireSlave.begin(sda_pin, scl_pin, i2c_slave_addr, 200, 100);
   if (!success) {
-    instance->atoms3lcd.printMessage("I2C slave init failed");
+    instance->atoms3lcd.printColorText("I2C slave init failed\n");
     while (1) vTaskDelay(pdMS_TO_TICKS(100));;
   }
   // Ensure the program starts in a timeout state

@@ -1,9 +1,7 @@
 #ifndef ATOM_S3_LCD_H
 #define ATOM_S3_LCD_H
 
-#define LGFX_M5ATOMS3
-#include <LovyanGFX.hpp>
-#include <LGFX_AUTODETECT.hpp>
+#include <primitive_lcd.h>
 
 #define LCD_W 128
 #define LCD_H 128
@@ -11,7 +9,7 @@
 /**
  * @brief Class to handle the LCD on the AtomS3 using the LovyanGFX library.
  */
-class AtomS3LCD {
+class AtomS3LCD : public PrimitiveLCD {
 public:
   /**
    * @brief Constructor to initialize the LCD with a specific rotation.
@@ -19,37 +17,6 @@ public:
    * @param rotation The screen rotation (e.g., landscape, portrait).
    */
   AtomS3LCD();
-
-  /**
-   * @brief Initialize the LCD screen and set default properties.
-   */
-  void init();
-
-  /**
-   * @brief Clear the LCD screen.
-   */
-  void clear();
-
-  /**
-   * @brief Display a wait message and show whether GROVE mode is active.
-   *
-   * @param i2cAddress The I2C address to display on the screen.
-   */
-  void printWaitMessage(int i2cAddress);
-
-  /**
-   * @brief Print a message to the LCD screen.
-   *
-   * @param message The message to be printed.
-   */
-  void printMessage(const String& message);
-
-  /**
-   * @brief Print colored text using ANSI-style escape sequences.
-   *
-   * @param input The input string containing ANSI escape codes.
-   */
-  void printColorText(const String& input);
 
   /**
    * @brief Draw a JPEG image on the LCD screen.
@@ -67,6 +34,13 @@ public:
   void drawQRcode(const String& qrCodeData);
 
   /**
+   * @brief Display a wait message and show whether GROVE mode is active.
+   *
+   * @param i2cAddress The I2C address to display on the screen.
+   */
+  void printWaitMessage(int i2cAddress);
+
+  /**
    * @brief Display a "No data received" error message on the screen.
    */
   void drawNoDataReceived();
@@ -80,13 +54,6 @@ public:
   void resetJpegBuf();
   void resetQRcodeData();
   void resetLcdData();
-  void setTextSize(float x);
-  void fillRect(int x1, int y1, int x2, int y2, uint16_t color);
-  void drawRect(int x1, int y1, int x2, int y2, uint16_t color);
-  void drawLine(int x1, int y1, int x2, int y2, uint16_t color);
-  void drawPixel(int x, int y, uint16_t color);
-  void setCursor(int x, int y);
-  uint16_t color565(uint8_t red, uint8_t green, uint8_t blue);
   unsigned long getLastDrawTime();
   void setLastDrawTime(unsigned long time);
 
@@ -111,21 +78,12 @@ public:
   String qrCodeData; /**< Stores the data to be encoded in the QR code. */
 
 private:
-  LGFX lcd;  /**< Instance of LovyanGFX for controlling the LCD. */
 #ifdef LCD_ROTATION
   static constexpr int lcd_rotation = LCD_ROTATION; /**< Current rotation of the LCD. */
 #else
   static constexpr int lcd_rotation = 1; /**< Current rotation of the LCD. */
 #endif
   unsigned long lastDrawTime = 0;
-  /**
-   * @brief Convert ANSI color codes to RGB565 values for foreground or background.
-   *
-   * @param code The ANSI color code.
-   * @param isBackground Whether the color is for the background (true) or foreground (false).
-   * @return The RGB565 color value.
-   */
-  uint16_t colorMap(int code, bool isBackground = false);
 };
 
 #endif // ATOM_S3_LCD_H
