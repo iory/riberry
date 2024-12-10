@@ -98,6 +98,9 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
 
     def timer_callback(self, event):
         if self.mode != "TeachingMode":
+            # When mode is changed,
+            # state automatically returns to WAIT
+            self.state = State.WAIT
             return
         sent_str = chr(PacketType.TEACHING_MODE)
         if self.state == State.WAIT:
