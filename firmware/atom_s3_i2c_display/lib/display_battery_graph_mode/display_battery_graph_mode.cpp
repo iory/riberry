@@ -29,9 +29,9 @@ void DisplayBatteryGraphMode::task(void *parameter) {
         int numParts = instance->atoms3i2c.splitString(instance->atoms3lcd.color_str,
                                                        ',', parts, max_buffer_length + 3);
 
-        String new_charge_status = "";
+        uint new_charge_status = 0;
         if (numParts > 0)
-          new_charge_status = String(parts[0]);
+          new_charge_status = atoi(parts[0]);
 
         String charge_current = "";
         if (numParts > 1)
@@ -69,7 +69,7 @@ void DisplayBatteryGraphMode::createTask(uint8_t xCoreID) {
 }
 
 void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
-                                          String new_charge_status, String current, int duration) {
+                                          uint new_charge_status, String current, int duration) {
   int gap = 1; // width between bar to bar
   int buffer_w = (graph_w - (buffer_length - 1) * gap) / buffer_length;
 
@@ -78,22 +78,22 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
   // top text
   String line1 = "";
   String line2 = "";
-  if (new_charge_status == "No charging") {
+  if (new_charge_status == 0) {
     line1 = "\x1b[31mNo";
     line2 = "\x1b[31mcharging";
-  }else if (new_charge_status == "Trickle charge") {
+  }else if (new_charge_status == 1) {
     line1 = "\x1b[33mTrickle";
     line2 = " " + current + "mA";
-  }else if (new_charge_status == "Pre charge") {
-    line1 = String("\x1b[33m") + new_charge_status;
+  }else if (new_charge_status == 2) {
+    line1 = String("\x1b[33m") + "Pre-charge";
     line2 = " " + current + "mA";
-  }else if (new_charge_status == "CC charge") {
-    line1 = String("\x1b[32m") + new_charge_status;
+  }else if (new_charge_status == 3) {
+    line1 = String("\x1b[32m") + "CC charge";
     line2 = " " + current + "mA";
-  }else if (new_charge_status == "CV charge") {
-    line1 = String("\x1b[32m") + new_charge_status;
+  }else if (new_charge_status == 4) {
+    line1 = String("\x1b[32m") + "CV charge";
     line2 = " " + current + "mA";
-  }else if (new_charge_status == "Charge termination") {
+  }else if (new_charge_status == 5) {
     line1 = "\x1b[34mCharge";
     line2 = "\x1b[34mtermination";
   }
