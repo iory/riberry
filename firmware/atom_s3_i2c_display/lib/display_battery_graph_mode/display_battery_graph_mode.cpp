@@ -84,7 +84,7 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
   }else if (new_charge_status == "Trickle charge") {
     line1 = "\x1b[33mTrickle";
     line2 = " " + current + "mA";
-  }else if (new_charge_status == "Pre charge") {
+  }else if (new_charge_status == "Pre-charge") {
     line1 = String("\x1b[33m") + new_charge_status;
     line2 = " " + current + "mA";
   }else if (new_charge_status == "CC charge") {
