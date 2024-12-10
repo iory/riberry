@@ -20,12 +20,12 @@ private:
   static DisplayBatteryGraphMode* instance;
   // これを100など大きくしすぎるとプログラムが落ちる
   static const int max_buffer_length = 20;
-  String charge_status;
+  uint charge_status;
   AtomS3LCD &atoms3lcd;
   AtomS3I2C &atoms3i2c;
 
   static void task(void *parameter);
-  void updateGraph(float* buffer, int buffer_length, String status, String current, int duration);
+  void updateGraph(float* buffer, int buffer_length, uint new_charge_status, String current, int duration);
   uint16_t calculateColor(float percentage);
   void drawBatteryIcon(int x, int y, int width, int height, int batteryLevel);
 };

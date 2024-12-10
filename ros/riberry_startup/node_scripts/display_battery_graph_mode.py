@@ -3,6 +3,7 @@ import rospy
 from std_msgs.msg import Float32
 from std_msgs.msg import String
 
+from riberry.battery import ChargeState
 from riberry.i2c_base import I2CBase
 from riberry.i2c_base import PacketType
 
@@ -11,8 +12,10 @@ class DisplayBatteryGraphMode(I2CBase):
     def __init__(self, i2c_addr):
         super().__init__(i2c_addr)
 
+        self.charge_str_to_num = {str(state): state.value
+                                    for state in ChargeState}
         self.mode = None
-        self.charge_status = 'No data'
+        self.charge_status = None
         self.charge_current = 0
         self.display_duration = rospy.get_param("~display_duration", 3600)
         # Assume battery topic is 1Hz
@@ -46,7 +49,7 @@ class DisplayBatteryGraphMode(I2CBase):
 
     def status_cb(self, msg):
         previous_status = self.charge_status
-        self.charge_status = msg.data
+        self.charge_status = self.charge_str_to_num[msg.data]
         if self.mode == "DisplayBatteryGraphMode":
             if previous_status != self.charge_status:
                 self.send_data()
