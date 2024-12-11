@@ -4,6 +4,7 @@ from kxr_controller.kxr_interface import KXRROSRobotInterface
 from kxr_controller.msg import ServoOnOff
 import rospy
 from skrobot.model import RobotModel
+from skrobot.utils.urdf import no_mesh_load_mode
 from std_msgs.msg import Int32
 from std_msgs.msg import String
 
@@ -17,7 +18,9 @@ class ServoControlMode(I2CBase):
         # Create robot model to control servo
         robot_model = RobotModel()
         namespace = ""
-        robot_model.load_urdf_from_robot_description(namespace + "/robot_description_viz")
+        with no_mesh_load_mode():
+            robot_model.load_urdf_from_robot_description(
+                namespace + "/robot_description_viz")
         self.ri = KXRROSRobotInterface(
             robot_model, namespace=namespace, controller_timeout=60.0
         )

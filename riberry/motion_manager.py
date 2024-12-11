@@ -5,6 +5,7 @@ from kxr_controller.kxr_interface import KXRROSRobotInterface
 import numpy as np
 import rospy
 from skrobot.model import RobotModel
+from skrobot.utils.urdf import no_mesh_load_mode
 
 
 class MotionManager:
@@ -19,7 +20,9 @@ class MotionManager:
         # Create robot model to control pressure
         robot_model = RobotModel()
         namespace = ""
-        robot_model.load_urdf_from_robot_description(namespace + "/robot_description_viz")
+        with no_mesh_load_mode():
+            robot_model.load_urdf_from_robot_description(
+                namespace + "/robot_description_viz")
         self.ri = KXRROSRobotInterface(
             robot_model, namespace=namespace, controller_timeout=60.0
         )
