@@ -101,6 +101,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             # When mode is changed,
             # state automatically returns to WAIT
             self.state = State.WAIT
+            self.play_list.reset_index()
             return
         sent_str = chr(PacketType.TEACHING_MODE)
         if self.state == State.WAIT:

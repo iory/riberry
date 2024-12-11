@@ -24,6 +24,10 @@ class SelectList:
         self.idx = (self.idx + 1) % len(self.options)
         return self.idx
 
+    def reset_index(self):
+        self.idx = 0
+        return self.idx
+
     def selected_option(self, extract=False):
         if len(self.options) <= self.idx:
             return None
