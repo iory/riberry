@@ -1,10 +1,18 @@
+import copy
 import json
 import os
 
 from apriltag_ros.msg import AprilTagDetectionArray
+from geometry_msgs.msg import Point
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Quaternion
 from kxr_controller.kxr_interface import KXRROSRobotInterface
 import numpy as np
 import rospy
+from skrobot.coordinates.base import transform_coords
+from skrobot.interfaces.ros.tf_utils import geometry_pose_to_coords
+from skrobot.interfaces.ros.tf_utils import tf_pose_to_coords
+from skrobot.interfaces.ros.transform_listener import TransformListener
 from skrobot.model import RobotModel
 from skrobot.utils.urdf import no_mesh_load_mode
 
@@ -30,6 +38,12 @@ class MotionManager:
         self.joint_names = self.ri.robot.joint_names
         self.start_time = None
         self.motion = []
+        # TODO: default value
+        self.end_coords_name = rospy.get_param("~end_coords_name", None)
+        link_names = [x.name for x in robot_model.link_list]
+        if self.end_coords_name is not None\
+           and self.end_coords_name not in link_names:
+            rospy.logerr('end_coords name does not match link name.')
         # Marker
         rospy.Subscriber(
             "tag_detections", AprilTagDetectionArray,
@@ -65,14 +79,20 @@ class MotionManager:
         if self.start_time is None:
             return
         # No marker message has come
-        if self.marker_msg is None or len(self.marker_msg.detections) == 0::
+        if self.marker_msg is None or len(self.marker_msg.detections) == 0:
             return
         now = rospy.Time.now()
         elapsed_time = (now - self.start_time).to_sec()
         marker = self.marker_msg.detections[0]
+        marker_position = marker.pose.pose.pose.position
+        marker_orientation = marker.pose.pose.pose.orientation
         self.markers.append({
             'time': elapsed_time,
-            'marker': marker,
+            'frame_id': marker.pose.header.frame_id,
+            'marker_id': marker.id[0],
+            'marker_size': marker.size[0],
+            'position': [marker_position.x, marker_position.y, marker_position.z],
+            'orientation': [marker_orientation.x, marker_orientation.y, marker_orientation.z, marker_orientation.w],
         })
         rospy.loginfo('Add new marker')
         rospy.loginfo(f'Time: {elapsed_time}, marker: {marker}')
@@ -86,6 +106,7 @@ class MotionManager:
     def record(self, record_filepath):
         self._stop = False
         self.motion = []
+        self.markers = []
         with open(record_filepath, mode='w') as f:
             rospy.loginfo(f'Start saving motion to {record_filepath}')
             while not rospy.is_shutdown():
@@ -95,35 +116,37 @@ class MotionManager:
                 self.add_motion()
                 self.add_marker()
                 rospy.sleep(0.1)
-            f.write(json.dumps(self.motion, indent=4, separators=(",", ": ")))
+            f.write(json.dumps(self.motion+self.markers, indent=4, separators=(",", ": ")))
             rospy.loginfo(f'Finish saving motion to {record_filepath}')
 
-    def play(self, play_filepath):
-        self._stop = False
+    def load_json(self, play_filepath):
         # Load motion
         if os.path.exists(play_filepath):
             rospy.loginfo(f'Load motion data file {play_filepath}.')
             with open(play_filepath) as f:
-                self.motion = json.load(f)
-        # Play motion
-        rospy.loginfo('Play motion')
-        self.ri.servo_on()
+                json_data = json.load(f)
+                self.motion = [j for j in json_data if 'joint_states' in j]
+                self.markers = [j for j in json_data if 'marker_id' in j]
+            rospy.loginfo(f'Loaded motion data: {self.motion}')
+            rospy.loginfo(f'Loaded marker data {self.markers}')
+
+    def play_motion(self, motion):
         # To prevent sudden movement, take time to reach the initial motion
-        if 'joint_states' not in self.motion[0]:
+        if 'joint_states' not in motion[0]:
             print("First element must have 'joint_states' key.")
             return
-        first_av = list(self.motion[0]['joint_states'].values())
+        first_av = list(motion[0]['joint_states'].values())
         self.ri.angle_vector(first_av, 3)
         self.ri.wait_interpolation()
         # Play the actions from the second one onward
-        prev_time = self.motion[0]['time']
+        prev_time = motion[0]['time']
         avs = []
         tms = []
-        for motion in self.motion[1:]:
-            current_time = motion['time']
+        for m in motion[1:]:
+            current_time = m['time']
             # Send angle vector
-            if 'joint_states' in motion:
-                av = np.array(list(motion['joint_states'].values()))
+            if 'joint_states' in m:
+                av = np.array(list(m['joint_states'].values()))
                 avs.append(av)
                 tms.append(current_time - prev_time)
             prev_time = current_time
@@ -140,3 +163,110 @@ class MotionManager:
                 break
             rospy.sleep(0.5)  # Save motion every 0.5s to smooth motion play
         rospy.loginfo('Play finished')
+
+    def move_motion(self, target_coords, local_coords):
+        """
+Move motion by move_coords()
+"""
+        if self.end_coords_name is None:
+            rospy.logerr("end_coords_name param is not set.")
+            return self.motion
+        robot = copy.deepcopy(self.ri.robot)
+        end_coords = getattr(robot, self.end_coords_name)
+        # Calculate target coords
+        moved_motion = copy.deepcopy(self.motion)
+        ik_success_list = []
+        for m in moved_motion:
+            joint_states = m["joint_states"]
+            for joint_name in joint_states.keys():
+                getattr(robot, joint_name).joint_angle(joint_states[joint_name])
+            ik_coords = end_coords.copy_worldcoords()
+            ik_coords.move_coords(target_coords, local_coords)
+            # Calculated moved motion
+            link_list = robot.link_list
+            link_list_has_joint = [x for x in link_list if x.joint is not None]
+            ret = robot.inverse_kinematics(
+                ik_coords, link_list=link_list_has_joint, move_target=end_coords,
+                thre=[0.001 * 5], rthre=[np.deg2rad(1*5)],  # 5x times loose IK
+                stop=10,  # faster IK
+            )
+            if isinstance(ret, np.ndarray) is False:
+                rospy.logwarn('IK failed')
+            ik_success_list.append(isinstance(ret, np.ndarray))
+            # Overwrite moved_motion
+            for joint_name in joint_states.keys():
+                joint_states[joint_name] = getattr(robot, joint_name).joint_angle()
+        rospy.loginfo(f"IK success list: {ik_success_list}")
+        def has_consecutive_false(arr, consecutive_count):
+            current_false_count = 0
+            for value in arr:
+                if value is False:
+                    current_false_count += 1
+                    if current_false_count >= consecutive_count:
+                        return True
+                else:
+                    current_false_count = 0
+            return False
+        count = 5
+        if has_consecutive_false(ik_success_list, count):
+            rospy.logerr(f"IK failed {count} consecutive times. Return original motion.")
+            return self.motion
+        else:
+            return moved_motion
+
+    def play_motion_with_marker(self):
+        tfl = TransformListener(use_tf2=False)
+        rospy.sleep(0.5)  # Wait for tfl initialization
+        # Calculate first recorded marker coords from base_link
+        # TODO: Use marker at anytime
+        first_marker = self.markers[0]
+        if first_marker["time"] > 0.5:
+            rospy.logerr(
+                "Marker must be recorded at the beginning of the motion")
+            return
+        camera_to_first_marker_pose = Pose(
+            position=Point(x=first_marker["position"][0],
+                           y=first_marker["position"][1],
+                           z=first_marker["position"][2]),
+            orientation=Quaternion(x=first_marker["orientation"][0],
+                                   y=first_marker["orientation"][1],
+                                   z=first_marker["orientation"][2],
+                                   w=first_marker["orientation"][3]))
+        base_to_camera_tf = tfl.lookup_transform(
+            "base_link", first_marker["frame_id"], rospy.Time(0))
+        first_marker_coords = transform_coords(
+            tf_pose_to_coords(base_to_camera_tf),
+            geometry_pose_to_coords(camera_to_first_marker_pose))
+        # Calculate current marker coords from base_link
+        if self.marker_msg is None or len(self.marker_msg.detections) == 0:
+            error_message = "Marker must be visible at the beginning of the motion"
+            rospy.logerr(error_message)
+            return error_message
+        if first_marker["marker_id"] != self.marker_msg.detections[0].id[0]:
+            error_message = "Current marker ID != recorded marker ID."
+            rospy.logerr(error_message)
+            return error_message
+
+        current_marker = self.marker_msg.detections[0]
+        base_to_camera_tf = tfl.lookup_transform(
+            "base_link", current_marker.pose.header.frame_id,
+            rospy.Time(0))
+        camera_to_current_marker_pose = current_marker.pose.pose.pose
+        current_marker_coords = transform_coords(
+            tf_pose_to_coords(base_to_camera_tf),
+            geometry_pose_to_coords(camera_to_current_marker_pose))
+        moved_motion = self.move_motion(
+            current_marker_coords, first_marker_coords)
+        self.play_motion(moved_motion)
+
+    def play(self, play_filepath):
+        self._stop = False
+        # Load all data saved in json
+        self.load_json(play_filepath)
+        # Play motion
+        rospy.loginfo('Play motion')
+        self.ri.servo_on()
+        if len(self.markers) == 0:
+            self.play_motion(self.motion)
+        else:
+            self.play_motion_with_marker()
