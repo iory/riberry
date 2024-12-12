@@ -38,6 +38,7 @@ class MotionManager:
         self.joint_names = self.ri.robot.joint_names
         self.start_time = None
         self.motion = []
+        self.tfl = TransformListener(use_tf2=False) # Need 0.5[s] wait to initialize
         # TODO: default value
         self.end_coords_name = rospy.get_param("~end_coords_name", None)
         link_names = [x.name for x in robot_model.link_list]
@@ -169,7 +170,7 @@ Returns message[str] to show on AtomS3 LCD
         rospy.loginfo(message)
         return message
 
-    def move_motion(self, target_coords, local_coords):
+    def move_motion(self, motion, target_coords, local_coords):
         """
 Returns (moved_motion[json or None], message[str])
 if IK succeed, moved_motion is json.
@@ -182,10 +183,11 @@ if IK fail, moved_motion is False.
         robot = copy.deepcopy(self.ri.robot)
         end_coords = getattr(robot, self.end_coords_name)
         # Calculate target coords
-        moved_motion = copy.deepcopy(self.motion)
+        moved_motion = copy.deepcopy(motion)
         consecutive_false_count = 0
         false_count_limit = min(5, len(moved_motion))
-        for m in moved_motion:
+        failure_indices = []
+        for i, m in enumerate(moved_motion):
             joint_states = m["joint_states"]
             for joint_name in joint_states.keys():
                 getattr(robot, joint_name).joint_angle(joint_states[joint_name])
@@ -201,6 +203,7 @@ if IK fail, moved_motion is False.
             )
             if isinstance(ret, np.ndarray) is False:
                 rospy.logwarn('IK failed')
+                failure_indices.append(i)
                 consecutive_false_count += 1
                 if consecutive_false_count == false_count_limit:
                     error_message = f"IK failed {false_count_limit} consecutive times."
@@ -211,16 +214,17 @@ if IK fail, moved_motion is False.
             # Overwrite moved_motion
             for joint_name in joint_states.keys():
                 joint_states[joint_name] = getattr(robot, joint_name).joint_angle()
+        rospy.loginfo(f"failure indices: {failure_indices}")
+        for i in failure_indices:
+            del moved_motion[i]
         message = "IK success"
         rospy.loginfo(message)
         return (moved_motion, message)
 
-    def play_motion_with_marker(self):
+    def play_motion_with_marker(self, motion):
         """
 Returns message[str] to show on AtomS3 LCD
 """
-        tfl = TransformListener(use_tf2=False)
-        rospy.sleep(0.5)  # Wait for tfl initialization
         # Calculate first recorded marker coords from base_link
         # TODO: Use marker at anytime
         first_marker = self.markers[0]
@@ -236,7 +240,7 @@ Returns message[str] to show on AtomS3 LCD
                                    y=first_marker["orientation"][1],
                                    z=first_marker["orientation"][2],
                                    w=first_marker["orientation"][3]))
-        base_to_camera_tf = tfl.lookup_transform(
+        base_to_camera_tf = self.tfl.lookup_transform(
             "base_link", first_marker["frame_id"], rospy.Time(0))
         first_marker_coords = transform_coords(
             tf_pose_to_coords(base_to_camera_tf),
@@ -251,7 +255,7 @@ Returns message[str] to show on AtomS3 LCD
             rospy.logerr(error_message)
             return error_message
         current_marker = self.marker_msg.detections[0]
-        base_to_camera_tf = tfl.lookup_transform(
+        base_to_camera_tf = self.tfl.lookup_transform(
             "base_link", current_marker.pose.header.frame_id,
             rospy.Time(0))
         camera_to_current_marker_pose = current_marker.pose.pose.pose
@@ -259,7 +263,7 @@ Returns message[str] to show on AtomS3 LCD
             tf_pose_to_coords(base_to_camera_tf),
             geometry_pose_to_coords(camera_to_current_marker_pose))
         moved_motion, message = self.move_motion(
-            current_marker_coords, first_marker_coords)
+            motion, current_marker_coords, first_marker_coords)
         if moved_motion is False:
             return message
         else:
@@ -275,4 +279,10 @@ Returns message[str] to show on AtomS3 LCD
         if len(self.markers) == 0:
             return self.play_motion(self.motion)
         else:
-            return self.play_motion_with_marker()
+            # The entire movement is performed again after the initial posture
+            # to compensate for deflection of the arm due to gravity
+            # with visual feedback.
+            self.play_motion_with_marker([self.motion[0]])
+            # Wait for new marker topic to come after previous motion stopped
+            rospy.sleep(0.5)
+            return self.play_motion_with_marker(self.motion)
