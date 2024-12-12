@@ -16,6 +16,7 @@ private:
   AtomS3I2C &atoms3i2c;
 
   static void task(void *parameter);
+  void drawARMarker(int marker_id, int x, int y, int size);
 };
 
 #endif // ATOM_S3_TEACHING_MODE_H
