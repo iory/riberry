@@ -131,6 +131,9 @@ class MotionManager:
             rospy.loginfo(f'Loaded marker data {self.markers}')
 
     def play_motion(self, motion):
+        """
+Returns message[str] to show on AtomS3 LCD
+"""
         # To prevent sudden movement, take time to reach the initial motion
         if 'joint_states' not in motion[0]:
             print("First element must have 'joint_states' key.")
@@ -162,20 +165,26 @@ class MotionManager:
                 rospy.loginfo('Play interrupted')
                 break
             rospy.sleep(0.5)  # Save motion every 0.5s to smooth motion play
-        rospy.loginfo('Play finished')
+        message = 'Play finished'
+        rospy.loginfo(message)
+        return message
 
     def move_motion(self, target_coords, local_coords):
         """
-Move motion by move_coords()
+Returns (moved_motion[json or None], message[str])
+if IK succeed, moved_motion is json.
+if IK fail, moved_motion is False.
 """
         if self.end_coords_name is None:
-            rospy.logerr("end_coords_name param is not set.")
-            return self.motion
+            error_message = "end_coords_name param is not set."
+            rospy.logerr(error_message)
+            return (False, error_message)
         robot = copy.deepcopy(self.ri.robot)
         end_coords = getattr(robot, self.end_coords_name)
         # Calculate target coords
         moved_motion = copy.deepcopy(self.motion)
-        ik_success_list = []
+        consecutive_false_count = 0
+        false_count_limit = min(5, len(moved_motion))
         for m in moved_motion:
             joint_states = m["joint_states"]
             for joint_name in joint_states.keys():
@@ -192,38 +201,33 @@ Move motion by move_coords()
             )
             if isinstance(ret, np.ndarray) is False:
                 rospy.logwarn('IK failed')
-            ik_success_list.append(isinstance(ret, np.ndarray))
+                consecutive_false_count += 1
+                if consecutive_false_count == false_count_limit:
+                    error_message = f"IK failed {false_count_limit} consecutive times."
+                    rospy.logerr(error_message)
+                    return (False, error_message)
+            else:
+                consecutive_false_count = 0
             # Overwrite moved_motion
             for joint_name in joint_states.keys():
                 joint_states[joint_name] = getattr(robot, joint_name).joint_angle()
-        rospy.loginfo(f"IK success list: {ik_success_list}")
-        def has_consecutive_false(arr, consecutive_count):
-            current_false_count = 0
-            for value in arr:
-                if value is False:
-                    current_false_count += 1
-                    if current_false_count >= consecutive_count:
-                        return True
-                else:
-                    current_false_count = 0
-            return False
-        count = 5
-        if has_consecutive_false(ik_success_list, count):
-            rospy.logerr(f"IK failed {count} consecutive times. Return original motion.")
-            return self.motion
-        else:
-            return moved_motion
+        message = "IK success"
+        rospy.loginfo(message)
+        return (moved_motion, message)
 
     def play_motion_with_marker(self):
+        """
+Returns message[str] to show on AtomS3 LCD
+"""
         tfl = TransformListener(use_tf2=False)
         rospy.sleep(0.5)  # Wait for tfl initialization
         # Calculate first recorded marker coords from base_link
         # TODO: Use marker at anytime
         first_marker = self.markers[0]
         if first_marker["time"] > 0.5:
-            rospy.logerr(
-                "Marker must be recorded at the beginning of the motion")
-            return
+            error_message = "Marker must be recorded at the beginning of the motion"
+            rospy.logerr(error_message)
+            return error_message
         camera_to_first_marker_pose = Pose(
             position=Point(x=first_marker["position"][0],
                            y=first_marker["position"][1],
@@ -246,7 +250,6 @@ Move motion by move_coords()
             error_message = "Current marker ID != recorded marker ID."
             rospy.logerr(error_message)
             return error_message
-
         current_marker = self.marker_msg.detections[0]
         base_to_camera_tf = tfl.lookup_transform(
             "base_link", current_marker.pose.header.frame_id,
@@ -255,9 +258,12 @@ Move motion by move_coords()
         current_marker_coords = transform_coords(
             tf_pose_to_coords(base_to_camera_tf),
             geometry_pose_to_coords(camera_to_current_marker_pose))
-        moved_motion = self.move_motion(
+        moved_motion, message = self.move_motion(
             current_marker_coords, first_marker_coords)
-        self.play_motion(moved_motion)
+        if moved_motion is False:
+            return message
+        else:
+            return self.play_motion(moved_motion)
 
     def play(self, play_filepath):
         self._stop = False
@@ -267,6 +273,6 @@ Move motion by move_coords()
         rospy.loginfo('Play motion')
         self.ri.servo_on()
         if len(self.markers) == 0:
-            self.play_motion(self.motion)
+            return self.play_motion(self.motion)
         else:
-            self.play_motion_with_marker()
+            return self.play_motion_with_marker()
