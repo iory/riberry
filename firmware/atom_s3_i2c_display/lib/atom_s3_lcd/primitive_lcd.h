@@ -13,13 +13,18 @@ public:
   void printColorText(const String& input);
   void fillScreen(uint16_t color);
   void fillRect(int x1, int y1, int w, int h, uint16_t color);
+  void fillCircle(int x, int y, int r, uint16_t color);
   void drawRect(int x1, int y1, int w, int h, uint16_t color);
+  void drawCircle(int x, int y, int r, uint16_t color);
+  void drawNumber(long long_num, int32_t posX, int32_t posY);
   void drawLine(int x1, int y1, int x2, int y2, uint16_t color);
   void drawPixel(int x, int y, uint16_t color);
   void setCursor(int x, int y);
   void setRotation(int lcd_rotation);
   void clear();
   void setTextSize(float text_size);
+  float getTextSize();
+  void setTextDatum(textdatum_t datum);
   /**
    * @brief Convert ANSI color codes to RGB565 values for foreground or background.
    *
@@ -31,6 +36,7 @@ public:
 
 private:
   SemaphoreHandle_t lcdMutex;
+  float textSize = 0;
   bool lockLcd();
   void unlockLcd();
 };
