@@ -104,6 +104,12 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             self.play_list.reset_index()
             return
         sent_str = chr(PacketType.TEACHING_MODE)
+        marker_msg = self.motion_manager.marker_msg
+        if marker_msg is not None and len(marker_msg.detections) > 0:
+            marker_id = marker_msg.detections[0].id[0]
+            sent_str += str(marker_id)
+        delimiter = ','
+        sent_str += delimiter
         if self.state == State.WAIT:
             sent_str += 'Teaching mode\n\n'\
                 + '1tap:\n record\n\n'\
@@ -128,6 +134,10 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 sent_str += 'Play mode\n\n'\
                     + f'{self.play_list.selected_option(True)}\n\n'\
                     + '2tap:\n stop playing'
+        delimiter_num = 1
+        if len([char for char in sent_str if char == delimiter]) != delimiter_num:
+            print(f"The number of delimiter '{delimiter}' "
+                  f"must be {delimiter_num}")
         self.send_string(sent_str)
 
     def load_teaching_files(self):
