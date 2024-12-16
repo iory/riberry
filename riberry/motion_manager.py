@@ -9,12 +9,37 @@ from geometry_msgs.msg import Quaternion
 from kxr_controller.kxr_interface import KXRROSRobotInterface
 import numpy as np
 import rospy
+from skrobot.coordinates.base import Coordinates
 from skrobot.coordinates.base import transform_coords
 from skrobot.interfaces.ros.tf_utils import geometry_pose_to_coords
 from skrobot.interfaces.ros.tf_utils import tf_pose_to_coords
 from skrobot.interfaces.ros.transform_listener import TransformListener
 from skrobot.model import RobotModel
 from skrobot.utils.urdf import no_mesh_load_mode
+
+
+def quaternion_average_slerp(quaternions):
+    """
+    球面線形補間Slerpを使用したクォータニオンの平均計算
+
+    Parameters:
+    quaternions : numpy.ndarray
+        平均を計算するクォータニオンの配列 (N x 4)
+        w, x, y, z の順
+
+    Returns:
+    numpy.ndarray
+        平均クォータニオン (w, x, y, z)
+    """
+    # 最初のクォータニオンを基準として使用
+    reference = quaternions[0]
+    # すべてのクォータニオンを同じ半球に射影
+    sign = np.sign(np.dot(quaternions, reference))
+    quaternions *= sign[:, np.newaxis]
+    # 重み付け平均。同じweightを想定
+    mean_quat = np.mean(quaternions, axis=0)
+    # 平均クォータニオンを正規化
+    return mean_quat / np.linalg.norm(mean_quat)
 
 
 class MotionManager:
@@ -60,8 +85,14 @@ class MotionManager:
         if len(self.motion) == 0:
             self.start_time = rospy.Time.now()
         joint_states = {}
-        av = self.ri.angle_vector()
-        for j, a in zip(self.joint_names, av):
+        # Average multiple angle vectors to reduce the noise
+        # of the servo motor's potentiometer
+        # This may cause the recorded motion to become temporally sparse.
+        avs = []
+        for _ in range(5):
+            avs.append(self.ri.angle_vector())
+        av_average = np.mean(avs, axis=0)
+        for j, a in zip(self.joint_names, av_average):
             joint_states[str(j)] = float(a)
         now = rospy.Time.now()
         elapsed_time = (now - self.start_time).to_sec()
@@ -105,6 +136,9 @@ class MotionManager:
         self.ri.servo_off()
 
     def record(self, record_filepath):
+        """
+Returns message[str] to show on AtomS3 LCD
+"""
         self._stop = False
         self.motion = []
         self.markers = []
@@ -119,6 +153,11 @@ class MotionManager:
                 rospy.sleep(0.1)
             f.write(json.dumps(self.motion+self.markers, indent=4, separators=(",", ": ")))
             rospy.loginfo(f'Finish saving motion to {record_filepath}')
+        motion_duration = self.motion[-1]["time"]
+        message = f"Record {motion_duration:.1f} [s] motion:\n" +\
+            f"{len(self.motion)} motions\n" +\
+            f"{len(self.markers)} markers"
+        return message
 
     def load_json(self, play_filepath):
         # Load motion
@@ -139,6 +178,7 @@ Returns message[str] to show on AtomS3 LCD
         if 'joint_states' not in motion[0]:
             print("First element must have 'joint_states' key.")
             return
+        self.ri.servo_on()
         first_av = list(motion[0]['joint_states'].values())
         self.ri.angle_vector(first_av, 3)
         self.ri.wait_interpolation()
@@ -172,8 +212,8 @@ Returns message[str] to show on AtomS3 LCD
 
     def move_motion(self, motion, target_coords, local_coords):
         """
-Returns (moved_motion[json or None], message[str])
-if IK succeed, moved_motion is json.
+Returns (moved_motion[json] or False, message[str])
+if IK succeed, moved_motion is [json].
 if IK fail, moved_motion is False.
 """
         if self.end_coords_name is None:
@@ -198,7 +238,7 @@ if IK fail, moved_motion is False.
             link_list_has_joint = [x for x in link_list if x.joint is not None]
             ret = robot.inverse_kinematics(
                 ik_coords, link_list=link_list_has_joint, move_target=end_coords,
-                thre=[0.001 * 5], rthre=[np.deg2rad(1*5)],  # 5x times loose IK
+                # thre=[0.001 * 5], rthre=[np.deg2rad(1*5)],  # 5x times loose IK
                 stop=10,  # faster IK
             )
             if isinstance(ret, np.ndarray) is False:
@@ -214,9 +254,10 @@ if IK fail, moved_motion is False.
             # Overwrite moved_motion
             for joint_name in joint_states.keys():
                 joint_states[joint_name] = getattr(robot, joint_name).joint_angle()
-        rospy.loginfo(f"failure indices: {failure_indices}")
-        for i in failure_indices:
-            del moved_motion[i]
+        rospy.loginfo(f"failure indices: {failure_indices}" +\
+                      f" in {len(moved_motion)} trajectories")
+        for j in sorted(failure_indices, reverse=True):
+            del moved_motion[j]
         message = "IK success"
         rospy.loginfo(message)
         return (moved_motion, message)
@@ -228,10 +269,10 @@ Returns message[str] to show on AtomS3 LCD
         # Calculate first recorded marker coords from base_link
         # TODO: Use marker at anytime
         first_marker = self.markers[0]
-        if first_marker["time"] > 0.5:
-            error_message = "Marker must be recorded at the beginning of the motion"
-            rospy.logerr(error_message)
-            return error_message
+        # if first_marker["time"] > 1:
+        #     error_message = "Marker must be recorded at the beginning of the motion"
+        #     rospy.logerr(error_message)
+        #     return error_message
         camera_to_first_marker_pose = Pose(
             position=Point(x=first_marker["position"][0],
                            y=first_marker["position"][1],
@@ -246,24 +287,42 @@ Returns message[str] to show on AtomS3 LCD
             tf_pose_to_coords(base_to_camera_tf),
             geometry_pose_to_coords(camera_to_first_marker_pose))
         # Calculate current marker coords from base_link
-        if self.marker_msg is None or len(self.marker_msg.detections) == 0:
-            error_message = "Marker must be visible at the beginning of the motion"
-            rospy.logerr(error_message)
-            return error_message
-        if first_marker["marker_id"] != self.marker_msg.detections[0].id[0]:
-            error_message = "Current marker ID != recorded marker ID."
-            rospy.logerr(error_message)
-            return error_message
-        current_marker = self.marker_msg.detections[0]
-        base_to_camera_tf = self.tfl.lookup_transform(
-            "base_link", current_marker.pose.header.frame_id,
-            rospy.Time(0))
-        camera_to_current_marker_pose = current_marker.pose.pose.pose
-        current_marker_coords = transform_coords(
-            tf_pose_to_coords(base_to_camera_tf),
-            geometry_pose_to_coords(camera_to_current_marker_pose))
+        # Average multiple angle vectors to reduce the noise
+        # of the servo motor's potentiometer
+        # This may cause the delay before playing motion
+        positions = [] # x, y, z
+        quaternions = []  # x, y, z, w
+        for _ in range(5):
+            if self.marker_msg is None or len(self.marker_msg.detections) == 0:
+                error_message = "Marker must be visible at the beginning of the motion"
+                rospy.logerr(error_message)
+                return error_message
+            if first_marker["marker_id"] != self.marker_msg.detections[0].id[0]:
+                error_message = "Current marker ID != recorded marker ID."
+                rospy.logerr(error_message)
+                return error_message
+            current_marker = self.marker_msg.detections[0]
+            base_to_camera_tf = self.tfl.lookup_transform(
+                "base_link", current_marker.pose.header.frame_id,
+                rospy.Time(0))
+            camera_to_current_marker_pose = current_marker.pose.pose.pose
+            current_marker_coords = transform_coords(
+                tf_pose_to_coords(base_to_camera_tf),
+                geometry_pose_to_coords(camera_to_current_marker_pose))
+            positions.append(current_marker_coords.worldpos())
+            quaternions.append(current_marker_coords.quaternion_wxyz)
+            rospy.sleep(0.1)
+        current_marker_average_coords = Coordinates(
+            pos=np.mean(positions, axis=0),
+            rot=quaternion_average_slerp(quaternions)
+            )
+        # After recognizing marker, servo on
+        self.ri.servo_on()
         moved_motion, message = self.move_motion(
-            motion, current_marker_coords, first_marker_coords)
+            motion, current_marker_average_coords, first_marker_coords)
+        rospy.loginfo(f"current_marker_coords: {current_marker_coords}")
+        rospy.loginfo(
+            f"first_marker_coords: {current_marker_average_coords}")
         if moved_motion is False:
             return message
         else:
@@ -275,14 +334,16 @@ Returns message[str] to show on AtomS3 LCD
         self.load_json(play_filepath)
         # Play motion
         rospy.loginfo('Play motion')
-        self.ri.servo_on()
         if len(self.markers) == 0:
             return self.play_motion(self.motion)
         else:
             # The entire movement is performed again after the initial posture
             # to compensate for deflection of the arm due to gravity
             # with visual feedback.
-            self.play_motion_with_marker([self.motion[0]])
-            # Wait for new marker topic to come after previous motion stopped
-            rospy.sleep(0.5)
+            # self.play_motion_with_marker([self.motion[0]])
+            # # Wait for new marker topic to come after previous motion stopped
+            # rospy.sleep(0.5)
+
+            rospy.loginfo("Note that if you record marker with servo_off" +\
+                          " you should start playing with servo_off")
             return self.play_motion_with_marker(self.motion)

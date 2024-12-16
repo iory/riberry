@@ -141,7 +141,8 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                     + '2tap:\n stop playing'
         delimiter_num = 1
         if len([char for char in sent_str if char == delimiter]) != delimiter_num:
-            print(f"The number of delimiter '{delimiter}' must be {delimiter_num}")
+            rospy.logerr(f"sent string: {sent_str}")
+            rospy.logerr(f"The number of delimiter '{delimiter}' must be {delimiter_num}")
         self.send_string(sent_str)
 
     def load_teaching_files(self):
@@ -179,7 +180,9 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 elif self.state == State.RECORD:
                     # record until stopped
                     json_path = self.get_json_path()
-                    self.motion_manager.record(json_path)
+                    result_message = self.motion_manager.record(
+                        json_path)
+                    self.additional_str = result_message
                     self.play_list.add_option(json_path)
                     self.state = State.WAIT
                 elif self.state == State.PLAY:
