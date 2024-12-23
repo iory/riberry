@@ -40,6 +40,7 @@ class TeachingMode(I2CBase):
         self.prev_state = None
         self.state = State.WAIT
         rospy.Timer(rospy.Duration(0.1), self.timer_callback)
+        self.additional_str = ""
 
     def mode_cb(self, msg):
         self.mode = msg.data
@@ -104,15 +105,25 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             self.play_list.reset_index()
             return
         sent_str = chr(PacketType.TEACHING_MODE)
+        marker_msg = self.motion_manager.marker_msg
+        if marker_msg is not None and len(marker_msg.detections) > 0:
+            marker_id = marker_msg.detections[0].id[0]
+            sent_str += str(marker_id)
+        delimiter = ','
+        sent_str += delimiter
         if self.state == State.WAIT:
             sent_str += 'Teaching mode\n\n'\
-                + '1tap:\n record\n\n'\
-                + '2tap:\n play\n\n'\
-                + '3tap:\n servo_off'
+                + '1tap: record\n'\
+                + '2tap: play\n'\
+                + '3tap: free'
+            if self.additional_str != "":
+                sent_str += "\n\n" + self.additional_str
         elif self.state == State.RECORD:
+            self.additional_str = ""
             sent_str += 'Record mode\n\n'\
                 + '1tap: finish'
         elif self.state == State.PLAY:
+            self.additional_str = ""
             if self.playing is False:
                 if len(self.play_list.options) <= 0:
                     sent_str += 'Play mode\n\n'\
@@ -128,6 +139,10 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 sent_str += 'Play mode\n\n'\
                     + f'{self.play_list.selected_option(True)}\n\n'\
                     + '2tap:\n stop playing'
+        delimiter_num = 1
+        if len([char for char in sent_str if char == delimiter]) != delimiter_num:
+            rospy.logerr(f"sent string: {sent_str}")
+            rospy.logerr(f"The number of delimiter '{delimiter}' must be {delimiter_num}")
         self.send_string(sent_str)
 
     def load_teaching_files(self):
@@ -165,7 +180,9 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 elif self.state == State.RECORD:
                     # record until stopped
                     json_path = self.get_json_path()
-                    self.motion_manager.record(json_path)
+                    result_message = self.motion_manager.record(
+                        json_path)
+                    self.additional_str = result_message
                     self.play_list.add_option(json_path)
                     self.state = State.WAIT
                 elif self.state == State.PLAY:
@@ -173,7 +190,9 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                     if self.playing is False:
                         continue
                     else:
-                        self.motion_manager.play(self.play_file)
+                        result_message = self.motion_manager.play(
+                            self.play_file)
+                        self.additional_str = result_message
                         self.playing = False
                         self.state = State.WAIT
         except KeyboardInterrupt:

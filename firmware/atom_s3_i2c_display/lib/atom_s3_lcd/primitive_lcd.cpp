@@ -62,12 +62,34 @@ void PrimitiveLCD::fillRect(int x1, int y1, int w, int h, uint16_t color) {
   }
 }
 
+void PrimitiveLCD::fillCircle(int x, int y, int r, uint16_t color) {
+  if (lockLcd()) {
+    LGFX::fillCircle(x, y, r, color);
+    unlockLcd();
+  }
+}
+
+
 void PrimitiveLCD::drawRect(int x1, int y1, int w, int h, uint16_t color) {
   if (lockLcd()) {
     LGFX::drawRect(x1, y1, w, h, color);
     unlockLcd();
   }
 }
+
+void PrimitiveLCD::drawCircle(int x, int y, int r, uint16_t color) {
+  if (lockLcd()) {
+    LGFX::drawCircle(x, y, r, color);
+    unlockLcd();
+  }
+}
+
+void PrimitiveLCD::drawNumber(long long_num, int32_t posX, int32_t posY) {
+  if (lockLcd()) {
+    LGFX::drawNumber(long_num, posX, posY);
+    unlockLcd();
+  }
+};
 
 void PrimitiveLCD::drawLine(int x1, int y1, int x2, int y2, uint16_t color){
   if (lockLcd()) {
@@ -105,8 +127,20 @@ void PrimitiveLCD::clear(){
 }
 
 void PrimitiveLCD::setTextSize(float text_size){
+  textSize = text_size;
   if (lockLcd()) {
     LGFX::setTextSize(text_size);
+    unlockLcd();
+  }
+}
+
+float PrimitiveLCD::getTextSize(){
+  return textSize;
+}
+
+void PrimitiveLCD::setTextDatum(textdatum_t datum) {
+  if (lockLcd()) {
+    LGFX::setTextDatum(datum);
     unlockLcd();
   }
 }
