@@ -10,8 +10,8 @@ from std_msgs.msg import String
 
 from riberry.i2c_base import I2CBase
 from riberry.i2c_base import PacketType
-from riberry.motion_manager import MotionManager
 from riberry.select_list import SelectList
+from riberry.teaching_manager import TeachingManager
 
 
 class State(Enum):
@@ -21,9 +21,20 @@ class State(Enum):
 
 
 class TeachingMode(I2CBase):
+    """
+    TeachingMode is a class that manages robot motion teaching and playback through AtomS3 communication.
+
+    This class provides functionality to:
+    1. Record robot motions and save them as JSON files via TeachingManager class
+    2. Play back recorded motions via TeachingManager class
+    3. Control these operations via AtomS3 button inputs
+
+    Actual motion control and marker recognition are performed by a subordinate class, TeachingManager.
+    """
+
     def __init__(self, i2c_addr):
         super().__init__(i2c_addr)
-        self.motion_manager = MotionManager()
+        self.teaching_manager = TeachingManager()
         self.json_dir = os.path.join(os.environ["HOME"], ".ros/riberry")
         os.makedirs(self.json_dir, exist_ok=True)
         self.play_list = SelectList()
@@ -64,14 +75,14 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             elif msg.data == 2:
                 self.state = State.PLAY
             elif msg.data == 3:
-                self.motion_manager.servo_off()
+                self.teaching_manager.servo_off()
         elif self.state == State.RECORD:
             # finish recording
             if msg.data == 1:
-                self.motion_manager.stop()
+                self.teaching_manager.stop()
                 self.state = State.WAIT
             elif msg.data == 3:
-                self.motion_manager.servo_off()
+                self.teaching_manager.servo_off()
         elif self.state == State.PLAY:
             if self.playing is False:
                 if msg.data != 0 and len(self.play_list.options) <= 0:
@@ -94,7 +105,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             else:
                 # stop playing
                 if msg.data == 2:
-                    self.motion_manager.stop()
+                    self.teaching_manager.stop()
                     self.state = State.WAIT
 
     def timer_callback(self, event):
@@ -105,10 +116,9 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             self.play_list.reset_index()
             return
         sent_str = chr(PacketType.TEACHING_MODE)
-        marker_msg = self.motion_manager.marker_msg
-        if marker_msg is not None and len(marker_msg.detections) > 0:
-            marker_id = marker_msg.detections[0].id[0]
-            sent_str += str(marker_id)
+        if self.teaching_manager.marker_manager.is_marker_recognized():
+            marker_ids = self.teaching_manager.marker_manager.current_marker_ids()
+            sent_str += str(marker_ids[0])
         delimiter = ','
         sent_str += delimiter
         if self.state == State.WAIT:
@@ -180,7 +190,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 elif self.state == State.RECORD:
                     # record until stopped
                     json_path = self.get_json_path()
-                    result_message = self.motion_manager.record(
+                    result_message = self.teaching_manager.record(
                         json_path)
                     self.additional_str = result_message
                     self.play_list.add_option(json_path)
@@ -190,7 +200,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                     if self.playing is False:
                         continue
                     else:
-                        result_message = self.motion_manager.play(
+                        result_message = self.teaching_manager.play(
                             self.play_file)
                         self.additional_str = result_message
                         self.playing = False
