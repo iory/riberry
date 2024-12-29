@@ -85,17 +85,24 @@ class PressureControlMode(I2CBase):
         board_ids = list(self.pressure_control_state.keys())
         for idx in board_ids:
             state = self.pressure_control_state[f"{idx}"]
-            if state.start_pressure == 0 and state.stop_pressure == 0:
-                start_pressure = -10
-                stop_pressure = -30
+            # toggle release state
+            if state.release_duration == 0:
+                release_duration = 2  # release air
+            elif state.release_duration > 0:
+                release_duration = 0  # close air
+            # Set pressures
+            if state.trigger_pressure == 0 and state.target_pressure == 0:
+                trigger_pressure = -10
+                target_pressure = -30
             else:
-                start_pressure = state.start_pressure
-                stop_pressure = state.stop_pressure
+                trigger_pressure = state.trigger_pressure
+                target_pressure = state.target_pressure
+            # Send goal
             self.ri.send_pressure_control(
                 board_idx=int(idx),
-                start_pressure=start_pressure,
-                stop_pressure=stop_pressure,
-                release=(not state.release),  # toggle release state
+                trigger_pressure=trigger_pressure,
+                target_pressure=target_pressure,
+                release_duration=release_duration
             )
             rospy.sleep(0.1)  # Send multiple goals at time intervals.
 
