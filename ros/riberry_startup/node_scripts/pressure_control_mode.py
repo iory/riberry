@@ -95,8 +95,9 @@ class PressureControlMode(I2CBase):
                 board_idx=int(idx),
                 start_pressure=start_pressure,
                 stop_pressure=stop_pressure,
-                release=(not state.release),
+                release=(not state.release),  # toggle release state
             )
+            rospy.sleep(0.1)  # Send multiple goals at time intervals.
 
     def read_pressure(self, msg, idx):
         self.pressures[idx] = msg.data
