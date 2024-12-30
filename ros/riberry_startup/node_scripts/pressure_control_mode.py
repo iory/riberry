@@ -41,8 +41,10 @@ class PressureControlMode(I2CBase):
             callback=self.pressure_control_cb,
             queue_size=1,
         )
+        self.release_duration = {}
 
         # Read pressure
+        self.board_ids = []
         self.pressures = {}
         for idx in range(38, 66):
             rospy.Subscriber(
@@ -74,6 +76,9 @@ class PressureControlMode(I2CBase):
 
     def pressure_control_cb(self, msg):
         self.pressure_control_state[f"{msg.board_idx}"] = msg
+        self.board_ids = list(self.pressure_control_state.keys())
+        for idx in self.board_ids:
+            self.release_duration[f"{idx}"] = msg.release_duration
 
     def toggle_pressure_control(self):
         """
@@ -82,20 +87,26 @@ class PressureControlMode(I2CBase):
         if self.ri is None:
             rospy.logwarn("KXRROSRobotInterface instance is not created.")
             return
-        board_ids = list(self.pressure_control_state.keys())
-        for idx in board_ids:
+        for idx in self.board_ids:
             state = self.pressure_control_state[f"{idx}"]
-            if state.start_pressure == 0 and state.stop_pressure == 0:
-                start_pressure = -10
-                stop_pressure = -30
+            # toggle release state
+            if state.release_duration == 0:
+                release_duration = 2  # release air
+            elif state.release_duration > 0:
+                release_duration = 0  # close air
+            # Set pressures
+            if state.trigger_pressure == 0 and state.target_pressure == 0:
+                trigger_pressure = -10
+                target_pressure = -30
             else:
-                start_pressure = state.start_pressure
-                stop_pressure = state.stop_pressure
+                trigger_pressure = state.trigger_pressure
+                target_pressure = state.target_pressure
+            # Send goal
             self.ri.send_pressure_control(
                 board_idx=int(idx),
-                start_pressure=start_pressure,
-                stop_pressure=stop_pressure,
-                release=(not state.release),  # toggle release state
+                trigger_pressure=trigger_pressure,
+                target_pressure=target_pressure,
+                release_duration=release_duration
             )
             rospy.sleep(0.1)  # Send multiple goals at time intervals.
 
@@ -111,7 +122,13 @@ class PressureControlMode(I2CBase):
             if value is None:
                 continue
             else:
-                sent_str += f"{idx}: {value:.3f}\n"
+                sent_str += f"{idx}: {value:.1f}"
+                if f"{idx}" in self.release_duration:
+                    if self.release_duration[f"{idx}"] == 0:
+                        sent_str += "\x1b[32m ON\x1b[39m"
+                    elif self.release_duration[f"{idx}"] > 0:
+                        sent_str += "\x1b[31m OFF\x1b[39m"
+                sent_str += "\n"
         sent_str += "\nSingle Click:\nVacuum on off"
         # Send message on AtomS3 LCD
         self.send_string(sent_str)
