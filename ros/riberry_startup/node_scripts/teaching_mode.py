@@ -50,10 +50,13 @@ class TeachingMode(I2CBase):
             "/atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
         self.special_action_name = rospy.get_param(
             '~special_action_name', None)
-        self.special_action_start_command = rospy.get_param(
-            '~special_action_start_command', None)
-        self.special_action_stop_command = rospy.get_param(
-            '~special_action_stop_command', None)
+        _ = rospy.get_param('~special_action_start_command', None)
+        self.special_action_start_command = _.replace(
+            'ri.', 'self.teaching_manager.motion_manager.ri.')
+        _ = rospy.get_param('~special_action_stop_command', None)
+        self.special_action_stop_command = _.replace(
+            'ri.', 'self.teaching_manager.motion_manager.ri.')
+        self.special_action_executed = False
         self.prev_state = None
         self.state = State.WAIT
         rospy.Timer(rospy.Duration(0.1), self.timer_callback)
@@ -87,13 +90,25 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             if msg.data == 1:
                 self.teaching_manager.stop()
                 self.state = State.WAIT
-            # Record special action
+            # Record and execute special action
             elif msg.data == 2:
+                if self.special_action_executed is True:
+                    action_state = 'Stop'
+                    command = self.special_action_stop_command
+                else:
+                    action_state = 'Start'
+                    command = self.special_action_start_command
+                # Record
                 self.teaching_manager.motion_manager.add_action(
                     self.teaching_manager.start_time,
-                    self.special_action_name,
-                    self.special_action_start_command,
-                    self.special_action_stop_command)
+                    f'{action_state} {self.special_action_name}',
+                    command)
+                # Execute
+                try:
+                    exec(command)
+                except Exception as e:
+                    rospy.logerr(f"[Special action {action_state.lower()} command]: {e}")
+                self.special_action_executed = not self.special_action_executed
             elif msg.data == 3:
                 self.teaching_manager.servo_off()
         elif self.state == State.PLAY:
@@ -144,14 +159,19 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
         elif self.state == State.RECORD:
             self.additional_str = ""
             sent_str += 'Record mode\n\n'\
-                + '1tap: finish\n'
+                + '1tap: finish\n\n'
             sent_str += '2tap: '
             if self.special_action_name is None or\
                self.special_action_start_command is None or\
                self.special_action_stop_command is None:
                 sent_str += 'None\n'
             else:
-                sent_str += f'{self.special_action_name}\n'
+                sent_str += 'Toggle\n'
+                if self.special_action_executed is True:
+                    sent_str += '\x1b[32m ON   \x1b[39m'
+                else:
+                    sent_str += '\x1b[31m OFF  \x1b[39m'
+                sent_str += f'{self.special_action_name}\n\n'
             sent_str += '3tap: free'
         elif self.state == State.PLAY:
             self.additional_str = ""
