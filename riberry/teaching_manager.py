@@ -73,6 +73,7 @@ class TeachingManager:
 
         self.motion_manager.start()
         self.motion_manager.set_motion([])
+        self.motion_manager.set_actions([])
         self.marker_manager.set_markers([])
         with open(record_filepath, mode='w') as f:
             rospy.loginfo(f'Start saving motion to {record_filepath}')
@@ -89,7 +90,9 @@ class TeachingManager:
                 rospy.sleep(0.1)
             f.write(
                 json.dumps(
-                    self.motion_manager.get_motion()+self.marker_manager.get_markers(),
+                    self.motion_manager.get_motion()+\
+                    self.motion_manager.get_actions()+\
+                    self.marker_manager.get_markers(),
                     indent=4, separators=(",", ": ")))
             rospy.loginfo(f'Finish saving motion to {record_filepath}')
         motion_duration = self.motion_manager.get_motion()[-1]["time"]
