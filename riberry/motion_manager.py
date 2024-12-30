@@ -44,6 +44,7 @@ class MotionManager:
            and self.end_coords_name not in link_names:
             rospy.logerr('end_coords name does not match link name.')
         self.motion = []
+        self.special_actions = []
         self.start()
 
     def stop(self):
@@ -92,6 +93,37 @@ class MotionManager:
         })
         rospy.loginfo('Add new joint states')
         rospy.loginfo(f'Time: {elapsed_time}, joint_states: {joint_states}')
+
+    def set_actions(self, actions):
+        self.special_actions = actions
+
+    def get_actions(self):
+        return self.special_actions
+
+    def add_action(self, start_time, name, start_command, stop_command):
+        """Record special command
+
+        Args:
+        start_time[rospy.rostime.Time]: Start time of record
+        name[str]: e.g. 'grasp'
+        start_command[str]: e.g. 'ri.start_grasp()'
+        stop_command[str]: e.g. 'ri.stop_grasp()'
+"""
+        now = rospy.Time.now()
+        elapsed_time = (now - start_time).to_sec()
+        self.special_actions.append({
+            'time': elapsed_time,
+            'special_action':
+            {
+                'name': name,
+                'start_command': start_command,
+                'stop_command': stop_command,
+            }
+        })
+        rospy.loginfo('Add special action')
+        rospy.loginfo(
+            f'Time: {elapsed_time}, name: {name}, ' +\
+            f'start_command: {start_command}, stop_command: {stop_command}')
 
     def play_motion(self, motion):
         """Executes a sequence of motions with safety checks and interruption handling.
