@@ -18,6 +18,11 @@ class SelectList:
         if self.idx >= len(self.options):
             self.idx = 0
 
+    def remove_all_options(self):
+        self.options = []
+        if self.idx >= len(self.options):
+            self.idx = 0
+
     def increment_index(self):
         if len(self.options) == 0:
             return -1
@@ -26,6 +31,16 @@ class SelectList:
 
     def reset_index(self):
         self.idx = 0
+        return self.idx
+
+    def get_index(self):
+        return self.idx
+
+    def set_index(self, idx):
+        if idx >= len(self.options):
+            self.idx = 0
+        else:
+            self.idx = idx
         return self.idx
 
     def selected_option(self, extract=False):

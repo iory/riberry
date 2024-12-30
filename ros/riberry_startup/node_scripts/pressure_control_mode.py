@@ -11,6 +11,7 @@ from std_msgs.msg import String
 
 from riberry.i2c_base import I2CBase
 from riberry.i2c_base import PacketType
+from riberry.select_list import SelectList
 
 
 class PressureControlMode(I2CBase):
@@ -41,10 +42,10 @@ class PressureControlMode(I2CBase):
             callback=self.pressure_control_cb,
             queue_size=1,
         )
-        self.release_duration = {}
+        self.air_work_list = SelectList()
+        self.delimiter = ":"
 
         # Read pressure
-        self.board_ids = []
         self.pressures = {}
         for idx in range(38, 66):
             rospy.Subscriber(
@@ -61,12 +62,18 @@ class PressureControlMode(I2CBase):
         When AtomS3 is Pressurecontrolmode and single-click pressed,
         toggle pressure control.
         """
-        if self.mode == "PressureControlMode" and msg.data == 1:
+        if self.mode != "PressureControlMode":
+            return
+        if msg.data == 1:
+            self.air_work_list.increment_index()
+        if msg.data == 2:
+            selected = self.air_work_list.selected_option()
+            idx = int(selected.split(self.delimiter)[0])
             rospy.loginfo(
-                "AtomS3 is Pressurecontrolmode and single-click-pressed."
-                + " Toggle pressure control."
+                "AtomS3 is Pressurecontrolmode and double-click-pressed."
+                + f" Toggle ID {idx} pressure control."
             )
-            self.toggle_pressure_control()
+            self.toggle_pressure_control(idx)
 
     def mode_cb(self, msg):
         """
@@ -76,39 +83,34 @@ class PressureControlMode(I2CBase):
 
     def pressure_control_cb(self, msg):
         self.pressure_control_state[f"{msg.board_idx}"] = msg
-        self.board_ids = list(self.pressure_control_state.keys())
-        for idx in self.board_ids:
-            self.release_duration[f"{idx}"] = msg.release_duration
 
-    def toggle_pressure_control(self):
+    def toggle_pressure_control(self, idx):
         """
         Toggle release status
         """
         if self.ri is None:
             rospy.logwarn("KXRROSRobotInterface instance is not created.")
             return
-        for idx in self.board_ids:
-            state = self.pressure_control_state[f"{idx}"]
-            # toggle release state
-            if state.release_duration == 0:
-                release_duration = 2  # release air
-            elif state.release_duration > 0:
-                release_duration = 0  # close air
-            # Set pressures
-            if state.trigger_pressure == 0 and state.target_pressure == 0:
-                trigger_pressure = -10
-                target_pressure = -30
-            else:
-                trigger_pressure = state.trigger_pressure
-                target_pressure = state.target_pressure
-            # Send goal
-            self.ri.send_pressure_control(
-                board_idx=int(idx),
-                trigger_pressure=trigger_pressure,
-                target_pressure=target_pressure,
-                release_duration=release_duration
-            )
-            rospy.sleep(0.1)  # Send multiple goals at time intervals.
+        state = self.pressure_control_state[f"{idx}"]
+        # toggle release state
+        if state.release_duration == 0:
+            release_duration = 2  # release air
+        elif state.release_duration > 0:
+            release_duration = 0  # start air work
+        # Set pressures
+        if state.trigger_pressure == 0 and state.target_pressure == 0:
+            trigger_pressure = -10
+            target_pressure = -30
+        else:
+            trigger_pressure = state.trigger_pressure
+            target_pressure = state.target_pressure
+        # Send goal
+        self.ri.send_pressure_control(
+            board_idx=int(idx),
+            trigger_pressure=trigger_pressure,
+            target_pressure=target_pressure,
+            release_duration=release_duration
+        )
 
     def read_pressure(self, msg, idx):
         self.pressures[idx] = msg.data
@@ -117,19 +119,27 @@ class PressureControlMode(I2CBase):
         if self.mode != "PressureControlMode":
             return
         sent_str = chr(PacketType.PRESSURE_CONTROL_MODE)
-        sent_str += "pressure [kPa]\n"
+        sent_str += "pressure [kPa]\n\n"
+        air_work_index = self.air_work_list.get_index()
+        self.air_work_list.remove_all_options()
         for idx, value in self.pressures.items():
             if value is None:
                 continue
             else:
-                sent_str += f"{idx}: {value:.1f}"
-                if f"{idx}" in self.release_duration:
-                    if self.release_duration[f"{idx}"] == 0:
-                        sent_str += "\x1b[32m ON\x1b[39m"
-                    elif self.release_duration[f"{idx}"] > 0:
-                        sent_str += "\x1b[31m OFF\x1b[39m"
-                sent_str += "\n"
-        sent_str += "\nSingle Click:\nVacuum on off"
+                air_work_str = f"{idx}: {value:.1f}"
+                if f"{idx}" in self.pressure_control_state:
+                    release_duration = self.pressure_control_state[f"{idx}"].release_duration
+                    if release_duration == 0:
+                        air_work_str += "\x1b[32m ON\x1b[39m"
+                    elif release_duration > 0:
+                        air_work_str += "\x1b[31m OFF\x1b[39m"
+                if air_work_str.count(self.delimiter) != 1:
+                    rospy.logerr(f"The number of delimiter {self.deilmiter} must be 1")
+                self.air_work_list.add_option(air_work_str)
+        self.air_work_list.set_index(air_work_index)
+        sent_str += self.air_work_list.string_options(3)
+        sent_str += "\n1 tap: Next"
+        sent_str += "\n2 tap: Toggle"
         # Send message on AtomS3 LCD
         self.send_string(sent_str)
 
