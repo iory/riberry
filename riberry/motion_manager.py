@@ -100,14 +100,13 @@ class MotionManager:
     def get_actions(self):
         return self.special_actions
 
-    def add_action(self, start_time, name, start_command, stop_command):
+    def add_action(self, start_time, name, command):
         """Record special command
 
         Args:
         start_time[rospy.rostime.Time]: Start time of record
-        name[str]: e.g. 'grasp'
-        start_command[str]: e.g. 'ri.start_grasp()'
-        stop_command[str]: e.g. 'ri.stop_grasp()'
+        name[str]: Command name. e.g. 'grasp'
+        command[str]: Command to be recorded. e.g. 'ri.start_grasp()'
 """
         now = rospy.Time.now()
         elapsed_time = (now - start_time).to_sec()
@@ -116,14 +115,12 @@ class MotionManager:
             'special_action':
             {
                 'name': name,
-                'start_command': start_command,
-                'stop_command': stop_command,
+                'command': command,
             }
         })
         rospy.loginfo('Add special action')
         rospy.loginfo(
-            f'Time: {elapsed_time}, name: {name}, ' +\
-            f'start_command: {start_command}, stop_command: {stop_command}')
+            f'Time: {elapsed_time}, name: {name}, command: {command}')
 
     def play_motion(self, motion):
         """Executes a sequence of motions with safety checks and interruption handling.
