@@ -3,6 +3,7 @@
 from datetime import datetime
 from enum import Enum
 import os
+import threading
 
 import rospy
 from std_msgs.msg import Int32
@@ -104,10 +105,11 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                     f'{action_state} {self.special_action_name}',
                     command)
                 # Execute
-                try:
-                    exec(command)
-                except Exception as e:
-                    rospy.logerr(f"[Special action {action_state.lower()} command]: {e}")
+                thread1 = threading.Thread(
+                    target=self.exec_with_error_handling,
+                    args=(command,),
+                    daemon=True)
+                thread1.start()
                 self.special_action_executed = not self.special_action_executed
             elif msg.data == 3:
                 self.teaching_manager.servo_off()
@@ -195,6 +197,15 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             rospy.logerr(f"sent string: {sent_str}")
             rospy.logerr(f"The number of delimiter '{delimiter}' must be {delimiter_num}")
         self.send_string(sent_str)
+
+    def exec_with_error_handling(self, command):
+        """Execute command from string
+
+"""
+        try:
+            exec(command)
+        except Exception as e:
+            rospy.logerr(f"[Special action] {e}")
 
     def load_teaching_files(self):
         teaching_files = [
