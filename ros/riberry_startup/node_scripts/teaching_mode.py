@@ -59,9 +59,9 @@ class TeachingMode(I2CBase):
                 rospy.logerr(f"special action must have key: {keys}.")
                 return
             action["start_command"] = action["start_command"].replace(
-                'ri.', 'self.teaching_manager.motion_manager.ri.')
+                'ri.', 'self.ri.')
             action["stop_command"] = action["stop_command"].replace(
-                'ri.', 'self.teaching_manager.motion_manager.ri.')
+                'ri.', 'self.ri.')
             self.special_action_list.add_option(action["name"], position="end")
         self.special_action_selected = None
         self.special_action_executed = False
@@ -124,7 +124,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                     command)
                 # Execute
                 thread1 = threading.Thread(
-                    target=self.exec_with_error_handling,
+                    target=self.teaching_manager.motion_manager.exec_with_error_handling,
                     args=(command,),
                     daemon=True)
                 thread1.start()
@@ -189,7 +189,7 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 sent_str += '1tap: finish\n\n'
                 sent_str += '2tap: '
                 if self.special_action_selected is None:
-                    sent_str += 'None\n'
+                    sent_str += 'None\n\n'
                 else:
                     sent_str += 'Toggle\n'
                     if self.special_action_executed is True:
@@ -220,15 +220,6 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             rospy.logerr(f"sent string: {sent_str}")
             rospy.logerr(f"The number of delimiter '{delimiter}' must be {delimiter_num}")
         self.send_string(sent_str)
-
-    def exec_with_error_handling(self, command):
-        """Execute command from string
-
-"""
-        try:
-            exec(command)
-        except Exception as e:
-            rospy.logerr(f"[Special action] {e}")
 
     def load_teaching_files(self):
         teaching_files = [
