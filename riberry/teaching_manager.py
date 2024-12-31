@@ -40,6 +40,7 @@ class TeachingManager:
             with open(play_filepath) as f:
                 json_data = json.load(f)
                 self.motion_manager.set_motion([j for j in json_data if 'joint_states' in j])
+                self.motion_manager.set_actions([j for j in json_data if 'special_action' in j])
                 self.marker_manager.set_markers([j for j in json_data if 'marker_id' in j])
             rospy.loginfo(f'Loaded motion data: {self.motion_manager.get_motion()}')
             rospy.loginfo(f'Loaded marker data {self.marker_manager.get_markers()}')
@@ -122,8 +123,10 @@ class TeachingManager:
         # Play motion
         rospy.loginfo('Play motion')
         recorded_motion = self.motion_manager.get_motion()
+        special_actions = self.motion_manager.get_actions()
         if len(self.marker_manager.get_markers()) == 0:
-            return self.motion_manager.play_motion(recorded_motion)
+            return self.motion_manager.play_motion(
+                recorded_motion, special_actions)
         else:
             # The entire movement is performed again after the initial posture
             # to compensate for deflection of the arm due to gravity
@@ -159,4 +162,5 @@ class TeachingManager:
             if moved_motion is False:
                 return message
             else:
-                return self.motion_manager.play_motion(moved_motion)
+                return self.motion_manager.play_motion(
+                    moved_motion, special_actions)

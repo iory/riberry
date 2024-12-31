@@ -47,6 +47,15 @@ class MotionManager:
         self.special_actions = []
         self.start()
 
+    def exec_with_error_handling(self, command):
+        """Execute command from string
+
+"""
+        try:
+            exec(command)
+        except Exception as e:
+            rospy.logerr(f"[Special action] {e}")
+
     def stop(self):
         """Stops the motion execution.
 
@@ -122,7 +131,59 @@ class MotionManager:
         rospy.loginfo(
             f'Time: {elapsed_time}, name: {name}, command: {command}')
 
-    def play_motion(self, motion):
+    def parse_motion(self, motion, actions):
+        """
+        ロボットの動作データを処理し、joint_statesとspecial_actionで分類する関数
+
+        Args:
+            data: JSON形式のロボット動作データ
+
+        Returns:
+            処理済みのデータを含む辞書
+        """
+        sorted_motion = sorted(motion, key=lambda x: x['time'])
+        sorted_actions = sorted(actions, key=lambda x: x['time'])
+        special_actions = []
+        joint_states = []
+        for item in sorted_motion:
+            if 'joint_states' not in item:
+                rospy.logerr("Cannot parse data. Invalid motion is given.")
+                return
+            joint_states.append(item)
+        for item in sorted_actions:
+            if 'special_action' not in item:
+                rospy.logerr("Cannot parse data. Invalid actions are given.")
+                return
+            special_actions.append(item)
+        # special_actionの時間でjoint_statesを分割
+        motion_segments = []
+        current_segment = []
+        special_action_times = [action['time'] for action in special_actions]
+        for state in joint_states:
+            time = state['time']
+            # 現在のsegmentを決定
+            should_start_new_segment = False
+            if current_segment:
+                for special_time in special_action_times:
+                    if time > special_time and current_segment[-1]['time'] < special_time:
+                        should_start_new_segment = True
+                        break
+            if should_start_new_segment:
+                motion_segments.append(current_segment)
+                current_segment = []
+            current_segment.append(state)
+        # 最後のセグメントを追加
+        if current_segment:
+            motion_segments.append(current_segment)
+        if len(motion_segments) != len(special_actions) + 1:
+            rospy.logerr("Parse failed.")
+            return
+        return {
+            "motion_segments": motion_segments,
+            "special_actions": special_actions
+        }
+
+    def play_motion(self, motion, actions):
         """Executes a sequence of motions with safety checks and interruption handling.
 
 Returns message[str] to show on AtomS3 LCD
@@ -137,28 +198,48 @@ Returns message[str] to show on AtomS3 LCD
         self.ri.wait_interpolation()
         # Play the actions from the second one onward
         prev_time = motion[0]['time']
-        avs = []
-        tms = []
-        for m in motion[1:]:
-            current_time = m['time']
-            # Send angle vector
-            if 'joint_states' in m:
-                av = np.array(list(m['joint_states'].values()))
-                avs.append(av)
-                tms.append(current_time - prev_time)
-            prev_time = current_time
-        rospy.loginfo('angle vectors')
-        rospy.loginfo(f'{avs}')
-        rospy.loginfo('times')
-        rospy.loginfo(f'{tms}')
-        self.ri.angle_vector_sequence(avs, tms)
-        # Check interruption by button
-        while not rospy.is_shutdown() and self.ri.is_interpolating():
-            if self.is_stopped():
-                self.ri.cancel_angle_vector()
-                rospy.loginfo('Play interrupted')
-                break
-            rospy.sleep(0.5)  # Save motion every 0.5s to smooth motion play
+        _ = self.parse_motion(motion[1:], actions)
+        motion_segments = _["motion_segments"]
+        special_actions = _["special_actions"]
+        # Separate motions by special action and play them in turns
+        for i, motion_segment in enumerate(motion_segments):
+            avs = []
+            tms = []
+            filtered_motion_segment = [m for m in motion_segment
+                                       if m['time'] >= prev_time]
+            # Play motion segment
+            for m in filtered_motion_segment:
+                current_time = m['time']
+                # Send angle vector
+                if 'joint_states' in m:
+                    av = np.array(list(m['joint_states'].values()))
+                    avs.append(av)
+                    tms.append(current_time - prev_time)
+                prev_time = current_time
+            rospy.loginfo('angle vectors')
+            rospy.loginfo(f'{avs}')
+            rospy.loginfo('times')
+            rospy.loginfo(f'{tms}')
+            self.ri.angle_vector_sequence(avs, tms)
+            # Check interruption by button
+            while not rospy.is_shutdown() and self.ri.is_interpolating():
+                if self.is_stopped():
+                    self.ri.cancel_angle_vector()
+                    rospy.loginfo('Play interrupted')
+                    break
+                rospy.sleep(0.5)  # Save motion every 0.5s to smooth motion play
+            # Play special action
+            start_time = rospy.Time.now()
+            if i < len(special_actions):
+                action = special_actions[i]["special_action"]
+                rospy.loginfo('Run special action')
+                rospy.loginfo(
+                    f'name: {action["name"]}, command: {action["command"]}')
+                self.exec_with_error_handling(
+                    action["command"])
+            elapsed_time = (rospy.Time.now() - start_time).to_sec()
+            # Skip motions recorded during special action
+            prev_time += elapsed_time
         message = 'Play finished'
         rospy.loginfo(message)
         return message
