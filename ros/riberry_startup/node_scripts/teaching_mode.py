@@ -41,6 +41,7 @@ class TeachingMode(I2CBase):
         self.play_list = SelectList()
         self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
         self.load_teaching_files()
+        self.recording = False
         self.playing = False
         self.mode = None
         # Button and mode callback
@@ -49,14 +50,20 @@ class TeachingMode(I2CBase):
             Int32, callback=self.button_cb, queue_size=1)
         rospy.Subscriber(
             "/atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
-        self.special_action_name = rospy.get_param(
-            '~special_action_name', None)
-        _ = rospy.get_param('~special_action_start_command', None)
-        self.special_action_start_command = _.replace(
-            'ri.', 'self.teaching_manager.motion_manager.ri.')
-        _ = rospy.get_param('~special_action_stop_command', None)
-        self.special_action_stop_command = _.replace(
-            'ri.', 'self.teaching_manager.motion_manager.ri.')
+        self.special_actions = rospy.get_param(
+            '~special_actions', [])
+        self.special_action_list = SelectList()
+        for action in self.special_actions:
+            keys = ("name","start_command", "stop_command")
+            if not all(k in action for k in keys):
+                rospy.logerr(f"special action must have key: {keys}.")
+                return
+            action["start_command"] = action["start_command"].replace(
+                'ri.', 'self.teaching_manager.motion_manager.ri.')
+            action["stop_command"] = action["stop_command"].replace(
+                'ri.', 'self.teaching_manager.motion_manager.ri.')
+            self.special_action_list.add_option(action["name"], position="end")
+        self.special_action_selected = None
         self.special_action_executed = False
         self.prev_state = None
         self.state = State.WAIT
@@ -87,22 +94,33 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
             elif msg.data == 3:
                 self.teaching_manager.servo_off()
         elif self.state == State.RECORD:
+            # select special action
+            if len(self.special_actions) > 0 and\
+               self.special_action_selected is None:
+                if msg.data == 1:
+                    self.special_action_list.increment_index()
+                if msg.data == 2:
+                    self.special_action_selected = self.special_actions[self.special_action_list.get_index()]
+                return
+            self.recording = True
             # finish recording
             if msg.data == 1:
                 self.teaching_manager.stop()
                 self.state = State.WAIT
+                self.recording = False
+                self.special_action_selected = None
             # Record and execute special action
             elif msg.data == 2:
                 if self.special_action_executed is True:
                     action_state = 'Stop'
-                    command = self.special_action_stop_command
+                    command = self.special_action_selected["stop_command"]
                 else:
                     action_state = 'Start'
-                    command = self.special_action_start_command
+                    command = self.special_action_selected["start_command"]
                 # Record
                 self.teaching_manager.motion_manager.add_action(
                     self.teaching_manager.start_time,
-                    f'{action_state} {self.special_action_name}',
+                    f'{action_state} {self.special_action_selected["name"]}',
                     command)
                 # Execute
                 thread1 = threading.Thread(
@@ -160,21 +178,26 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 sent_str += "\n\n" + self.additional_str
         elif self.state == State.RECORD:
             self.additional_str = ""
-            sent_str += 'Record mode\n\n'\
-                + '1tap: finish\n\n'
-            sent_str += '2tap: '
-            if self.special_action_name is None or\
-               self.special_action_start_command is None or\
-               self.special_action_stop_command is None:
-                sent_str += 'None\n'
+            sent_str += 'Record mode\n\n'
+            # Select special action if ~special_actions param is defined
+            if len(self.special_actions) > 0 and\
+               self.special_action_selected is None:
+                sent_str += ' 1tap: next\n' + ' 2tap: select\n\n'
+                sent_str += self.special_action_list.string_options(5)
+            # Start recording
             else:
-                sent_str += 'Toggle\n'
-                if self.special_action_executed is True:
-                    sent_str += '\x1b[32m ON   \x1b[39m'
+                sent_str += '1tap: finish\n\n'
+                sent_str += '2tap: '
+                if self.special_action_selected is None:
+                    sent_str += 'None\n'
                 else:
-                    sent_str += '\x1b[31m OFF  \x1b[39m'
-                sent_str += f'{self.special_action_name}\n\n'
-            sent_str += '3tap: free'
+                    sent_str += 'Toggle\n'
+                    if self.special_action_executed is True:
+                        sent_str += '\x1b[32m ON   \x1b[39m'
+                    else:
+                        sent_str += '\x1b[31m OFF  \x1b[39m'
+                    sent_str += f'{self.special_action_selected["name"]}\n\n'
+                sent_str += '3tap: free'
         elif self.state == State.PLAY:
             self.additional_str = ""
             if self.playing is False:
@@ -240,6 +263,9 @@ Wait -> (Double-click) -> Play -> (Double-click) -> Confirm -> (Double-click) ->
                 if self.state == State.WAIT:
                     rospy.sleep(1)
                 elif self.state == State.RECORD:
+                    # wait for special action to be confirmed
+                    if self.recording is False:
+                        continue
                     # record until stopped
                     json_path = self.get_json_path()
                     result_message = self.teaching_manager.record(
