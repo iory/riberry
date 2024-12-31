@@ -10,8 +10,11 @@ class SelectList:
         self.idx = 0
         self.pattern = None
 
-    def add_option(self, item):
-        self.options.insert(0, item)
+    def add_option(self, item, position="start"):
+        if position == "start":
+            self.options.insert(0, item)
+        elif position == "end":
+            self.options.append(item)
 
     def remove_option(self, item):
         self.options.remove(item)
