@@ -256,9 +256,11 @@ class MotionManager:
             while not rospy.is_shutdown() and self.ri.is_interpolating():
                 if self.is_stopped():
                     self.ri.cancel_angle_vector()
-                    rospy.loginfo('Play interrupted')
                     break
                 rospy.sleep(0.5)  # Save motion every 0.5s to smooth motion play
+            if self.is_stopped():
+                rospy.loginfo('Play interrupted')
+                break
             # Play special action
             start_time = rospy.Time.now()
             if i < len(special_actions):
