@@ -96,6 +96,8 @@ class TeachingMode(I2CBase):
         Args:
             msg (std_msgs.msg.String): Message containing the mode string.
         """
+        if self.mode != "TeachingMode" and msg.data == "TeachingMode":
+            rospy.loginfo("Start teaching mode")
         self.mode = msg.data
 
     def button_cb(self, msg):
@@ -121,74 +123,84 @@ class TeachingMode(I2CBase):
         self.prev_state = self.state
         # State transition
         if self.state == State.WAIT:
-            if msg.data == 1:
-                self.state = State.RECORD
-            elif msg.data == 2:
-                self.state = State.PLAY
-            elif msg.data == 3:
-                self.teaching_manager.servo_off()
+            self.handle_wait_state(msg)
         elif self.state == State.RECORD:
-            # select special action
-            if len(self.special_actions) > 0 and\
-               self.special_action_selected is None:
-                if msg.data == 1:
-                    self.special_action_list.increment_index()
-                if msg.data == 2:
-                    self.special_action_selected = self.special_actions[self.special_action_list.get_index()]
-                return
-            self.recording = True
-            # finish recording
-            if msg.data == 1:
-                self.teaching_manager.stop()
-                self.state = State.WAIT
-                self.recording = False
-                self.special_action_selected = None
-            # Record and execute special action
-            elif msg.data == 2:
-                if self.special_action_executed is True:
-                    action_state = 'Stop'
-                    command = self.special_action_selected["stop_command"]
-                else:
-                    action_state = 'Start'
-                    command = self.special_action_selected["start_command"]
-                # Record
-                self.teaching_manager.motion_manager.add_action(
-                    self.teaching_manager.start_time,
-                    f'{action_state} {self.special_action_selected["name"]}',
-                    command)
-                # Execute
-                thread1 = threading.Thread(
-                    target=self.teaching_manager.motion_manager.exec_with_error_handling,
-                    args=(command,),
-                    daemon=True)
-                thread1.start()
-                self.special_action_executed = not self.special_action_executed
-            elif msg.data == 3:
-                self.teaching_manager.servo_off()
+            self.handle_record_state(msg)
         elif self.state == State.PLAY:
-            if self.playing is False:
-                if msg.data != 0 and len(self.play_list.options) <= 0:
-                    self.state = State.WAIT
-                    return
-                # select play file
-                if msg.data == 1:
-                    self.play_list.increment_index()
-                # confirm play file
-                elif msg.data == 2:
-                    self.play_file = self.play_list.selected_option()
-                    self.playing = True
-                # delete play file
-                elif msg.data == 3:
-                    delete_file = self.play_list.selected_option()
-                    if os.path.exists(delete_file):
-                        os.remove(delete_file)
-                    self.play_list.remove_option(delete_file)
-                    self.state = State.WAIT
+            self.handle_play_state(msg)
+
+    def handle_wait_state(self, msg):
+        if msg.data == 1:
+            self.state = State.RECORD
+        elif msg.data == 2:
+            self.state = State.PLAY
+        elif msg.data == 3:
+            self.teaching_manager.servo_off()
+
+    def handle_record_state(self, msg):
+        # select special action
+        if self.special_action_not_selected():
+            if msg.data == 1:
+                self.special_action_list.increment_index()
+            if msg.data == 2:
+                self.special_action_selected = self.special_actions[self.special_action_list.get_index()]
+            return
+        # record until stopped
+        if self.recording is False:
+            self.start_recording()
+        # finish recording
+        if msg.data == 1:
+            self.stop_recording()
+        # Record and execute special action
+        elif msg.data == 2:
+            if self.special_action_executed is True:
+                action_state = 'Stop'
+                command = self.special_action_selected["stop_command"]
             else:
-                # stop playing
-                if msg.data == 2:
-                    self.teaching_manager.stop()
-                    self.state = State.WAIT
+                action_state = 'Start'
+                command = self.special_action_selected["start_command"]
+            # Record
+            self.teaching_manager.motion_manager.add_action(
+                self.teaching_manager.start_time,
+                f'{action_state} {self.special_action_selected["name"]}',
+                command)
+            # Execute
+            thread1 = threading.Thread(
+                target=self.teaching_manager.motion_manager.exec_with_error_handling,
+                args=(command,),
+                daemon=True)
+            thread1.start()
+            self.special_action_executed = not self.special_action_executed
+        elif msg.data == 3:
+            self.teaching_manager.servo_off()
+
+    def handle_play_state(self, msg):
+        if self.playing is False:
+            if msg.data != 0 and len(self.play_list.options) <= 0:
+                self.state = State.WAIT
+                return
+            # select play file
+            if msg.data == 1:
+                self.play_list.increment_index()
+            # confirm play file
+            elif msg.data == 2:
+                self.play_file = self.play_list.selected_option()
+                self.start_playing()
+            # delete play file
+            elif msg.data == 3:
+                delete_file = self.play_list.selected_option()
+                if os.path.exists(delete_file):
+                    os.remove(delete_file)
+                self.play_list.remove_option(delete_file)
+                self.state = State.WAIT
+        else:
+            # stop playing
+            if msg.data == 2:
+                self.stop_playing()
+
+    def special_action_not_selected(self):
+        return len(self.special_actions) > 0 and\
+            self.special_action_selected is None
 
     def update_atoms3(self, event):
         """Timer callback to update AtomS3 LCD with the current state and marker information.
@@ -224,8 +236,7 @@ class TeachingMode(I2CBase):
             self.additional_str = ""
             sent_str += 'Record mode\n\n'
             # Select special action if ~special_actions param is defined
-            if len(self.special_actions) > 0 and\
-               self.special_action_selected is None:
+            if self.special_action_not_selected():
                 sent_str += ' 1tap: next\n' + ' 2tap: select\n\n'
                 sent_str += self.special_action_list.string_options(5)
             # Start recording
@@ -297,47 +308,59 @@ class TeachingMode(I2CBase):
                 self.json_dir, f'teaching_{filename}.json')
         return json_path
 
-    def main_loop(self):
-        """Main loop to manage the teaching mode operations."""
-        rospy.loginfo('start teaching mode')
-        try:
-            while not rospy.is_shutdown():
-                if self.mode != "TeachingMode":
-                    rospy.sleep(1)
-                    continue
-                if self.state == State.WAIT:
-                    rospy.sleep(1)
-                elif self.state == State.RECORD:
-                    # wait for special action to be confirmed
-                    if self.recording is False:
-                        continue
-                    # record until stopped
-                    json_path = self.get_json_path()
-                    result_message = self.teaching_manager.record(
-                        json_path)
-                    self.additional_str = result_message
-                    self.play_list.add_option(json_path)
-                    self.state = State.WAIT
-                elif self.state == State.PLAY:
-                    # wait for play file to be confirmed
-                    if self.playing is False:
-                        continue
-                    else:
-                        result_message = self.teaching_manager.play(
-                            self.play_file)
-                        self.additional_str = result_message
-                        self.playing = False
-                        self.state = State.WAIT
-        except KeyboardInterrupt:
-            print('Finish teaching mode by KeyboardInterrupt')
-            exit()
+    def start_recording(self):
+        """
+        Initiates recording in a separate thread.
+        """
+        if self.recording:
+            rospy.logwarn("Recording is already in progress")
+            return
+        self.recording = True
+        self.special_action_executed = False
+
+        def record_task():
+            json_path = self.get_json_path()
+            result_message = self.teaching_manager.record(json_path)
+            self.additional_str = result_message
+            self.play_list.add_option(json_path)
+
+        self.record_thread = threading.Thread(
+            target=record_task, daemon=True)
+        self.record_thread.start()
+
+    def stop_recording(self):
+        self.teaching_manager.stop()
+        self.state = State.WAIT
+        self.recording = False
+        self.special_action_selected = None
+
+    def start_playing(self):
+        """
+        Initiates playback in a separate thread.
+        """
+        if self.playing:
+            rospy.logwarn("Playback is already in progress")
+            return
+        self.playing = True
+
+        def play_task():
+            result_message = self.teaching_manager.play(
+                self.play_file)
+            self.additional_str = result_message
+            # Automatically stop after play
+            self.stop_playing()
+
+        self.play_thread = threading.Thread(target=play_task, daemon=True)
+        self.play_thread.start()
+
+    def stop_playing(self):
+        self.teaching_manager.stop()
+        self.playing = False
+        self.state = State.WAIT
 
 
 if __name__ == '__main__':
     # Main
     rospy.init_node('teaching_mode', anonymous=True)
-    tm = TeachingMode(0x42)
-    # To stop program by Ctrl-c
-    import signal
-    signal.signal(signal.SIGINT, signal.default_int_handler)
-    tm.main_loop()
+    TeachingMode(0x42)
+    rospy.spin()
