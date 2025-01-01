@@ -17,7 +17,7 @@ class TeachingManager:
     Attributes:
         motion_manager (MotionManager): Instance managing motion trajectory recording and playback
         marker_manager (MarkerManager): Instance managing marker information processing
-        _stop (bool): Flag to control recording/playback termination
+        start_time (rospy.rostime.Time): Start time of motion
     """
 
     def __init__(self):
@@ -40,6 +40,7 @@ class TeachingManager:
             with open(play_filepath) as f:
                 json_data = json.load(f)
                 self.motion_manager.set_motion([j for j in json_data if 'joint_states' in j])
+                self.motion_manager.set_actions([j for j in json_data if 'special_action' in j])
                 self.marker_manager.set_markers([j for j in json_data if 'marker_id' in j])
             rospy.loginfo(f'Loaded motion data: {self.motion_manager.get_motion()}')
             rospy.loginfo(f'Loaded marker data {self.marker_manager.get_markers()}')
@@ -57,22 +58,23 @@ class TeachingManager:
         self.motion_manager.ri.servo_on()
 
     def record(self, record_filepath):
-        """Records motion and marker information and saves it to a JSON file
+        """Records motion and marker information and saves it to a JSON file.
 
         Args:
-            record_filepath (str): Path to the JSON file where data will be saved
+            record_filepath (str): Path to the JSON file where data will be saved.
 
         Returns:
             str: Message to display on AtomS3 LCD, including recorded motion duration,
-                number of motion points, and number of markers
+                number of motion points, and number of markers.
 
         Note:
-            Recording continues until self.motion_manager is stopped
-            Data is sampled at 0.1-second intervals
+            - Recording continues until `motion_manager` is stopped.
+            - Data is sampled at 0.1-second intervals.
         """
 
         self.motion_manager.start()
         self.motion_manager.set_motion([])
+        self.motion_manager.set_actions([])
         self.marker_manager.set_markers([])
         with open(record_filepath, mode='w') as f:
             rospy.loginfo(f'Start saving motion to {record_filepath}')
@@ -89,7 +91,9 @@ class TeachingManager:
                 rospy.sleep(0.1)
             f.write(
                 json.dumps(
-                    self.motion_manager.get_motion()+self.marker_manager.get_markers(),
+                    self.motion_manager.get_motion()+\
+                    self.motion_manager.get_actions()+\
+                    self.marker_manager.get_markers(),
                     indent=4, separators=(",", ": ")))
             rospy.loginfo(f'Finish saving motion to {record_filepath}')
         motion_duration = self.motion_manager.get_motion()[-1]["time"]
@@ -108,9 +112,9 @@ class TeachingManager:
             str: Message to display on AtomS3 LCD. Returns error message if an error occurs
 
         Note:
-            When markers are present in the recording, the playback motion is adjusted by
+            - If markers are present in the recording, the playback motion is adjusted by
             comparing current marker positions with recorded marker positions.
-            An error occurs if marker IDs don't match.
+            - An error occurs if marker IDs don't match.
         """
 
         self.motion_manager.start()
@@ -119,8 +123,10 @@ class TeachingManager:
         # Play motion
         rospy.loginfo('Play motion')
         recorded_motion = self.motion_manager.get_motion()
+        special_actions = self.motion_manager.get_actions()
         if len(self.marker_manager.get_markers()) == 0:
-            return self.motion_manager.play_motion(recorded_motion)
+            return self.motion_manager.play_motion(
+                recorded_motion, special_actions)
         else:
             # The entire movement is performed again after the initial posture
             # to compensate for deflection of the arm due to gravity
@@ -156,4 +162,5 @@ class TeachingManager:
             if moved_motion is False:
                 return message
             else:
-                return self.motion_manager.play_motion(moved_motion)
+                return self.motion_manager.play_motion(
+                    moved_motion, special_actions)
