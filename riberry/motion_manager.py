@@ -15,9 +15,17 @@ class MotionManager:
     playing motions, and adjusting motions using inverse kinematics (IK).
 
     Attributes:
-        tfl (TransformListener): An instance of ROS TransformListener used for retrieving TF transformations.
-        markers (list): A list of previously recorded marker information.
-        marker_msg (AprilTagDetectionArray): The latest marker detection data.
+        ri (KXRROSRobotInterface): Interface for controlling the robot.
+        joint_names (list): List of joint names for the robot.
+        end_coords_name (str): Name of the end-effector coordinates link.
+        motion (list): Recorded motion sequences. Each entry is a dictionary with:
+            - 'time' (float): Time in seconds.
+            - 'joint_states' (dict): Joint states mapping joint names to their angles (float).
+        special_actions (list): Special commands and actions linked to the motion. Each entry is a dictionary with:
+            - 'time' (float): Time in seconds.
+            - 'special_action' (dict): Action details containing:
+                - 'name' (str): Action name.
+                - 'command' (str): Command string to execute.
     """
 
     def __init__(self):
@@ -48,42 +56,54 @@ class MotionManager:
         self.start()
 
     def exec_with_error_handling(self, command):
-        """Execute command from string
+        """Executes a command string with error handling.
 
-"""
+        Args:
+            command (str): Python command to execute.
+        """
         try:
             exec(command)
         except Exception as e:
             rospy.logerr(f"[Special action] {e}")
 
     def stop(self):
-        """Stops the motion execution.
-
-"""
+        """Stops the motion execution."""
         self._stop = True
 
     def start(self):
-        """Resumes the motion execution.
-
-"""
+        """Resumes the motion execution."""
         self._stop = False
 
     def is_stopped(self):
         """Checks if the motion execution is stopped.
 
-"""
+        Returns:
+            bool: True if motion execution is stopped, False otherwise.
+        """
         return self._stop is True
 
     def set_motion(self, motion):
+        """Sets the motion sequence.
+
+        Args:
+            motion (list): List of motion states.
+        """
         self.motion = motion
 
     def get_motion(self):
+        """Gets the current motion sequence.
+
+        Returns:
+            list: The current motion sequence.
+        """
         return self.motion
 
     def add_motion(self, start_time):
         """Records the robot's current pose and adds it to the motion sequence.
 
-"""
+        Args:
+            start_time (rospy.Time): The starting time of the motion recording.
+        """
         joint_states = {}
         # Average multiple angle vectors to reduce the noise
         # of the servo motor's potentiometer
@@ -104,19 +124,29 @@ class MotionManager:
         rospy.loginfo(f'Time: {elapsed_time}, joint_states: {joint_states}')
 
     def set_actions(self, actions):
+        """Sets the list of special actions.
+
+        Args:
+            actions (list): List of special actions.
+        """
         self.special_actions = actions
 
     def get_actions(self):
+        """Gets the current list of special actions.
+
+        Returns:
+            list: The current special actions.
+        """
         return self.special_actions
 
     def add_action(self, start_time, name, command):
-        """Record special command
+        """Records a special action with its execution command.
 
         Args:
-        start_time[rospy.rostime.Time]: Start time of record
-        name[str]: Command name. e.g. 'grasp'
-        command[str]: Command to be recorded. e.g. 'ri.start_grasp()'
-"""
+            start_time (rospy.Time): The starting time of the action recording.
+            name (str): Name of the action (e.g., 'grasp').
+            command (str): Python command to execute the action.
+        """
         now = rospy.Time.now()
         elapsed_time = (now - start_time).to_sec()
         self.special_actions.append({
@@ -186,8 +216,9 @@ class MotionManager:
     def play_motion(self, motion, actions):
         """Executes a sequence of motions with safety checks and interruption handling.
 
-Returns message[str] to show on AtomS3 LCD
-"""
+        Returns:
+            message (str): Message shown on AtomS3 LCD
+        """
         # To prevent sudden movement, take time to reach the initial motion
         if 'joint_states' not in motion[0]:
             print("First element must have 'joint_states' key.")
@@ -246,10 +277,21 @@ Returns message[str] to show on AtomS3 LCD
 
     def move_motion(self, motion, target_coords, local_coords):
         """Adjusts a motion sequence to align with a specified target pose using inverse kinematics (IK).
-Returns (moved_motion[json] or False, message[str])
-if IK succeed, moved_motion is [json].
-if IK fail, moved_motion is False.
-"""
+
+        This method modifies a given motion sequence by applying IK to align the end-effector
+        with a specified target position and orientation. If IK fails consecutively beyond
+        a certain limit, the process terminates and returns an error message.
+
+        Args:
+            motion (list): A list of motion states.
+            target_coords (Coords): Target coordinates for the end-effector in the global frame.
+            local_coords (Coords): Local offset coordinates relative to the target position.
+
+        Returns:
+            tuple: A tuple containing:
+                - moved_motion (list or bool): Updated motion sequence if successful, or False if IK fails.
+                - message (str): Success or error message.
+        """
         if self.end_coords_name is None:
             error_message = "end_coords_name param is not set."
             rospy.logerr(error_message)
