@@ -17,7 +17,7 @@ class TeachingManager:
     Attributes:
         motion_manager (MotionManager): Instance managing motion trajectory recording and playback
         marker_manager (MarkerManager): Instance managing marker information processing
-        _stop (bool): Flag to control recording/playback termination
+        start_time (rospy.rostime.Time): Start time of motion
     """
 
     def __init__(self):
@@ -58,18 +58,18 @@ class TeachingManager:
         self.motion_manager.ri.servo_on()
 
     def record(self, record_filepath):
-        """Records motion and marker information and saves it to a JSON file
+        """Records motion and marker information and saves it to a JSON file.
 
         Args:
-            record_filepath (str): Path to the JSON file where data will be saved
+            record_filepath (str): Path to the JSON file where data will be saved.
 
         Returns:
             str: Message to display on AtomS3 LCD, including recorded motion duration,
-                number of motion points, and number of markers
+                number of motion points, and number of markers.
 
         Note:
-            Recording continues until self.motion_manager is stopped
-            Data is sampled at 0.1-second intervals
+            - Recording continues until `motion_manager` is stopped.
+            - Data is sampled at 0.1-second intervals.
         """
 
         self.motion_manager.start()
@@ -112,9 +112,9 @@ class TeachingManager:
             str: Message to display on AtomS3 LCD. Returns error message if an error occurs
 
         Note:
-            When markers are present in the recording, the playback motion is adjusted by
+            - If markers are present in the recording, the playback motion is adjusted by
             comparing current marker positions with recorded marker positions.
-            An error occurs if marker IDs don't match.
+            - An error occurs if marker IDs don't match.
         """
 
         self.motion_manager.start()
