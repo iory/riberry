@@ -148,11 +148,8 @@ class TeachingMode(I2CBase):
         # record until stopped
         if self.recording is False:
             self.start_recording()
-        # finish recording
-        if msg.data == 1:
-            self.stop_recording()
         # Record and execute special action
-        elif msg.data == 2:
+        if msg.data == 1:
             if self.special_action_executed is True:
                 action_state = 'Stop'
                 command = self.special_action_selected["stop_command"]
@@ -171,6 +168,9 @@ class TeachingMode(I2CBase):
                 daemon=True)
             thread1.start()
             self.special_action_executed = not self.special_action_executed
+        # finish recording
+        elif msg.data == 2:
+            self.stop_recording()
         elif msg.data == 3:
             self.teaching_manager.servo_off()
 
@@ -241,8 +241,7 @@ class TeachingMode(I2CBase):
                 sent_str += self.special_action_list.string_options(5)
             # Start recording
             else:
-                sent_str += '1tap: finish\n\n'
-                sent_str += '2tap: '
+                sent_str += '1tap: '
                 if self.special_action_selected is None:
                     sent_str += 'None\n\n'
                 else:
@@ -252,6 +251,7 @@ class TeachingMode(I2CBase):
                     else:
                         sent_str += '\x1b[31m OFF  \x1b[39m'
                     sent_str += f'{self.special_action_selected["name"]}\n\n'
+                sent_str += '2tap: finish\n\n'
                 sent_str += '3tap: free'
         elif self.state == State.PLAY:
             self.additional_str = ""
