@@ -245,7 +245,7 @@ class TeachingMode(I2CBase):
                 if self.special_action_selected is None:
                     sent_str += 'None\n\n'
                 else:
-                    sent_str += 'Toggle\n'
+                    sent_str += 'Action\n'
                     if self.special_action_executed is True:
                         sent_str += '\x1b[32m ON   \x1b[39m'
                     else:
