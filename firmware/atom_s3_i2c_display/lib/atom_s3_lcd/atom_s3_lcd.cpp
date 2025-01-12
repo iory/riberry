@@ -9,7 +9,7 @@ AtomS3LCD::AtomS3LCD()
 
 // e.g. atoms3lcd.drawImage(atoms3lcd.jpegBuf, atoms3lcd.jpegLength);
 void AtomS3LCD::drawImage(uint8_t* jpegBuf, uint32_t jpegLength) {
-  drawJpg(jpegBuf, jpegLength, 0, 0, 128, 128, 0, 0, ::JPEG_DIV_NONE);
+  drawJpg(jpegBuf, jpegLength, 0, 0, width(), height(), 0, 0, ::JPEG_DIV_NONE);
 }
 
 void AtomS3LCD::drawQRcode(const String& qrCodeData) {

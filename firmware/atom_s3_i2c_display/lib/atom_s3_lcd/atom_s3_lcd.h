@@ -3,8 +3,6 @@
 
 #include <primitive_lcd.h>
 
-#define LCD_W 128
-#define LCD_H 128
 
 /**
  * @brief Class to handle the LCD on the AtomS3 using the LovyanGFX library.

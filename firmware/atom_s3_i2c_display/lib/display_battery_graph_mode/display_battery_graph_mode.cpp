@@ -3,7 +3,9 @@
 DisplayBatteryGraphMode* DisplayBatteryGraphMode::instance = nullptr;
 
 DisplayBatteryGraphMode::DisplayBatteryGraphMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
-  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayBatteryGraphMode") {
+  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayBatteryGraphMode"),
+    graph_h(lcd.height() - title_h - x_label_h - 2),
+    graph_w(lcd.width() - y_label_w - y_line_w) {
     instance = this;
 }
 
@@ -102,7 +104,7 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
   instance->atoms3lcd.printColorText(line1);
   instance->atoms3lcd.setCursor(41, 14);
   instance->atoms3lcd.printColorText(line2);
-  instance->atoms3lcd.drawLine(0, title_h-9, LCD_W, title_h-9, TFT_WHITE );
+  instance->atoms3lcd.drawLine(0, title_h-9, atoms3lcd.width(), title_h-9, TFT_WHITE );
   // y label text
   instance->atoms3lcd.setTextSize(1);
   instance->atoms3lcd.setCursor(0, title_h);
@@ -112,7 +114,7 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
   instance->atoms3lcd.setCursor(0, title_h + graph_h);
   instance->atoms3lcd.printColorText("  0");
   // y axis line
-  instance->atoms3lcd.drawLine(y_label_w, title_h, y_label_w, LCD_H-(x_label_h+2)-1, TFT_WHITE );
+  instance->atoms3lcd.drawLine(y_label_w, title_h, y_label_w, atoms3lcd.height()-(x_label_h+2)-1, TFT_WHITE );
   // bar graph
   for (int i = 0; i < buffer_length; i++) {
     if (buffer[i] == 0)
@@ -120,13 +122,13 @@ void DisplayBatteryGraphMode::updateGraph(float* buffer, int buffer_length,
     int scaled_percentage = buffer[i] * (graph_h-1) / 100;
     for (int j = 0; j <= scaled_percentage; j++) {
       uint16_t color = calculateColor(j * 100 / (graph_h-1));
-      instance->atoms3lcd.fillRect((y_label_w+y_line_w)+i*(buffer_w+gap), LCD_H-(x_label_h+2)-j-1,
+      instance->atoms3lcd.fillRect((y_label_w+y_line_w)+i*(buffer_w+gap), atoms3lcd.height()-(x_label_h+2)-j-1,
                                    buffer_w, 1, color);
     }
   }
   // x label text
   String x_label = "duration:" + String(duration) + "[s]";
-  instance->atoms3lcd.setCursor(LCD_W/2-x_label.length()*5/2, LCD_H-x_label_h);
+  instance->atoms3lcd.setCursor(atoms3lcd.width()/2-x_label.length()*5/2, atoms3lcd.height()-x_label_h);
   instance->atoms3lcd.printColorText(x_label);
   instance->atoms3lcd.setTextSize(1.5); // Restore default size for other modes
 
