@@ -16,7 +16,11 @@ void AtomS3LCD::drawQRcode(const String& qrCodeData) {
   if (qrCodeData.length() > 0) {
     // Draw QR code if qrCodeData is received
     fillScreen(color565(255, 255, 255));
-    qrcode(qrCodeData.c_str(), SPACING, SPACING / 2, width() - SPACING * 2, QR_VERSION);
+    int rectWidth = min(width(), height());
+    qrcode(qrCodeData.c_str(),
+           static_cast<int>(width() / 2 - rectWidth / 2) + SPACING,
+           static_cast<int>(height() / 2 - rectWidth / 2) + SPACING / 2,
+           rectWidth - SPACING * 2, QR_VERSION);
   }
   else {
     fillScreen(color565(255, 0, 0));  // Fill the screen with red
