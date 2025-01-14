@@ -1,6 +1,6 @@
 from collections import Counter
 
-from riberry.i2c_base import I2CBase
+from riberry.com.base import ComBase
 
 
 def majority_vote(history):
@@ -11,7 +11,7 @@ def majority_vote(history):
 
 
 def decide_battery_i2c_bus_number():
-    device_type = I2CBase.identify_device()
+    device_type = ComBase.identify_device()
     if device_type == "Raspberry Pi":
         bus_number = 1
     elif device_type == "Radxa Zero":

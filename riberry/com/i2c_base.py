@@ -1,10 +1,11 @@
-from enum import IntEnum
 import fcntl
 import sys
 
 from filelock import FileLock
 from filelock import Timeout
 from i2c_for_esp32 import WirePacker
+
+from riberry.com.base import ComBase
 
 if sys.hexversion < 0x03000000:
 
@@ -42,10 +43,11 @@ class I2C:
         self.fr.close()
 
 
-class I2CBase:
+class I2CBase(ComBase):
+
     def __init__(self, i2c_addr):
+        super().__init__()
         self.i2c_addr = i2c_addr
-        self.device_type = self.identify_device()
         self.setup_i2c()
         lock_path = f"/tmp/i2c-{self.i2c.bus}.lock"
         self.lock = FileLock(lock_path, timeout=10)
@@ -80,51 +82,22 @@ class I2CBase:
             except Timeout as e:
                 print(e)
 
-    def send_string(self, sent_str):
-        packer = WirePacker(buffer_size=len(sent_str) + 8)
-        for s in sent_str:
-            try:
-                packer.write(ord(s))
-            except ValueError as e:
-                print(f'[ERROR] {e} Invalid character {s}')
+    def write(self, data):
+        buffer_size = len(data) + 8
+        packer = WirePacker(buffer_size=buffer_size)
+
+        if isinstance(data, str):
+            for s in data:
+                try:
+                    packer.write(ord(s))
+                except ValueError as e:
+                    print(f'[ERROR] {e} Invalid character {s}')
+        elif isinstance(data, (bytes, bytearray)):
+            for r in data:
+                packer.write(r)
+        else:
+            raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
+
         packer.end()
         if packer.available():
             self.i2c_write(packer.buffer[: packer.available()])
-
-    def send_raw_bytes(self, raw_bytes):
-        packer = WirePacker(buffer_size=len(raw_bytes) + 8)
-        for r in raw_bytes:
-            packer.write(r)
-        packer.end()
-        if packer.available():
-            self.i2c_write(packer.buffer[: packer.available()])
-
-    @staticmethod
-    def identify_device():
-        try:
-            with open("/proc/cpuinfo") as f:
-                cpuinfo = f.read()
-            if "Raspberry Pi" in cpuinfo:
-                return "Raspberry Pi"
-            with open("/proc/device-tree/model") as f:
-                model = f.read().strip().replace("\x00", "")
-            if "Radxa" in model or "ROCK Pi" in model\
-               or model == "Khadas VIM4"\
-               or model == "NVIDIA Jetson Xavier NX Developer Kit":
-                return model
-            return "Unknown Device"
-        except FileNotFoundError:
-            return "Unknown Device"
-
-
-class PacketType(IntEnum):
-    TEXT = 0x00
-    JPEG = 0x01
-    QR_CODE = 0x02
-    FORCE_MODE = 0x03
-    SELECTED_MODE = 0x04
-    DISPLAY_BATTERY_GRAPH_MODE = 0x05
-    SERVO_CONTROL_MODE = 0x06
-    PRESSURE_CONTROL_MODE = 0x07
-    TEACHING_MODE = 0x08
-    DISPLAY_ODOM_MODE = 0x09

@@ -15,8 +15,10 @@ from pybsc.image_utils import squared_padding_image
 from riberry.battery import decide_battery_i2c_bus_number
 from riberry.battery import MP2760BatteryMonitor
 from riberry.battery import PisugarBatteryReader
-from riberry.i2c_base import I2CBase
-from riberry.i2c_base import PacketType
+from riberry.com.base import ComBase
+from riberry.com.base import PacketType
+from riberry.com.i2c_base import I2CBase
+from riberry.com.uart_base import UARTBase
 from riberry.network import get_ip_address
 from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
@@ -192,9 +194,13 @@ def try_init_ros():
             ros_additional_message = None
 
 
-class DisplayInformation(I2CBase):
-    def __init__(self, i2c_addr):
-        super().__init__(i2c_addr)
+class DisplayInformation:
+    def __init__(self):
+        device = ComBase.identify_device()
+        if device == 'm5stack-LLM':
+            self.com = UARTBase()
+        else:
+            self.com = I2CBase(0x42)
 
     def display_image(self, img):
         img = squared_padding_image(img, 128)
@@ -212,7 +218,7 @@ class DisplayInformation(I2CBase):
         packer.end()
 
         if packer.available():
-            self.i2c_write(packer.buffer[: packer.available()])
+            self.com.i2c_write(packer.buffer[: packer.available()])
 
         time.sleep(0.005)
 
@@ -223,7 +229,7 @@ class DisplayInformation(I2CBase):
                 packer.write(h)
             packer.end()
             if packer.available():
-                self.i2c_write(packer.buffer[: packer.available()])
+                self.com.i2c_write(packer.buffer[: packer.available()])
             time.sleep(0.005)
 
     def display_information(self):
@@ -267,7 +273,7 @@ class DisplayInformation(I2CBase):
             sent_str += f"{ros_additional_message}\n"
             ros_additional_message = None
 
-        self.send_string(sent_str)
+        self.com.write(sent_str)
 
     def display_qrcode(self, target_url=None):
         header = [PacketType.QR_CODE]
@@ -281,25 +287,25 @@ class DisplayInformation(I2CBase):
         header += list(map(ord, target_url))
         print("header")
         print(header)
-        self.send_raw_bytes(header)
+        self.com.write(header)
 
     def force_mode(self, mode_name):
         header = [PacketType.FORCE_MODE]
         forceModebytes = (list (map(ord, mode_name)))
-        self.send_raw_bytes(header + forceModebytes)
+        self.com.write(header + forceModebytes)
 
     def run(self):
         global ros_display_image
         global ros_display_image_flag
         global atom_s3_mode
         global wifi_connected
-        ssid = f'{self.identify_device()}-{get_mac_address()}'
+        ssid = f'{self.com.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
         qrcode_mode_is_forced = False
 
         while not stop_event.is_set():
             mode = atom_s3_mode
-            print(f"Mode: {mode} device_type: {self.device_type}")
+            print(f"Mode: {mode} device_type: {self.com.device_type}")
             # Display the QR code when Wi-Fi is not connected,
             # regardless of atom_s3_mode.
             if get_ip_address() is None:
@@ -344,7 +350,7 @@ if __name__ == "__main__":
         battery_reader.daemon = True
         battery_reader.start()
 
-    display_thread = threading.Thread(target=DisplayInformation(0x42).run)
+    display_thread = threading.Thread(target=DisplayInformation().run)
     display_thread.daemon = True
     display_thread.start()
 
