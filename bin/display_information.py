@@ -215,24 +215,12 @@ class DisplayInformation:
         header = []
         header += [PacketType.JPEG]
         header += [(jpg_size & 0xFF00) >> 8, (jpg_size & 0x00FF) >> 0]
-        packer = WirePacker(buffer_size=1000)
-        for h in header:
-            packer.write(h)
-        packer.end()
-
-        if packer.available():
-            self.com.i2c_write(packer.buffer[: packer.available()])
+        self.com.write(header)
 
         time.sleep(0.005)
 
         for pack in nsplit(jpg_img, n=50):
-            packer.reset()
-            packer.write(PacketType.JPEG)
-            for h in pack:
-                packer.write(h)
-            packer.end()
-            if packer.available():
-                self.com.i2c_write(packer.buffer[: packer.available()])
+            self.com.write([PacketType.JPEG] + pack.tolist())
             time.sleep(0.005)
 
     def display_information(self):
