@@ -1,7 +1,12 @@
 #ifndef PRIMITIVE_LCD_H
 #define PRIMITIVE_LCD_H
 
-#define LGFX_M5ATOMS3
+#ifdef ATOM_S3
+  #define LGFX_M5ATOMS3
+#elif defined(USE_M5STACK_BASIC)
+  #define LGFX_M5STACK
+#endif
+#define LGFX_USE_V1
 #include <LovyanGFX.hpp>
 #include <LGFX_AUTODETECT.hpp>
 
