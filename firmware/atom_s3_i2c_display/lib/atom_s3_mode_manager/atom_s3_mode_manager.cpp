@@ -7,8 +7,8 @@ String AtomS3ModeManager::selectedModesStr = "";
 int AtomS3ModeManager::current_mode_index = 0;
 const std::vector<Mode*>* AtomS3ModeManager::allModes = nullptr;
 
-AtomS3ModeManager::AtomS3ModeManager(AtomS3LCD &lcd, AtomS3Button &button, AtomS3I2C &i2c, const std::vector<Mode *> &modes)
-  : atoms3lcd(lcd), atoms3button(button), atoms3i2c(i2c)
+AtomS3ModeManager::AtomS3ModeManager(AtomS3LCD &lcd, ButtonManager &button, AtomS3I2C &i2c, const std::vector<Mode *> &modes)
+  : atoms3lcd(lcd), button_manager(button), atoms3i2c(i2c)
 {
   instance = this;
   allModes = &modes;
@@ -70,7 +70,7 @@ void AtomS3ModeManager::task(void *parameter) {
       instance->atoms3i2c.forcedMode = "";
     }
     // Change mode by long click
-    if (instance->atoms3button.wasLongPressed()) {
+    if (instance->button_manager.wasLongPressed()) {
       int next_mode_index = (current_mode_index + 1) % selectedModes.size();
       instance->changeMode(current_mode_index, next_mode_index);
       current_mode_index = next_mode_index;

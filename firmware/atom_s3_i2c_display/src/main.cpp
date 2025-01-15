@@ -1,6 +1,6 @@
 #include <atom_s3_lcd.h>
 #include <atom_s3_i2c.h>
-#include <atom_s3_button.h>
+#include <button_manager.h>
 
 #include <display_information_mode.h>
 #include <display_qrcode_mode.h>
@@ -13,9 +13,9 @@
 
 #include <atom_s3_mode_manager.h>
 
-AtomS3Button atoms3button;
+ButtonManager button_manager;
 AtomS3LCD atoms3lcd;
-AtomS3I2C atoms3i2c(atoms3lcd, atoms3button);
+AtomS3I2C atoms3i2c(atoms3lcd, button_manager);
 
 // Define all available modes
 DisplayInformationMode display_information_mode(atoms3lcd, atoms3i2c);
@@ -32,10 +32,10 @@ const std::vector<Mode*> allModes =
    &servo_control_mode, &pressure_control_mode, &teaching_mode,
   };
 
-AtomS3ModeManager atoms3modemanager(atoms3lcd, atoms3button, atoms3i2c, allModes);
+AtomS3ModeManager atoms3modemanager(atoms3lcd, button_manager, atoms3i2c, allModes);
 
 void setup() {
-  atoms3button.createTask(0);
+  button_manager.createTask(0);
   atoms3i2c.createTask(0);
   atoms3modemanager.createTask(0);
   // By default, DisplayInformationMode and DisplayQRcodeMode are added

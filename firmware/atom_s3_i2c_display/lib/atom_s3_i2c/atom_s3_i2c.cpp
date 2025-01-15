@@ -5,8 +5,8 @@ String AtomS3I2C::requestStr = ""; // Initialize the static requestStr
 String AtomS3I2C::forcedMode = ""; // Initialize the static forcedMode
 String AtomS3I2C::selectedModesStr = ""; // Initialize the static selectedModesStr
 
-AtomS3I2C::AtomS3I2C(AtomS3LCD &lcd, AtomS3Button &button)
-  : atoms3lcd(lcd), atoms3button(button), receiveEventEnabled(true) {
+AtomS3I2C::AtomS3I2C(AtomS3LCD &lcd, ButtonManager &button)
+  : atoms3lcd(lcd), button_manager(button), receiveEventEnabled(true) {
   instance = this;
 }
 
@@ -167,7 +167,7 @@ void AtomS3I2C::requestEvent() {
   if (instance == nullptr)
       return;
   uint8_t sentStr[100];
-  sentStr[0] = (uint8_t)instance->atoms3button.getButtonState();
+  sentStr[0] = (uint8_t)instance->button_manager.getButtonState();
   const char* modeData = requestStr.c_str();
  // sentStr[1]以降にstrDataをコピー (長さを確認)
   size_t strLen = strlen(modeData);  // requestStrの長さを取得
@@ -179,7 +179,7 @@ void AtomS3I2C::requestEvent() {
   // WireSlave.print(requestStr);
   WireSlave.write(sentStr, strLen+1);
 
-  instance->atoms3button.notChangedButtonState();
+  instance->button_manager.notChangedButtonState();
 }
 
 void AtomS3I2C::setRequestStr(const String &str) {

@@ -4,7 +4,7 @@
 #include <Wire.h>
 #include <WireSlave.h>
 #include <atom_s3_lcd.h>
-#include <atom_s3_button.h>
+#include <button_manager.h>
 
 #include "packet.h"
 
@@ -17,9 +17,9 @@ public:
    * @brief Constructor for AtomS3I2C, initializes the I2C class with references to the LCD and Button objects.
    *
    * @param lcd Reference to the AtomS3LCD object.
-   * @param button Reference to the AtomS3Button object.
+   * @param button Reference to the ButtonManager object.
    */
-  AtomS3I2C(AtomS3LCD &lcd, AtomS3Button &button);
+  AtomS3I2C(AtomS3LCD &lcd, ButtonManager &button);
 
   /**
    * @brief Creates and starts the I2C communication task on the specified core.
@@ -62,7 +62,7 @@ private:
   bool receiveEventEnabled;
   static AtomS3I2C* instance; /**< Singleton instance of AtomS3I2C for managing callbacks. */
   AtomS3LCD &atoms3lcd; /**< Reference to the AtomS3LCD object for displaying information. */
-  AtomS3Button &atoms3button; /**< Reference to the AtomS3Button object for button interactions. */
+  ButtonManager &button_manager; /**< Reference to the ButtonManager object for button interactions. */
   unsigned long lastReceiveTime = 0; /**< Last time data was received over I2C. */
   const unsigned long receiveTimeout = 15000; /**< Timeout duration for I2C communication (15 seconds). */
 
