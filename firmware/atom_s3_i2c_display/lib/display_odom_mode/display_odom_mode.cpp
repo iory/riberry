@@ -2,8 +2,8 @@
 
 DisplayOdomMode* DisplayOdomMode::instance = nullptr;
 
-DisplayOdomMode::DisplayOdomMode(AtomS3LCD &lcd, CommunicationBase &i2c)
-  : atoms3lcd(lcd), comm(i2c), Mode("DisplayOdomMode") {
+DisplayOdomMode::DisplayOdomMode(PrimitiveLCD &lcd, CommunicationBase &i2c)
+  : lcd(lcd), comm(i2c), Mode("DisplayOdomMode") {
     instance = this;
 }
 
@@ -12,18 +12,18 @@ void DisplayOdomMode::task(void *parameter) {
     instance->comm.setRequestStr(instance->getModeName());
     // Check for I2C timeout
     if (instance->comm.checkTimeout()) {
-      instance->atoms3lcd.drawNoDataReceived();
-      instance->atoms3lcd.printColorText(instance->getModeName() + "\n");
+      instance->lcd.drawNoDataReceived();
+      instance->lcd.printColorText(instance->getModeName() + "\n");
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }
     // Display information
     else {
-      instance->atoms3lcd.drawBlack();
-      if (instance->atoms3lcd.color_str.isEmpty())
-        instance->atoms3lcd.printColorText("Waiting for " + instance->getModeName());
+      instance->lcd.drawBlack();
+      if (instance->lcd.color_str.isEmpty())
+        instance->lcd.printColorText("Waiting for " + instance->getModeName());
       else
-        instance->atoms3lcd.printColorText(instance->atoms3lcd.color_str);
+        instance->lcd.printColorText(instance->lcd.color_str);
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }

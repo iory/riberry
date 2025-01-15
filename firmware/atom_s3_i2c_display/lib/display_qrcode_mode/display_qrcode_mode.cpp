@@ -2,8 +2,8 @@
 
 DisplayQRcodeMode* DisplayQRcodeMode::instance = nullptr;
 
-DisplayQRcodeMode::DisplayQRcodeMode(AtomS3LCD &lcd, CommunicationBase &i2c)
-  : atoms3lcd(lcd), comm(i2c), Mode("DisplayQRcodeMode") {
+DisplayQRcodeMode::DisplayQRcodeMode(PrimitiveLCD &lcd, CommunicationBase &i2c)
+  : lcd(lcd), comm(i2c), Mode("DisplayQRcodeMode") {
     instance = this;
 }
 
@@ -12,18 +12,18 @@ void DisplayQRcodeMode::task(void *parameter) {
     instance->comm.setRequestStr(instance->getModeName());
     // Check for I2C timeout
     if (instance->comm.checkTimeout()) {
-      instance->atoms3lcd.drawNoDataReceived();
-      instance->atoms3lcd.printColorText(instance->getModeName() + "\n");
+      instance->lcd.drawNoDataReceived();
+      instance->lcd.printColorText(instance->getModeName() + "\n");
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }
     // Display QR code
     else {
-      instance->atoms3lcd.drawBlack();
-      if (instance->atoms3lcd.qrCodeData.isEmpty())
-        instance->atoms3lcd.printColorText("Waiting for " + instance->getModeName());
+      instance->lcd.drawBlack();
+      if (instance->lcd.qrCodeData.isEmpty())
+        instance->lcd.printColorText("Waiting for " + instance->getModeName());
       else
-        instance->atoms3lcd.drawQRcode(instance->atoms3lcd.qrCodeData);
+        instance->lcd.drawQRcode(instance->lcd.qrCodeData);
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }

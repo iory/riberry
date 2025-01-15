@@ -2,17 +2,17 @@
 #define DISPLAY_QRCODE_MODE_H
 
 #include <mode.h>
-#include <atom_s3_lcd.h>
+#include <primitive_lcd.h>
 #include <communication_base.h>
 
 class DisplayQRcodeMode : public Mode {
 public:
-  DisplayQRcodeMode(AtomS3LCD &lcd, CommunicationBase &i2c);
+  DisplayQRcodeMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
   void createTask(uint8_t xCoreID) override;
 
 private:
   static DisplayQRcodeMode* instance; /**< Singleton instance of DisplayQRcodeMode. */
-  AtomS3LCD &atoms3lcd;
+  PrimitiveLCD &lcd;
   CommunicationBase &comm;
 
   static void task(void *parameter);

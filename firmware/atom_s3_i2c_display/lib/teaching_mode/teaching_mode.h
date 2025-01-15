@@ -2,17 +2,17 @@
 #define ATOM_S3_TEACHING_MODE_H
 
 #include <mode.h>
-#include <atom_s3_lcd.h>
+#include <primitive_lcd.h>
 #include <communication_base.h>
 
 class TeachingMode : public Mode {
 public:
-  TeachingMode(AtomS3LCD &lcd, CommunicationBase &i2c);
+  TeachingMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
   void createTask(uint8_t xCoreID) override;
 
 private:
   static TeachingMode* instance; /**< Singleton instance of TeachingMode. */
-  AtomS3LCD &atoms3lcd;
+  PrimitiveLCD &lcd;
   CommunicationBase &comm;
 
   static void task(void *parameter);

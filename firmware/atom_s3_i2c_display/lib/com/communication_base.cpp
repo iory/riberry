@@ -5,8 +5,8 @@ String CommunicationBase::requestStr = ""; // Initialize the static requestStr
 String CommunicationBase::forcedMode = ""; // Initialize the static forcedMode
 String CommunicationBase::selectedModesStr = ""; // Initialize the static selectedModesStr
 
-CommunicationBase::CommunicationBase(AtomS3LCD &lcd, ButtonManager &button)
-  : atoms3lcd(lcd), button_manager(button), receiveEventEnabled(true) {
+CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button)
+  : lcd(lcd), button_manager(button), receiveEventEnabled(true) {
   instance = this;
 }
 
@@ -80,23 +80,23 @@ void CommunicationBase::receiveEvent(int howMany) {
     break;
 
   case DISPLAY_BATTERY_GRAPH_MODE:
-    instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+    instance->lcd.color_str = str.substring(1); // remove PacketType Header
     break;
 
   case SERVO_CONTROL_MODE:
-    instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+    instance->lcd.color_str = str.substring(1); // remove PacketType Header
     break;
 
   case PRESSURE_CONTROL_MODE:
-    instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+    instance->lcd.color_str = str.substring(1); // remove PacketType Header
     break;
 
   case TEACHING_MODE:
-    instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+    instance->lcd.color_str = str.substring(1); // remove PacketType Header
     break;
 
   case DISPLAY_ODOM_MODE:
-    instance->atoms3lcd.color_str = str.substring(1); // remove PacketType Header
+    instance->lcd.color_str = str.substring(1); // remove PacketType Header
     break;
 
   case BUTTON_STATE_REQUEST:
@@ -105,40 +105,40 @@ void CommunicationBase::receiveEvent(int howMany) {
 
   default:
     // Handle TEXT or unknown packets
-    instance->atoms3lcd.color_str = str;
+    instance->lcd.color_str = str;
     break;
   }
 }
 
 void CommunicationBase::handleJpegPacket(const String& str) {
-    if (str.length() == 2 && !instance->atoms3lcd.readyJpeg) {
+    if (str.length() == 2 && !instance->lcd.readyJpeg) {
         // Initialize JPEG loading
-        instance->atoms3lcd.jpegLength = (static_cast<uint32_t>(str[0]) << 8) | static_cast<uint8_t>(str[1]);
-        instance->atoms3lcd.currentJpegIndex = 0;
-        instance->atoms3lcd.loadingJpeg = true;
-    } else if (instance->atoms3lcd.loadingJpeg) {
-        size_t index = instance->atoms3lcd.currentJpegIndex;
+        instance->lcd.jpegLength = (static_cast<uint32_t>(str[0]) << 8) | static_cast<uint8_t>(str[1]);
+        instance->lcd.currentJpegIndex = 0;
+        instance->lcd.loadingJpeg = true;
+    } else if (instance->lcd.loadingJpeg) {
+        size_t index = instance->lcd.currentJpegIndex;
         size_t strLength = str.length();
         // Continue loading JPEG data
-        if (index + strLength <= sizeof(instance->atoms3lcd.jpegBuf)) {
-          memcpy(instance->atoms3lcd.jpegBuf + index, str.c_str(), strLength);
-            instance->atoms3lcd.currentJpegIndex += strLength;
+        if (index + strLength <= sizeof(instance->lcd.jpegBuf)) {
+          memcpy(instance->lcd.jpegBuf + index, str.c_str(), strLength);
+            instance->lcd.currentJpegIndex += strLength;
         } else {
-            instance->atoms3lcd.loadingJpeg = false;
+            instance->lcd.loadingJpeg = false;
         }
-        if (instance->atoms3lcd.currentJpegIndex >= instance->atoms3lcd.jpegLength) {
-            instance->atoms3lcd.loadingJpeg = false;
-            instance->atoms3lcd.readyJpeg = true;
+        if (instance->lcd.currentJpegIndex >= instance->lcd.jpegLength) {
+            instance->lcd.loadingJpeg = false;
+            instance->lcd.readyJpeg = true;
         }
     } else {
-        instance->atoms3lcd.loadingJpeg = false;  // Reset if invalid packet received
+        instance->lcd.loadingJpeg = false;  // Reset if invalid packet received
     }
 }
 
 void CommunicationBase::handleQrCodePacket(const String& str) {
     if (str.length() > 1) {
         uint8_t qrCodeLength = static_cast<uint8_t>(str[1]);
-        instance->atoms3lcd.qrCodeData = str.substring(2, 2 + qrCodeLength);
+        instance->lcd.qrCodeData = str.substring(2, 2 + qrCodeLength);
     }
 }
 
@@ -191,7 +191,7 @@ void CommunicationBase::task(void *parameter) {
 #ifdef ATOM_S3
   bool success = WireSlave.begin(sda_pin, scl_pin, i2c_slave_addr, 200, 100);
   if (!success) {
-    instance->atoms3lcd.printColorText("I2C slave init failed\n");
+    instance->lcd.printColorText("I2C slave init failed\n");
     while (1) vTaskDelay(pdMS_TO_TICKS(100));;
   }
   // Ensure the program starts in a timeout state

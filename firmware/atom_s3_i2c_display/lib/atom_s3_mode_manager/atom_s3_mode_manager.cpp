@@ -7,8 +7,8 @@ String AtomS3ModeManager::selectedModesStr = "";
 int AtomS3ModeManager::current_mode_index = 0;
 const std::vector<Mode*>* AtomS3ModeManager::allModes = nullptr;
 
-AtomS3ModeManager::AtomS3ModeManager(AtomS3LCD &lcd, ButtonManager &button, CommunicationBase &i2c, const std::vector<Mode *> &modes)
-  : atoms3lcd(lcd), button_manager(button), comm(i2c)
+AtomS3ModeManager::AtomS3ModeManager(PrimitiveLCD &lcd, ButtonManager &button, CommunicationBase &i2c, const std::vector<Mode *> &modes)
+  : lcd(lcd), button_manager(button), comm(i2c)
 {
   instance = this;
   allModes = &modes;
@@ -48,8 +48,8 @@ void AtomS3ModeManager::task(void *parameter) {
     }
     // If no mode is added, do nothing
     if (selectedModes.size() == 0) {
-      instance->atoms3lcd.drawBlack();
-      instance->atoms3lcd.printColorText("Waiting for modes to be added...\n");
+      instance->lcd.drawBlack();
+      instance->lcd.printColorText("Waiting for modes to be added...\n");
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }
@@ -119,10 +119,10 @@ void AtomS3ModeManager::changeMode(int suspend_mode_index, int resume_mode_index
   // Transition
   selectedModes[suspend_mode_index]->waitForTaskSuspended();
   instance->comm.stopReceiveEvent();
-  instance->atoms3lcd.drawBlack();
-  instance->atoms3lcd.printColorText("Wait for mode switch ...\n");
+  instance->lcd.drawBlack();
+  instance->lcd.printColorText("Wait for mode switch ...\n");
   vTaskDelay(pdMS_TO_TICKS(1000));
-  instance->atoms3lcd.resetLcdData();
+  instance->lcd.resetLcdData();
   // Resume
   selectedModes[resume_mode_index]->resumeTask();
   instance->comm.startReceiveEvent();

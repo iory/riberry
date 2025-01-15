@@ -1,4 +1,4 @@
-#include <atom_s3_lcd.h>
+#include <primitive_lcd.h>
 #include <communication_base.h>
 #include <button_manager.h>
 
@@ -14,25 +14,25 @@
 #include <atom_s3_mode_manager.h>
 
 ButtonManager button_manager;
-AtomS3LCD atoms3lcd;
-CommunicationBase comm(atoms3lcd, button_manager);
+PrimitiveLCD lcd;
+CommunicationBase comm(lcd, button_manager);
 
 // Define all available modes
-DisplayInformationMode display_information_mode(atoms3lcd, comm);
-DisplayQRcodeMode display_qrcode_mode(atoms3lcd, comm);
-DisplayImageMode display_image_mode(atoms3lcd, comm);
-DisplayBatteryGraphMode display_battery_graph_mode(atoms3lcd, comm);
-DisplayOdomMode display_odom_mode(atoms3lcd, comm);
-ServoControlMode servo_control_mode(atoms3lcd, comm);
-PressureControlMode pressure_control_mode(atoms3lcd, comm);
-TeachingMode teaching_mode(atoms3lcd, comm);
+DisplayInformationMode display_information_mode(lcd, comm);
+DisplayQRcodeMode display_qrcode_mode(lcd, comm);
+DisplayImageMode display_image_mode(lcd, comm);
+DisplayBatteryGraphMode display_battery_graph_mode(lcd, comm);
+DisplayOdomMode display_odom_mode(lcd, comm);
+ServoControlMode servo_control_mode(lcd, comm);
+PressureControlMode pressure_control_mode(lcd, comm);
+TeachingMode teaching_mode(lcd, comm);
 const std::vector<Mode*> allModes =
   {&display_information_mode, &display_qrcode_mode, &display_image_mode, &display_battery_graph_mode,
    &display_odom_mode,
    &servo_control_mode, &pressure_control_mode, &teaching_mode,
   };
 
-AtomS3ModeManager atoms3modemanager(atoms3lcd, button_manager, comm, allModes);
+AtomS3ModeManager atoms3modemanager(lcd, button_manager, comm, allModes);
 
 void setup() {
   button_manager.createTask(0);

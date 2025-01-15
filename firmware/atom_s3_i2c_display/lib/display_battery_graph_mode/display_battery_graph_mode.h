@@ -2,12 +2,12 @@
 #define ATOM_S3_DISPLAY_BATTERY_GRAPH_MODE_H
 
 #include <mode.h>
-#include <atom_s3_lcd.h>
+#include <primitive_lcd.h>
 #include <communication_base.h>
 
 class DisplayBatteryGraphMode : public Mode {
 public:
-  DisplayBatteryGraphMode(AtomS3LCD &lcd, CommunicationBase &i2c);
+  DisplayBatteryGraphMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
   void createTask(uint8_t xCoreID) override;
 
 private:
@@ -21,7 +21,7 @@ private:
   // これを100など大きくしすぎるとプログラムが落ちる
   static const int max_buffer_length = 20;
   uint charge_status;
-  AtomS3LCD &atoms3lcd;
+  PrimitiveLCD &lcd;
   CommunicationBase &comm;
 
   static void task(void *parameter);
