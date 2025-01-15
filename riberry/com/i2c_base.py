@@ -4,6 +4,7 @@ import sys
 from filelock import FileLock
 from filelock import Timeout
 from i2c_for_esp32 import WirePacker
+from i2c_for_esp32 import WireUnpacker
 
 from riberry.com.base import ComBase
 
@@ -95,9 +96,29 @@ class I2CBase(ComBase):
         elif isinstance(data, (bytes, bytearray)):
             for r in data:
                 packer.write(r)
+        elif isinstance(data, list):
+            if all(isinstance(item, int) for item in data):
+                # If all elements are integers, treat as raw ASCII values
+                for r in data:
+                    packer.write(r)
+            elif all(isinstance(item, str) and len(item) == 1 for item in data):
+                # If all elements are single-character strings, convert to ASCII values
+                data_str = ''.join(data)  # Combine list into a single string
+                for r in list(map(ord, data_str)):
+                    packer.write(r)
+            else:
+                raise ValueError('List must contain either all integers or all single-character strings.')
         else:
             raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
 
         packer.end()
         if packer.available():
             self.i2c_write(packer.buffer[: packer.available()])
+
+    def read(self):
+        packet = self.i2c.read(100)
+        unpacker = WireUnpacker(buffer_size=100)
+        unpacker.reset()
+        for x in packet:
+            unpacker.write(x)
+        return unpacker.buffer[:unpacker.payloadLength]

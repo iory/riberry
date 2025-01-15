@@ -53,10 +53,18 @@ void CommunicationBase::receiveEvent(int howMany) {
     return;
   instance->updateLastReceiveTime();
   String str;
-  while (0 < Serial.available()) {
-    char c = Serial.read();
+#ifdef ATOM_S3
+  // Read data from the I2C bus
+  while (0 < WireSlave.available()) {
+    char c = WireSlave.read();  // receive byte as a character;
     str += c;
   }
+#elif defined(USE_M5STACK_BASIC)
+  while (0 < Serial.available()) {
+    char c = Serial.read();  // receive byte as a character;
+    str += c;
+  }
+#endif
   if (str.length() < 1) {
     return;  // Invalid packet
   }

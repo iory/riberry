@@ -8,7 +8,6 @@ import time
 
 from colorama import Fore
 import cv2
-from i2c_for_esp32 import WirePacker
 from pybsc import nsplit
 from pybsc.image_utils import squared_padding_image
 
@@ -280,7 +279,7 @@ class DisplayInformation:
 
     def force_mode(self, mode_name):
         header = [PacketType.FORCE_MODE]
-        forceModebytes = (list (map(ord, mode_name)))
+        forceModebytes = list(map(ord, mode_name))
         self.com.write(header + forceModebytes)
 
     def run(self):
@@ -296,7 +295,10 @@ class DisplayInformation:
         while not stop_event.is_set():
             try:
                 self.com.read()
-                self.com.write([PacketType.BUTTON_STATE_REQUEST])
+                if isinstance(self.com, UARTBase):
+                    self.com.write([PacketType.BUTTON_STATE_REQUEST])
+                else:
+                    self.com.write([])
                 time.sleep(0.1)
                 mode_packet = self.com.read()
                 if len(mode_packet) > 1:

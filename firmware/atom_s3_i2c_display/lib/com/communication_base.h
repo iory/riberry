@@ -48,6 +48,22 @@ public:
   static String selectedModesStr;
 
 private:
+
+#ifdef ATOM_S3
+#ifdef I2C_ADDR
+  static constexpr int i2c_slave_addr = I2C_ADDR; /**< I2C slave address for communication. */
+#else
+  static constexpr int i2c_slave_addr = 0x42; /**< I2C slave address for communication. */
+#endif // end of I2C_ADDR
+#ifdef USE_GROVE
+  static constexpr int sda_pin = 2; /**< I2C SDA pin for GROVE mode. */
+  static constexpr int scl_pin = 1; /**< I2C SCL pin for GROVE mode. */
+#else
+  static constexpr int sda_pin = 38; /**< I2C SDA pin for default mode. */
+  static constexpr int scl_pin = 39; /**< I2C SCL pin for default mode. */
+#endif // end of USE_GROVE
+#endif // end of ATOM_S3
+
   bool receiveEventEnabled;
   static CommunicationBase* instance; /**< Singleton instance of CommunicationBase for managing callbacks. */
   PrimitiveLCD &lcd; /**< Reference to the PrimitiveLCD object for displaying information. */
