@@ -39,3 +39,6 @@ class UARTBase(ComBase):
                 raise ValueError('List must contain either all integers or all single-character strings.')
         else:
             raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
+
+    def read(self):
+        return self.serial.read(self.serial.in_waiting or 1)

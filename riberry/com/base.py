@@ -13,6 +13,7 @@ class PacketType(IntEnum):
     PRESSURE_CONTROL_MODE = 0x07
     TEACHING_MODE = 0x08
     DISPLAY_ODOM_MODE = 0x09
+    BUTTON_STATE_REQUEST = 0x10
 
 
 class ComBase:
