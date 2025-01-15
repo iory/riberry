@@ -2,16 +2,16 @@
 
 DisplayOdomMode* DisplayOdomMode::instance = nullptr;
 
-DisplayOdomMode::DisplayOdomMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
-  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayOdomMode") {
+DisplayOdomMode::DisplayOdomMode(AtomS3LCD &lcd, CommunicationBase &i2c)
+  : atoms3lcd(lcd), comm(i2c), Mode("DisplayOdomMode") {
     instance = this;
 }
 
 void DisplayOdomMode::task(void *parameter) {
   while (true) {
-    instance->atoms3i2c.setRequestStr(instance->getModeName());
+    instance->comm.setRequestStr(instance->getModeName());
     // Check for I2C timeout
-    if (instance->atoms3i2c.checkTimeout()) {
+    if (instance->comm.checkTimeout()) {
       instance->atoms3lcd.drawNoDataReceived();
       instance->atoms3lcd.printColorText(instance->getModeName() + "\n");
       vTaskDelay(pdMS_TO_TICKS(500));

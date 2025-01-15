@@ -2,16 +2,16 @@
 
 TeachingMode* TeachingMode::instance = nullptr;
 
-TeachingMode::TeachingMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
-  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("TeachingMode") {
+TeachingMode::TeachingMode(AtomS3LCD &lcd, CommunicationBase &i2c)
+  : atoms3lcd(lcd), comm(i2c), Mode("TeachingMode") {
     instance = this;
 }
 
 void TeachingMode::task(void *parameter) {
   while (true) {
-    instance->atoms3i2c.setRequestStr(instance->getModeName());
+    instance->comm.setRequestStr(instance->getModeName());
     // Check for I2C timeout
-    if (instance->atoms3i2c.checkTimeout()) {
+    if (instance->comm.checkTimeout()) {
       instance->atoms3lcd.drawNoDataReceived();
       instance->atoms3lcd.printColorText(instance->getModeName() + "\n");
       vTaskDelay(pdMS_TO_TICKS(500));
@@ -26,7 +26,7 @@ void TeachingMode::task(void *parameter) {
         int listSize = 2;
         // Draw string
         char** StrList = (char**)malloc(listSize * sizeof(char*));
-        int modeCount = instance->atoms3i2c.splitString(instance->atoms3lcd.color_str, ',', StrList, listSize);
+        int modeCount = instance->comm.splitString(instance->atoms3lcd.color_str, ',', StrList, listSize);
         instance->atoms3lcd.printColorText(String(StrList[1]));
         // Draw AR Marker if found
         if (!String(StrList[0]).equals(String(""))) {

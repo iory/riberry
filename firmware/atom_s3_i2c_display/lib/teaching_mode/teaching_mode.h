@@ -3,17 +3,17 @@
 
 #include <mode.h>
 #include <atom_s3_lcd.h>
-#include <atom_s3_i2c.h>
+#include <communication_base.h>
 
 class TeachingMode : public Mode {
 public:
-  TeachingMode(AtomS3LCD &lcd, AtomS3I2C &i2c);
+  TeachingMode(AtomS3LCD &lcd, CommunicationBase &i2c);
   void createTask(uint8_t xCoreID) override;
 
 private:
   static TeachingMode* instance; /**< Singleton instance of TeachingMode. */
   AtomS3LCD &atoms3lcd;
-  AtomS3I2C &atoms3i2c;
+  CommunicationBase &comm;
 
   static void task(void *parameter);
   void drawARMarker(int marker_id, int x, int y, int size);

@@ -3,11 +3,11 @@
 
 #include <mode.h>
 #include <atom_s3_lcd.h>
-#include <atom_s3_i2c.h>
+#include <communication_base.h>
 
 class DisplayBatteryGraphMode : public Mode {
 public:
-  DisplayBatteryGraphMode(AtomS3LCD &lcd, AtomS3I2C &i2c);
+  DisplayBatteryGraphMode(AtomS3LCD &lcd, CommunicationBase &i2c);
   void createTask(uint8_t xCoreID) override;
 
 private:
@@ -22,7 +22,7 @@ private:
   static const int max_buffer_length = 20;
   uint charge_status;
   AtomS3LCD &atoms3lcd;
-  AtomS3I2C &atoms3i2c;
+  CommunicationBase &comm;
 
   static void task(void *parameter);
   void updateGraph(float* buffer, int buffer_length, uint new_charge_status, String current, int duration);

@@ -7,8 +7,8 @@ String AtomS3ModeManager::selectedModesStr = "";
 int AtomS3ModeManager::current_mode_index = 0;
 const std::vector<Mode*>* AtomS3ModeManager::allModes = nullptr;
 
-AtomS3ModeManager::AtomS3ModeManager(AtomS3LCD &lcd, ButtonManager &button, AtomS3I2C &i2c, const std::vector<Mode *> &modes)
-  : atoms3lcd(lcd), button_manager(button), atoms3i2c(i2c)
+AtomS3ModeManager::AtomS3ModeManager(AtomS3LCD &lcd, ButtonManager &button, CommunicationBase &i2c, const std::vector<Mode *> &modes)
+  : atoms3lcd(lcd), button_manager(button), comm(i2c)
 {
   instance = this;
   allModes = &modes;
@@ -21,18 +21,18 @@ void AtomS3ModeManager::task(void *parameter) {
 
   while (true) {
     // Check if selected Modes are changed
-    if (!selectedModesStr.equals(instance->atoms3i2c.selectedModesStr)) {
+    if (!selectedModesStr.equals(instance->comm.selectedModesStr)) {
       // Delete all modes
       instance->deleteSelectedModes();
       // Add selected modes
-      selectedModesStr = instance->atoms3i2c.selectedModesStr;
+      selectedModesStr = instance->comm.selectedModesStr;
       char** selectedModesStrList = (char**)malloc(allModes->size() * sizeof(char*));
       if (selectedModesStrList == nullptr) {
         // メモリ確保失敗時の処理
         Serial.println("Failed to allocate memory for selectedModesStrList.");
         return;
       }
-      int modeCount = instance->atoms3i2c.splitString(selectedModesStr, ',', selectedModesStrList, allModes->size());
+      int modeCount = instance->comm.splitString(selectedModesStr, ',', selectedModesStrList, allModes->size());
       for (int i = 0; i < modeCount; i++) {
         for (Mode *mode : *allModes) {
           if (mode->getModeName().equals(String(selectedModesStrList[i]))) {
@@ -57,7 +57,7 @@ void AtomS3ModeManager::task(void *parameter) {
     bool isModeForced = false;
     int forced_mode_index;
     for (int i = 0; i < selectedModes.size(); i++) {
-      if (selectedModes[i]->getModeName().equals(instance->atoms3i2c.forcedMode)) {
+      if (selectedModes[i]->getModeName().equals(instance->comm.forcedMode)) {
         isModeForced = true;
         forced_mode_index = i;
         break;
@@ -67,7 +67,7 @@ void AtomS3ModeManager::task(void *parameter) {
     if (isModeForced) {
       instance->changeMode(current_mode_index, forced_mode_index);
       current_mode_index = forced_mode_index;
-      instance->atoms3i2c.forcedMode = "";
+      instance->comm.forcedMode = "";
     }
     // Change mode by long click
     if (instance->button_manager.wasLongPressed()) {
@@ -118,14 +118,14 @@ void AtomS3ModeManager::changeMode(int suspend_mode_index, int resume_mode_index
   selectedModes[suspend_mode_index]->suspendTask();
   // Transition
   selectedModes[suspend_mode_index]->waitForTaskSuspended();
-  instance->atoms3i2c.stopReceiveEvent();
+  instance->comm.stopReceiveEvent();
   instance->atoms3lcd.drawBlack();
   instance->atoms3lcd.printColorText("Wait for mode switch ...\n");
   vTaskDelay(pdMS_TO_TICKS(1000));
   instance->atoms3lcd.resetLcdData();
   // Resume
   selectedModes[resume_mode_index]->resumeTask();
-  instance->atoms3i2c.startReceiveEvent();
+  instance->comm.startReceiveEvent();
 }
 
 void AtomS3ModeManager::addSelectedMode(Mode &mode) {

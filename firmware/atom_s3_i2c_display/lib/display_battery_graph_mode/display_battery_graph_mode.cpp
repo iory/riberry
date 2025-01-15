@@ -2,8 +2,8 @@
 
 DisplayBatteryGraphMode* DisplayBatteryGraphMode::instance = nullptr;
 
-DisplayBatteryGraphMode::DisplayBatteryGraphMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
-  : atoms3lcd(lcd), atoms3i2c(i2c), Mode("DisplayBatteryGraphMode"),
+DisplayBatteryGraphMode::DisplayBatteryGraphMode(AtomS3LCD &lcd, CommunicationBase &i2c)
+  : atoms3lcd(lcd), comm(i2c), Mode("DisplayBatteryGraphMode"),
     graph_h(lcd.height() - title_h - x_label_h - 2),
     graph_w(lcd.width() - y_label_w - y_line_w) {
     instance = this;
@@ -11,9 +11,9 @@ DisplayBatteryGraphMode::DisplayBatteryGraphMode(AtomS3LCD &lcd, AtomS3I2C &i2c)
 
 void DisplayBatteryGraphMode::task(void *parameter) {
   while (true) {
-    instance->atoms3i2c.setRequestStr(instance->getModeName());
+    instance->comm.setRequestStr(instance->getModeName());
     // Check for I2C timeout
-    if (instance->atoms3i2c.checkTimeout()) {
+    if (instance->comm.checkTimeout()) {
       instance->atoms3lcd.drawNoDataReceived();
       instance->atoms3lcd.printColorText(instance->getModeName() + "\n");
       vTaskDelay(pdMS_TO_TICKS(500));
@@ -28,7 +28,7 @@ void DisplayBatteryGraphMode::task(void *parameter) {
       }else {
         // Split by comma
         char* parts[max_buffer_length + 3];
-        int numParts = instance->atoms3i2c.splitString(instance->atoms3lcd.color_str,
+        int numParts = instance->comm.splitString(instance->atoms3lcd.color_str,
                                                        ',', parts, max_buffer_length + 3);
 
         uint new_charge_status = 0;
