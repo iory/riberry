@@ -4,8 +4,8 @@ from std_msgs.msg import Float32
 from std_msgs.msg import String
 
 from riberry.battery import ChargeState
-from riberry.i2c_base import I2CBase
-from riberry.i2c_base import PacketType
+from riberry.com.base import PacketType
+from riberry.com.i2c_base import I2CBase
 
 
 class DisplayBatteryGraphMode(I2CBase):
@@ -71,7 +71,7 @@ class DisplayBatteryGraphMode(I2CBase):
             sent_str += f'{percentage}'
             if i != self.display_bins-1:
                 sent_str += ','
-        self.send_string(sent_str)
+        self.write(sent_str)
 
 
 if __name__ == "__main__":

@@ -8,8 +8,8 @@ import rospy
 from std_msgs.msg import Float32
 from std_msgs.msg import String
 
-from riberry.i2c_base import I2CBase
-from riberry.i2c_base import PacketType
+from riberry.com.base import PacketType
+from riberry.com.i2c_base import I2CBase
 from riberry.network import get_ip_address
 from riberry.network import get_ros_master_ip
 
@@ -46,9 +46,9 @@ class DisplayOdomMode(I2CBase):
 
     def timer_callback(self, event):
         if self.mode == "DisplayInformationMode":
-            self.send_string(self.display_network_information())
+            self.write(self.display_network_information())
         elif self.mode == "DisplayOdomMode":
-            self.send_string(self.display_odom_information())
+            self.write(self.display_odom_information())
 
     def display_network_information(self):
         ip = get_ip_address()

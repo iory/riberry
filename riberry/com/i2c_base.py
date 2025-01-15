@@ -121,4 +121,4 @@ class I2CBase(ComBase):
         unpacker.reset()
         for x in packet:
             unpacker.write(x)
-        return unpacker.buffer[:unpacker.payloadLength]
+        return bytes(unpacker.buffer[:unpacker.payloadLength])
