@@ -9,7 +9,7 @@ ExecStart=/usr/local/bin/run_display_information.sh
 Restart=always
 RestartSec=10
 SyslogIdentifier=%n
-User=%u
+User=rock
 
 [Install]
 WantedBy=multi-user.target

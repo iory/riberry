@@ -63,17 +63,13 @@ def copy_files(source_dir, target_dir, dry_run=False):
 
 
 def enable_systemd_services(symlinks, dry_run=False):
-    username = os.getenv("SUDO_USER") or os.getenv("USER") or "root"
     for symlink_path in symlinks:
         item = os.path.basename(symlink_path)
         if item.endswith(".service"):
             if dry_run:
                 print(f"Dry-run: Would enable systemd service: {item}")
             else:
-                cmd = ["systemctl", "enable", item]
-                if '@' in item:
-                    cmd = ["systemctl", "enable", f'{item}@{username}']
-                subprocess.run(cmd)
+                subprocess.run(["systemctl", "enable", item])
                 print(f"Enabled systemd service: {item}")
 
 
