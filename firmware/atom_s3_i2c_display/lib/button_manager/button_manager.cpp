@@ -1,11 +1,11 @@
-#include <atom_s3_button.h>
+#include <button_manager.h>
 
-AtomS3Button::AtomS3Button(int pin, bool activeLow, bool pullupActive)
+ButtonManager::ButtonManager(int pin, bool activeLow, bool pullupActive)
   : btn(pin, activeLow, pullupActive), currentButtonState(RESET), clicked(false), doubleClicked(false), longPressed(false) {
   begin();
 }
 
-void AtomS3Button::begin() {
+void ButtonManager::begin() {
   btn.setClickMs(200); // Timeout used to distinguish single clicks from double clicks. (msec)
   btn.attachClick(handleClickStatic, this);
   btn.attachDoubleClick(handleDoubleClickStatic, this);
@@ -14,51 +14,51 @@ void AtomS3Button::begin() {
   btn.attachLongPressStop(handleLongPressEndStatic, this);
 }
 
-void AtomS3Button::tick() {
+void ButtonManager::tick() {
   btn.tick();
 }
 
-ButtonState AtomS3Button::getButtonState() {
+ButtonState ButtonManager::getButtonState() {
   return currentButtonState;
 }
 
-ButtonState AtomS3Button::notChangedButtonState() {
+ButtonState ButtonManager::notChangedButtonState() {
   return currentButtonState = NOT_CHANGED;
 }
 
 // Static handlers (call each member function)
-void AtomS3Button::handleClickStatic(void *instance) {
-  static_cast<AtomS3Button*>(instance)->handleClick();
+void ButtonManager::handleClickStatic(void *instance) {
+  static_cast<ButtonManager*>(instance)->handleClick();
 }
 
-void AtomS3Button::handleDoubleClickStatic(void *instance) {
-  static_cast<AtomS3Button*>(instance)->handleDoubleClick();
+void ButtonManager::handleDoubleClickStatic(void *instance) {
+  static_cast<ButtonManager*>(instance)->handleDoubleClick();
 }
 
-void AtomS3Button::handleMultiClickStatic(void *instance) {
-  static_cast<AtomS3Button*>(instance)->handleMultiClick();
+void ButtonManager::handleMultiClickStatic(void *instance) {
+  static_cast<ButtonManager*>(instance)->handleMultiClick();
 }
 
-void AtomS3Button::handleLongPressStatic(void *instance) {
-  static_cast<AtomS3Button*>(instance)->handleLongPress();
+void ButtonManager::handleLongPressStatic(void *instance) {
+  static_cast<ButtonManager*>(instance)->handleLongPress();
 }
 
-void AtomS3Button::handleLongPressEndStatic(void *instance) {
-  static_cast<AtomS3Button*>(instance)->handleLongPressEnd();
+void ButtonManager::handleLongPressEndStatic(void *instance) {
+  static_cast<ButtonManager*>(instance)->handleLongPressEnd();
 }
 
 // Non-static member functions perform the actual processing
-void AtomS3Button::handleClick() {
+void ButtonManager::handleClick() {
   currentButtonState = SINGLE_CLICK;
   clicked = true;
 }
 
-void AtomS3Button::handleDoubleClick() {
+void ButtonManager::handleDoubleClick() {
   currentButtonState = DOUBLE_CLICK;
   doubleClicked = true;
 }
 
-void AtomS3Button::handleMultiClick() {
+void ButtonManager::handleMultiClick() {
   int n = btn.getNumberClicks();
   switch (n) {
   case 1: currentButtonState = SINGLE_CLICK; break;
@@ -75,17 +75,17 @@ void AtomS3Button::handleMultiClick() {
   }
 }
 
-void AtomS3Button::handleLongPress() {
+void ButtonManager::handleLongPress() {
   currentButtonState = PRESSED;
   longPressed = true;
 }
 
-void AtomS3Button::handleLongPressEnd() {
+void ButtonManager::handleLongPressEnd() {
   currentButtonState = RELEASED;
 }
 
 //Referencing M5's wasPressed()
-bool AtomS3Button::wasClicked() {
+bool ButtonManager::wasClicked() {
   if (clicked) {
     clicked = false;
     return true;
@@ -94,7 +94,7 @@ bool AtomS3Button::wasClicked() {
     return false;
 }
 
-bool AtomS3Button::wasDoubleClicked() {
+bool ButtonManager::wasDoubleClicked() {
   if (doubleClicked) {
     doubleClicked = false;
     return true;
@@ -103,7 +103,7 @@ bool AtomS3Button::wasDoubleClicked() {
     return false;
 }
 
-bool AtomS3Button::wasLongPressed() {
+bool ButtonManager::wasLongPressed() {
   if (longPressed) {
     longPressed = false;
     return true;
@@ -112,14 +112,14 @@ bool AtomS3Button::wasLongPressed() {
     return false;
 }
 
-void AtomS3Button::task(void *parameter) {
-  AtomS3Button *buttonInstance = static_cast<AtomS3Button *>(parameter);
+void ButtonManager::task(void *parameter) {
+  ButtonManager *buttonInstance = static_cast<ButtonManager *>(parameter);
   while (true) {
     buttonInstance->tick();
     vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
-void AtomS3Button::createTask(uint8_t xCoreID) {
+void ButtonManager::createTask(uint8_t xCoreID) {
   xTaskCreatePinnedToCore(task, "Button Task", 2048, this, 24, NULL, xCoreID);
 }

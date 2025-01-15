@@ -8,8 +8,8 @@ from skrobot.utils.urdf import no_mesh_load_mode
 from std_msgs.msg import Int32
 from std_msgs.msg import String
 
-from riberry.i2c_base import I2CBase
-from riberry.i2c_base import PacketType
+from riberry.com.base import PacketType
+from riberry.com.i2c_base import I2CBase
 
 
 class ServoControlMode(I2CBase):
@@ -86,7 +86,7 @@ class ServoControlMode(I2CBase):
         # Send message on AtomS3 LCD
         sent_str = chr(PacketType.SERVO_CONTROL_MODE)
         sent_str += "Servo control mode\n\nSingle Click:\nServo on off"
-        self.send_string(sent_str)
+        self.write(sent_str)
 
 
 if __name__ == "__main__":

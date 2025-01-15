@@ -1,8 +1,12 @@
 #include <primitive_lcd.h>
 
-PrimitiveLCD::PrimitiveLCD() : LGFX() {
+PrimitiveLCD::PrimitiveLCD() : LGFX(),
+                               qrCodeData("") {
   init();
   lcdMutex = xSemaphoreCreateMutex();
+  setRotation(lcd_rotation);
+  clear();
+  setTextSize(DEFAULT_TEXT_SIZE);
 }
 
 void PrimitiveLCD::drawJpg(const uint8_t *jpg_data, size_t jpg_len, uint16_t x, uint16_t y, uint16_t maxWidth, uint16_t maxHeight, uint16_t offX, uint16_t offY, jpeg_div_t scale) {
@@ -174,7 +178,7 @@ uint16_t PrimitiveLCD::colorMap(int code, bool isBackground) {
     }
   }
 }
-  
+
 bool PrimitiveLCD::lockLcd() {
   // ミューテックスのロックを試みる（最大100ms待機）
   return xSemaphoreTake(lcdMutex, pdMS_TO_TICKS(100)) == pdTRUE;
@@ -183,4 +187,81 @@ bool PrimitiveLCD::lockLcd() {
 void PrimitiveLCD::unlockLcd() {
   // ミューテックスを解放
   xSemaphoreGive(lcdMutex);
+}
+
+// e.g. lcd.drawImage(lcd.jpegBuf, lcd.jpegLength);
+void PrimitiveLCD::drawImage(uint8_t* jpegBuf, uint32_t jpegLength) {
+  drawJpg(jpegBuf, jpegLength, 0, 0, width(), height(), 0, 0, ::JPEG_DIV_NONE);
+}
+
+void PrimitiveLCD::drawQRcode(const String& qrCodeData) {
+  if (qrCodeData.length() > 0) {
+    // Draw QR code if qrCodeData is received
+    fillScreen(color565(255, 255, 255));
+    int rectWidth = min(width(), height());
+    qrcode(qrCodeData.c_str(),
+           static_cast<int>(width() / 2 - rectWidth / 2) + SPACING,
+           static_cast<int>(height() / 2 - rectWidth / 2) + SPACING / 2,
+           rectWidth - SPACING * 2, QR_VERSION);
+  }
+  else {
+    fillScreen(color565(255, 0, 0));  // Fill the screen with red
+    setCursor(0, 0);
+    println("No QR code data received.");
+  }
+}
+
+void PrimitiveLCD::printWaitMessage(int i2cAddress) {
+#ifdef ATOM_S3
+  printColorText("Wait for I2C input.\n");
+#ifdef USE_GROVE
+  printColorText("\x1b[31mGROVE\x1b[39m Mode\n");
+#else
+  printColorText("\x1b[31mNOT GROVE\x1b[39m Mode\n");
+#endif // end of USE_GROVE
+
+#elif defined(USE_M5STACK_BASIC)
+  printColorText("Wait for /dev/ttyS1 input.\n");
+#endif
+  char log_msg[50];
+  sprintf(log_msg, "I2C address \x1b[33m0x%02x\x1b[39m", i2cAddress);
+  printColorText(log_msg);
+}
+
+void PrimitiveLCD::drawNoDataReceived() {
+  fillScreen(color565(255, 0, 0));  // Fill the screen with red
+  setCursor(0, 0);
+  printColorText("No data received.\n");
+}
+
+void PrimitiveLCD::drawBlack() {
+  fillScreen(color565(0, 0, 0));  // Fill the screen with black
+  setCursor(0, 0);
+}
+
+void PrimitiveLCD::resetColorStr() {
+  color_str = "";
+}
+
+void PrimitiveLCD::resetJpegBuf() {
+  memset(jpegBuf, 0, sizeof(jpegBuf));
+}
+
+void PrimitiveLCD::resetQRcodeData() {
+  qrCodeData = "";
+}
+
+void PrimitiveLCD::resetLcdData() {
+  resetColorStr();
+  resetJpegBuf();
+  resetQRcodeData();
+  mode_changed = true;
+}
+
+unsigned long PrimitiveLCD::getLastDrawTime() {
+  return lastDrawTime;
+}
+
+void PrimitiveLCD::setLastDrawTime(unsigned long time) {
+  lastDrawTime = time;
 }

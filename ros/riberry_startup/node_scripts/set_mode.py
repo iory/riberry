@@ -2,8 +2,8 @@
 
 import rospy
 
-from riberry.i2c_base import I2CBase
-from riberry.i2c_base import PacketType
+from riberry.com.base import PacketType
+from riberry.com.i2c_base import I2CBase
 
 
 class SetMode(I2CBase):
@@ -24,7 +24,7 @@ class SetMode(I2CBase):
         header = [PacketType.SELECTED_MODE]
         forceModebytes = (list (map(ord, self.mode_names)))
         rospy.loginfo_throttle(60, f"Mode names: {self.mode_names}")
-        self.send_raw_bytes(header + forceModebytes)
+        self.write(header + forceModebytes)
 
 
 if __name__ == "__main__":

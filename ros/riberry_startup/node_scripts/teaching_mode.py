@@ -9,8 +9,8 @@ import rospy
 from std_msgs.msg import Int32
 from std_msgs.msg import String
 
-from riberry.i2c_base import I2CBase
-from riberry.i2c_base import PacketType
+from riberry.com.base import PacketType
+from riberry.com.i2c_base import I2CBase
 from riberry.select_list import SelectList
 from riberry.teaching_manager import TeachingManager
 
@@ -274,7 +274,7 @@ class TeachingMode(I2CBase):
         if len([char for char in sent_str if char == delimiter]) != delimiter_num:
             rospy.logerr(f"sent string: {sent_str}")
             rospy.logerr(f"The number of delimiter '{delimiter}' must be {delimiter_num}")
-        self.send_string(sent_str)
+        self.write(sent_str)
 
     def load_teaching_files(self):
         """Loads all teaching JSON files from the configured directory."""

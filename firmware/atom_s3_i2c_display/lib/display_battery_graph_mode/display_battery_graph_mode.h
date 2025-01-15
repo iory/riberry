@@ -2,12 +2,12 @@
 #define ATOM_S3_DISPLAY_BATTERY_GRAPH_MODE_H
 
 #include <mode.h>
-#include <atom_s3_lcd.h>
-#include <atom_s3_i2c.h>
+#include <primitive_lcd.h>
+#include <communication_base.h>
 
 class DisplayBatteryGraphMode : public Mode {
 public:
-  DisplayBatteryGraphMode(AtomS3LCD &lcd, AtomS3I2C &i2c);
+  DisplayBatteryGraphMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
   void createTask(uint8_t xCoreID) override;
 
 private:
@@ -15,14 +15,14 @@ private:
   static const int32_t y_label_w = 18;
   static const int32_t y_line_w = 1;
   static const int32_t x_label_h = 8;
-  static const int32_t graph_h = LCD_H - title_h - x_label_h - 2; //83
-  static const int32_t graph_w = LCD_W - y_label_w - y_line_w; //109
+  const int32_t graph_h;  //83 for atom s3
+  const int32_t graph_w; //109 for atom s3
   static DisplayBatteryGraphMode* instance;
   // これを100など大きくしすぎるとプログラムが落ちる
   static const int max_buffer_length = 20;
   uint charge_status;
-  AtomS3LCD &atoms3lcd;
-  AtomS3I2C &atoms3i2c;
+  PrimitiveLCD &lcd;
+  CommunicationBase &comm;
 
   static void task(void *parameter);
   void updateGraph(float* buffer, int buffer_length, uint new_charge_status, String current, int duration);

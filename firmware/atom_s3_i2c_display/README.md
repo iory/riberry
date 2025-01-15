@@ -69,11 +69,11 @@ The following sections provide details on the base code for the AtomS3 firmware.
 
 - `main.cpp` includes instances for each mode and stores them in a list. Each time a long click occurs, the active task switches to another mode. Note that this program does not include instances of Servo Control Mode, Pressure Control Mode and Teachiing Mode by default.
 
-- `atom_s3_lcd.h` is a shared library for the AtomS3, containing functions for drawing on the LCD and holding variables needed for rendering data, such as jpegBuf and qrCodeData.
+- `primitive_lcd.h` is a shared library for the AtomS3, containing functions for drawing on the LCD and holding variables needed for rendering data, such as jpegBuf and qrCodeData.
 
-- `atom_s3_i2c.h` is a shared library for I2C communication with the AtomS3. In the receiveEvent function, data is received from the I2C master and stored in the AtomS3LCD class object. The requestEvent function sends button state and mode information to the I2C master.
+- `communication_base.h` is a shared library for I2C communication with the AtomS3. In the receiveEvent function, data is received from the I2C master and stored in the PrimitiveLCD class object. The requestEvent function sends button state and mode information to the I2C master.
 
-- `atom_s3_button.h` is a shared library that detects which button was pressed and identifies the type of press.
+- `button_manager.h` is a shared library that detects which button was pressed and identifies the type of press.
 
 ### Mode Descriptions
 

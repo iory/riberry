@@ -1,7 +1,15 @@
-#ifndef ATOM_S3_BUTTON_H
-#define ATOM_S3_BUTTON_H
+#ifndef BUTTON_MANAGER_H
+#define BUTTON_MANAGER_H
 
 #include <OneButton.h>
+
+#ifdef ATOM_S3
+  constexpr byte BUTTON_PIN = 41;
+#elif defined(USE_M5STACK_BASIC)
+  constexpr byte BUTTON_PIN = 39;
+#else
+  constexpr byte BUTTON_PIN = 41;
+#endif
 
 /**
  * @brief Button click states enumeration.
@@ -25,9 +33,9 @@ enum ButtonState {
 };
 
 /**
- * @brief Class to handle a button on the AtomS3 device using the OneButton library.
+ * @brief Class to handle a button on the device using the OneButton library.
  */
-class AtomS3Button {
+class ButtonManager {
 public:
   /**
    * @brief Constructor to initialize the button with specified settings.
@@ -36,7 +44,7 @@ public:
    * @param activeLow Determines whether the button is active low. Default is true.
    * @param pullupActive Determines whether the internal pull-up resistor is used. Default is false.
    */
-  AtomS3Button(int pin = 41, bool activeLow = true, bool pullupActive = false);
+  ButtonManager(int pin = BUTTON_PIN, bool activeLow = true, bool pullupActive = false);
 
   /**
    * @brief Initialize the button with event handlers.
@@ -94,35 +102,35 @@ private:
   /**
    * @brief Static method to handle single-click events.
    *
-   * @param instance A pointer to the AtomS3Button instance.
+   * @param instance A pointer to the ButtonManager instance.
    */
   static void handleClickStatic(void *instance);
 
   /**
    * @brief Static method to handle double-click events.
    *
-   * @param instance A pointer to the AtomS3Button instance.
+   * @param instance A pointer to the ButtonManager instance.
    */
   static void handleDoubleClickStatic(void *instance);
 
   /**
    * @brief Static method to handle multi-click events.
    *
-   * @param instance A pointer to the AtomS3Button instance.
+   * @param instance A pointer to the ButtonManager instance.
    */
   static void handleMultiClickStatic(void *instance);
 
   /**
    * @brief Static method to handle long-press events.
    *
-   * @param instance A pointer to the AtomS3Button instance.
+   * @param instance A pointer to the ButtonManager instance.
    */
   static void handleLongPressStatic(void *instance);
 
   /**
    * @brief Static method to handle long-press-end events.
    *
-   * @param instance A pointer to the AtomS3Button instance.
+   * @param instance A pointer to the ButtonManager instance.
    */
   static void handleLongPressEndStatic(void *instance);
 
@@ -154,7 +162,7 @@ private:
   /**
    * @brief The task function for FreeRTOS to continuously monitor button state.
    *
-   * @param parameter A pointer to the AtomS3Button instance.
+   * @param parameter A pointer to the ButtonManager instance.
    */
   static void task(void *parameter);
 };

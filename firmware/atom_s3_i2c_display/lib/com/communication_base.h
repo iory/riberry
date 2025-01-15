@@ -1,25 +1,27 @@
-#ifndef ATOM_S3_I2C_H
-#define ATOM_S3_I2C_H
+#ifndef COMMUNICATION_BASE_H
+#define COMMUNICATION_BASE_H
 
-#include <Wire.h>
-#include <WireSlave.h>
-#include <atom_s3_lcd.h>
-#include <atom_s3_button.h>
+#ifdef ATOM_S3
+  #include <Wire.h>
+  #include <WireSlave.h> // for i2c
+#endif
+
+#include <primitive_lcd.h>
+#include <button_manager.h>
 
 #include "packet.h"
 
-/**
- * @brief Handles I2C communication for AtomS3, including receiving and sending data via I2C bus.
- */
-class AtomS3I2C {
+class CommunicationBase {
 public:
+  virtual ~CommunicationBase() = default;
+
   /**
-   * @brief Constructor for AtomS3I2C, initializes the I2C class with references to the LCD and Button objects.
+   * @brief Constructor for CommunicationBase, initializes the I2C class with references to the LCD and Button objects.
    *
-   * @param lcd Reference to the AtomS3LCD object.
-   * @param button Reference to the AtomS3Button object.
+   * @param lcd Reference to the PrimitiveLCD object.
+   * @param button Reference to the ButtonManager object.
    */
-  AtomS3I2C(AtomS3LCD &lcd, AtomS3Button &button);
+  CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button);
 
   /**
    * @brief Creates and starts the I2C communication task on the specified core.
@@ -30,39 +32,42 @@ public:
 
   /**
    * @brief Checks whether the I2C communication has timed out.
+
    *
    * @return true if the communication has timed out, false otherwise.
    */
   bool checkTimeout();
 
   int splitString(const String &input, char delimiter, char* output[], int maxParts);
-  
+
   void stopReceiveEvent();
   void startReceiveEvent();
   static void setRequestStr(const String &str);
 
+  static String forcedMode;
+  static String selectedModesStr;
+
+private:
+
+#ifdef ATOM_S3
 #ifdef I2C_ADDR
   static constexpr int i2c_slave_addr = I2C_ADDR; /**< I2C slave address for communication. */
 #else
   static constexpr int i2c_slave_addr = 0x42; /**< I2C slave address for communication. */
-#endif
-
+#endif // end of I2C_ADDR
 #ifdef USE_GROVE
   static constexpr int sda_pin = 2; /**< I2C SDA pin for GROVE mode. */
   static constexpr int scl_pin = 1; /**< I2C SCL pin for GROVE mode. */
 #else
   static constexpr int sda_pin = 38; /**< I2C SDA pin for default mode. */
   static constexpr int scl_pin = 39; /**< I2C SCL pin for default mode. */
-#endif
+#endif // end of USE_GROVE
+#endif // end of ATOM_S3
 
-  static String forcedMode;
-  static String selectedModesStr;
-
-private:
   bool receiveEventEnabled;
-  static AtomS3I2C* instance; /**< Singleton instance of AtomS3I2C for managing callbacks. */
-  AtomS3LCD &atoms3lcd; /**< Reference to the AtomS3LCD object for displaying information. */
-  AtomS3Button &atoms3button; /**< Reference to the AtomS3Button object for button interactions. */
+  static CommunicationBase* instance; /**< Singleton instance of CommunicationBase for managing callbacks. */
+  PrimitiveLCD &lcd; /**< Reference to the PrimitiveLCD object for displaying information. */
+  ButtonManager &button_manager; /**< Reference to the ButtonManager object for button interactions. */
   unsigned long lastReceiveTime = 0; /**< Last time data was received over I2C. */
   const unsigned long receiveTimeout = 15000; /**< Timeout duration for I2C communication (15 seconds). */
 
@@ -79,7 +84,7 @@ private:
   void updateLastReceiveTime();
 
   /**
-   * @brief Called when data is received over I2C.
+   * @brief Called when data is received over communication.
    *
    * @param howMany Number of bytes received.
    */
@@ -90,12 +95,12 @@ private:
   static void handleSelectedModePacket(const String& str);
 
   /**
-   * @brief Called when the master requests data from the I2C slave.
+   * @brief Called when the master requests data from the I2C or UART slave.
    */
   static void requestEvent();
 
   /**
-   * @brief The task that handles I2C communication in the background.
+   * @brief The task that handles communication in the background.
    *
    * @param parameter Task parameter (unused).
    */

@@ -8,15 +8,16 @@ import time
 
 from colorama import Fore
 import cv2
-from i2c_for_esp32 import WirePacker
 from pybsc import nsplit
 from pybsc.image_utils import squared_padding_image
 
 from riberry.battery import decide_battery_i2c_bus_number
 from riberry.battery import MP2760BatteryMonitor
 from riberry.battery import PisugarBatteryReader
-from riberry.i2c_base import I2CBase
-from riberry.i2c_base import PacketType
+from riberry.com.base import ComBase
+from riberry.com.base import PacketType
+from riberry.com.i2c_base import I2CBase
+from riberry.com.uart_base import UARTBase
 from riberry.network import get_ip_address
 from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
@@ -34,6 +35,7 @@ battery_readers = []
 ros_available = False
 ros_additional_message = None
 atom_s3_mode = "DisplayInformationMode"
+button_count = 0
 ros_display_image_flag = False
 ros_display_image = None
 stop_event = threading.Event()
@@ -46,6 +48,8 @@ def try_init_ros():
     global ros_display_image_flag
     global ros_display_image
     global battery_readers
+    global atom_s3_mode
+    global button_count
     ros_display_image_param = None
     prev_ros_display_image_param = None
 
@@ -78,10 +82,6 @@ def try_init_ros():
                 global ros_additional_message
                 ros_additional_message = msg.data
 
-            def ros_mode_callback(msg):
-                global atom_s3_mode
-                atom_s3_mode = msg.data
-
             def ros_image_callback(msg):
                 global ros_display_image
                 bridge = cv_bridge.CvBridge()
@@ -91,7 +91,8 @@ def try_init_ros():
             rospy.Subscriber(
                 "/atom_s3_additional_info", String, ros_callback, queue_size=1
             )
-            rospy.Subscriber("/atom_s3_mode", String, ros_mode_callback, queue_size=1)
+            mode_pub = rospy.Publisher("/atom_s3_mode", String, queue_size=1)
+            button_pub = rospy.Publisher("/atom_s3_button_state", Int32, queue_size=1)
             for battery_reader in battery_readers:
                 if isinstance(battery_reader, MP2760BatteryMonitor):
                     battery_pub = rospy.Publisher(
@@ -127,7 +128,7 @@ def try_init_ros():
                     )
 
             ros_available = True
-            rate = rospy.Rate(1)
+            rate = rospy.Rate(10)
             sub = None
             while not rospy.is_shutdown() and not stop_event.is_set():
                 for battery_reader in battery_readers:
@@ -143,6 +144,9 @@ def try_init_ros():
                     elif isinstance(battery_reader, PisugarBatteryReader):
                         pisugar_battery_pub.publish(battery_reader.get_filtered_percentage())
 
+                mode_pub.publish(String(data=atom_s3_mode))
+                button_pub.publish(Int32(data=button_count))
+                button_count = 0
                 ros_display_image_param = rospy.get_param("/display_image", None)
                 if battery_percentage is not None:
                     battery_pub.publish(battery_percentage)
@@ -192,9 +196,13 @@ def try_init_ros():
             ros_additional_message = None
 
 
-class DisplayInformation(I2CBase):
-    def __init__(self, i2c_addr):
-        super().__init__(i2c_addr)
+class DisplayInformation:
+    def __init__(self):
+        device = ComBase.identify_device()
+        if device == 'm5stack-LLM':
+            self.com = UARTBase()
+        else:
+            self.com = I2CBase(0x42)
 
     def display_image(self, img):
         img = squared_padding_image(img, 128)
@@ -206,24 +214,12 @@ class DisplayInformation(I2CBase):
         header = []
         header += [PacketType.JPEG]
         header += [(jpg_size & 0xFF00) >> 8, (jpg_size & 0x00FF) >> 0]
-        packer = WirePacker(buffer_size=1000)
-        for h in header:
-            packer.write(h)
-        packer.end()
-
-        if packer.available():
-            self.i2c_write(packer.buffer[: packer.available()])
+        self.com.write(header)
 
         time.sleep(0.005)
 
         for pack in nsplit(jpg_img, n=50):
-            packer.reset()
-            packer.write(PacketType.JPEG)
-            for h in pack:
-                packer.write(h)
-            packer.end()
-            if packer.available():
-                self.i2c_write(packer.buffer[: packer.available()])
+            self.com.write([PacketType.JPEG] + pack.tolist())
             time.sleep(0.005)
 
     def display_information(self):
@@ -267,7 +263,7 @@ class DisplayInformation(I2CBase):
             sent_str += f"{ros_additional_message}\n"
             ros_additional_message = None
 
-        self.send_string(sent_str)
+        self.com.write(sent_str)
 
     def display_qrcode(self, target_url=None):
         header = [PacketType.QR_CODE]
@@ -279,27 +275,39 @@ class DisplayInformation(I2CBase):
             target_url = f"http://{ip}:8085/riberry_startup/"
         header += [len(target_url)]
         header += list(map(ord, target_url))
-        print("header")
-        print(header)
-        self.send_raw_bytes(header)
+        self.com.write(header)
 
     def force_mode(self, mode_name):
         header = [PacketType.FORCE_MODE]
-        forceModebytes = (list (map(ord, mode_name)))
-        self.send_raw_bytes(header + forceModebytes)
+        forceModebytes = list(map(ord, mode_name))
+        self.com.write(header + forceModebytes)
 
     def run(self):
         global ros_display_image
         global ros_display_image_flag
         global atom_s3_mode
         global wifi_connected
-        ssid = f'{self.identify_device()}-{get_mac_address()}'
+        global button_count
+        ssid = f'{self.com.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
         qrcode_mode_is_forced = False
 
         while not stop_event.is_set():
+            try:
+                self.com.read()
+                if isinstance(self.com, UARTBase):
+                    self.com.write([PacketType.BUTTON_STATE_REQUEST])
+                else:
+                    self.com.write([])
+                time.sleep(0.1)
+                mode_packet = self.com.read()
+                if len(mode_packet) > 1:
+                    button_count = int(mode_packet[0])
+                    atom_s3_mode = mode_packet[1:].decode(errors="ignore")
+            except Exception as e:
+                print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
-            print(f"Mode: {mode} device_type: {self.device_type}")
+            print(f"Mode: {mode} device_type: {self.com.device_type}")
             # Display the QR code when Wi-Fi is not connected,
             # regardless of atom_s3_mode.
             if get_ip_address() is None:
@@ -318,10 +326,10 @@ class DisplayInformation(I2CBase):
             # Display data according to mode
             if mode == "DisplayInformationMode":
                 self.display_information()
-                time.sleep(1)
+                time.sleep(0.1)
             elif mode == "DisplayQRcodeMode":
                 self.display_qrcode()
-                time.sleep(1)
+                time.sleep(0.1)
             elif mode == "DisplayImageMode":  # not implemented
                 if ros_display_image_flag and ros_display_image is not None:
                     self.display_image(ros_display_image)
@@ -344,7 +352,7 @@ if __name__ == "__main__":
         battery_reader.daemon = True
         battery_reader.start()
 
-    display_thread = threading.Thread(target=DisplayInformation(0x42).run)
+    display_thread = threading.Thread(target=DisplayInformation().run)
     display_thread.daemon = True
     display_thread.start()
 

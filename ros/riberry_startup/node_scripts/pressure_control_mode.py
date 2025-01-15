@@ -9,8 +9,8 @@ from std_msgs.msg import Float32
 from std_msgs.msg import Int32
 from std_msgs.msg import String
 
-from riberry.i2c_base import I2CBase
-from riberry.i2c_base import PacketType
+from riberry.com.base import PacketType
+from riberry.com.i2c_base import I2CBase
 from riberry.select_list import SelectList
 
 
@@ -141,7 +141,7 @@ class PressureControlMode(I2CBase):
         sent_str += "\n1 tap: Next"
         sent_str += "\n2 tap: Toggle"
         # Send message on AtomS3 LCD
-        self.send_string(sent_str)
+        self.write(sent_str)
 
 
 if __name__ == "__main__":
