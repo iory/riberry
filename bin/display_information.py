@@ -49,6 +49,8 @@ def try_init_ros():
     global ros_display_image_flag
     global ros_display_image
     global battery_readers
+    global atom_s3_mode
+    global button_count
     ros_display_image_param = None
     prev_ros_display_image_param = None
 
@@ -127,7 +129,7 @@ def try_init_ros():
                     )
 
             ros_available = True
-            rate = rospy.Rate(1)
+            rate = rospy.Rate(10)
             sub = None
             while not rospy.is_shutdown() and not stop_event.is_set():
                 for battery_reader in battery_readers:
@@ -145,6 +147,7 @@ def try_init_ros():
 
                 mode_pub.publish(String(data=atom_s3_mode))
                 button_pub.publish(Int32(data=button_count))
+                button_count = 0
                 ros_display_image_param = rospy.get_param("/display_image", None)
                 if battery_percentage is not None:
                     battery_pub.publish(battery_percentage)
@@ -304,6 +307,7 @@ class DisplayInformation:
 
         while not stop_event.is_set():
             try:
+                self.com.read()
                 self.com.write([PacketType.BUTTON_STATE_REQUEST])
                 time.sleep(0.1)
                 mode_packet = self.com.read()

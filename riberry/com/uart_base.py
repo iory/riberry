@@ -41,4 +41,7 @@ class UARTBase(ComBase):
             raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
 
     def read(self):
-        return self.serial.read(self.serial.in_waiting or 1)
+        if self.serial.in_waiting:
+            return self.serial.read(self.serial.in_waiting or 1)
+        else:
+            return b''
