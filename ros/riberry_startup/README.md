@@ -2,11 +2,7 @@
 
 ## atoms3_button_state_publisher.launch
 
-The atom s3 display features a multi-functional button capable of detecting various press patterns, which are essential for implementing diverse interactive features. When the `atoms3_button_state_publisher.launch` is executed with the following command:
-
-```bash
-roslaunch riberry_startup atoms3_button_state_publisher.launch
-```
+The atom s3 display features a multi-functional button capable of detecting various press patterns, which are essential for implementing diverse interactive features. When the `display_information.py` is executed with the systemd service:
 
 It publishes the state of the button on the `/atom_s3_button_state` topic as an `std_msgs/Int32` value.
 Below is a table outlining these states, their descriptions, and corresponding numeric values:
