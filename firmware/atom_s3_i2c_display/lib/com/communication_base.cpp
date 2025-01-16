@@ -217,6 +217,10 @@ void CommunicationBase::task(void *parameter) {
     if (Serial.available() > 0) {
       receiveEvent(Serial.available());
     }
+    // Insert a short delay to yield control to the RTOS scheduler.
+    // Without this delay, the task could block other lower-priority tasks
+    // or prevent the watchdog timer from resetting in time, causing a "Task watchdog got triggered" error.
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 #endif
 }
