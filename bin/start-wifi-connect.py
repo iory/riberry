@@ -3,10 +3,6 @@
 import os.path as osp
 from pathlib import Path
 import subprocess
-import time
-
-# Wait for 30 seconds to allow network services to initialize
-time.sleep(30)
 
 
 # Function to get the SSID of the connected WiFi network (if any)

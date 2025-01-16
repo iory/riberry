@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 ExecStart=/usr/local/bin/start-wifi-connect.py
 Restart=on-failure
-RestartSec=10
+RestartSec=1
 SyslogIdentifier=%n
 User=root
 
