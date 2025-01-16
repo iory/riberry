@@ -7,9 +7,6 @@ import threading
 import time
 
 from colorama import Fore
-import cv2
-from pybsc import nsplit
-from pybsc.image_utils import squared_padding_image
 
 from riberry.battery import decide_battery_i2c_bus_number
 from riberry.battery import MP2760BatteryMonitor
@@ -205,6 +202,10 @@ class DisplayInformation:
             self.com = I2CBase(0x42)
 
     def display_image(self, img):
+        import cv2
+        from pybsc import nsplit
+        from pybsc.image_utils import squared_padding_image
+
         img = squared_padding_image(img, 128)
         quality = 75
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
