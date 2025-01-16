@@ -8,6 +8,7 @@ DisplayQRcodeMode::DisplayQRcodeMode(PrimitiveLCD &lcd, CommunicationBase &i2c)
 }
 
 void DisplayQRcodeMode::task(void *parameter) {
+  String previousQrCodeData;
   while (true) {
     instance->comm.setRequestStr(instance->getModeName());
     // Check for I2C timeout
@@ -15,15 +16,24 @@ void DisplayQRcodeMode::task(void *parameter) {
       instance->lcd.drawNoDataReceived();
       instance->lcd.printColorText(instance->getModeName() + "\n");
       vTaskDelay(pdMS_TO_TICKS(500));
+      previousQrCodeData = "";
       continue;
     }
     // Display QR code
     else {
-      instance->lcd.drawBlack();
-      if (instance->lcd.qrCodeData.isEmpty())
+      if (instance->lcd.qrCodeData.isEmpty()) {
+        instance->lcd.drawBlack();
         instance->lcd.printColorText("Waiting for " + instance->getModeName());
-      else
-        instance->lcd.drawQRcode(instance->lcd.qrCodeData);
+        previousQrCodeData = "";
+      } else {
+        if (previousQrCodeData.equals(instance->lcd.qrCodeData)) {
+          vTaskDelay(pdMS_TO_TICKS(10));
+        } else {
+          instance->lcd.drawBlack();
+          instance->lcd.drawQRcode(instance->lcd.qrCodeData);
+          previousQrCodeData = instance->lcd.qrCodeData;
+        }
+      }
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }
