@@ -36,7 +36,6 @@ button_count = 0
 ros_display_image_flag = False
 ros_display_image = None
 stop_event = threading.Event()
-wifi_connected = False
 
 
 def try_init_ros():
@@ -287,11 +286,11 @@ class DisplayInformation:
         global ros_display_image
         global ros_display_image_flag
         global atom_s3_mode
-        global wifi_connected
         global button_count
         ssid = f'{self.com.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
         qrcode_mode_is_forced = False
+        wifi_connected = True
 
         while not stop_event.is_set():
             try:
@@ -323,6 +322,7 @@ class DisplayInformation:
             else:
                 if wifi_connected is False:
                     self.force_mode("DisplayInformationMode")
+                    time.sleep(1.0)
                 wifi_connected = True
             # Display data according to mode
             if mode == "DisplayInformationMode":
