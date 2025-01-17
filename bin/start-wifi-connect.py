@@ -2,16 +2,36 @@
 
 import os.path as osp
 from pathlib import Path
+import re
 import subprocess
 import sys
+import time
 
 # Ensure that the standard output is line-buffered. This makes sure that
 # each line of output is flushed immediately, which is useful for logging.
 # This is for systemd.
 sys.stdout.reconfigure(line_buffering=True)
 
+def get_interface_name():
+    try:
+        result = subprocess.run(["iwgetid"], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error: {result.stderr.strip()}")
+            return None
+        match = re.match(r"^(\S+)", result.stdout.strip())
+        if match:
+            return match.group(1)
+        else:
+            print("No interface name found.")
+            return None
+    except FileNotFoundError:
+        print("Error: iwgetid command not found. Make sure wireless-tools is installed.")
+        return None
 
 def is_wifi_connected(interface="wlan0"):
+    while get_interface_name() != interface:
+        print(f"Waiting for {interface} to be appeared...")
+        time.sleep(1)
     try:
         # Check if the interface has an IP address
         result = subprocess.run(
