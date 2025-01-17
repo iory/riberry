@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include <button_manager.h>
+#include <button_managers.h>
 #include <primitive_lcd.h>
 #include <communication_base.h>
 
@@ -11,7 +11,7 @@
 
 class AtomS3ModeManager {
 public:
-  AtomS3ModeManager(PrimitiveLCD &lcd, ButtonManager &button, CommunicationBase &i2c, const std::vector<Mode *> &modes);
+  AtomS3ModeManager(PrimitiveLCD &lcd, ButtonManagers &buttons, CommunicationBase &i2c, const std::vector<Mode *> &modes);
   void createTask(uint8_t xCoreID);
   void initializeSelectedModes();
   void startCurrentMode();
@@ -20,7 +20,7 @@ public:
 private:
   static AtomS3ModeManager* instance; /**< Singleton instance of AtomS3ModeManager. */
   // Common tasks for AtomS3
-  ButtonManager &button_manager;
+  ButtonManagers &button_managers;
   PrimitiveLCD &lcd;
   CommunicationBase &comm;
 

@@ -3,14 +3,6 @@
 
 #include <OneButton.h>
 
-#ifdef ATOM_S3
-  constexpr byte BUTTON_PIN = 41;
-#elif defined(USE_M5STACK_BASIC)
-  constexpr byte BUTTON_PIN = 39;
-#else
-  constexpr byte BUTTON_PIN = 41;
-#endif
-
 /**
  * @brief Button click states enumeration.
  */
@@ -40,11 +32,11 @@ public:
   /**
    * @brief Constructor to initialize the button with specified settings.
    *
-   * @param pin The pin number the button is connected to. Default is 41.
+   * @param pin The pin number the button is connected to.
    * @param activeLow Determines whether the button is active low. Default is true.
    * @param pullupActive Determines whether the internal pull-up resistor is used. Default is false.
    */
-  ButtonManager(int pin = BUTTON_PIN, bool activeLow = true, bool pullupActive = false);
+  ButtonManager(int pin, bool activeLow = true, bool pullupActive = false);
 
   /**
    * @brief Initialize the button with event handlers.

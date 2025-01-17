@@ -5,8 +5,8 @@ String CommunicationBase::requestStr = ""; // Initialize the static requestStr
 String CommunicationBase::forcedMode = ""; // Initialize the static forcedMode
 String CommunicationBase::selectedModesStr = ""; // Initialize the static selectedModesStr
 
-CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button)
-  : lcd(lcd), button_manager(button), receiveEventEnabled(true) {
+CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManagers &buttons)
+  : lcd(lcd), button_managers(buttons), receiveEventEnabled(true) {
   instance = this;
 }
 
@@ -174,21 +174,26 @@ void CommunicationBase::requestEvent() {
   if (instance == nullptr)
       return;
   uint8_t sentStr[100];
-  sentStr[0] = (uint8_t)instance->button_manager.getButtonState();
+  size_t numButton = instance->button_managers.getNumberOfButtons();
+  size_t packetOffset = 1;
+  sentStr[0] = numButton;
+  for (size_t i = 0; i < numButton; ++i) {
+      sentStr[packetOffset + i] = (uint8_t)instance->button_managers.getButtonState(i);
+      instance->button_managers.resetButtonState(i);
+  }
   const char* modeData = requestStr.c_str();
  // sentStr[1]以降にstrDataをコピー (長さを確認)
   size_t strLen = strlen(modeData);  // requestStrの長さを取得
   if (strLen > 98) {
       strLen = 98;  // バッファオーバーフローを防ぐため最大98バイトに制限
   }
-  memcpy(&sentStr[1], modeData, strLen);  // sentStr[1]以降にstrDataをコピー
+  memcpy(&sentStr[packetOffset + numButton], modeData, strLen);  // sentStr[1]以降にstrDataをコピー
 
 #ifdef ATOM_S3
   WireSlave.write(sentStr, strLen+1);
 #elif defined(USE_M5STACK_BASIC)
   Serial.write(sentStr, strLen + 1);
 #endif
-  instance->button_manager.notChangedButtonState();
 }
 
 void CommunicationBase::setRequestStr(const String &str) {

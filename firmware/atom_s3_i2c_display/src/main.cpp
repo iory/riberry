@@ -1,6 +1,7 @@
+#include <vector>
 #include <primitive_lcd.h>
 #include <communication_base.h>
-#include <button_manager.h>
+#include <button_managers.h>
 
 #include <display_information_mode.h>
 #include <display_qrcode_mode.h>
@@ -13,9 +14,17 @@
 
 #include <atom_s3_mode_manager.h>
 
-ButtonManager button_manager;
+#ifdef ATOM_S3
+  std::vector<int> pins = {41};
+#elif defined(USE_M5STACK_BASIC)
+  std::vector<int> pins = {39, 38, 37};
+#else
+  std::vector<int> pins = {41};
+#endif
+
+ButtonManagers button_managers(pins);
 PrimitiveLCD lcd;
-CommunicationBase comm(lcd, button_manager);
+CommunicationBase comm(lcd, button_managers);
 
 // Define all available modes
 DisplayInformationMode display_information_mode(lcd, comm);
@@ -32,10 +41,10 @@ const std::vector<Mode*> allModes =
    &servo_control_mode, &pressure_control_mode, &teaching_mode,
   };
 
-AtomS3ModeManager atoms3modemanager(lcd, button_manager, comm, allModes);
+AtomS3ModeManager atoms3modemanager(lcd, button_managers, comm, allModes);
 
 void setup() {
-  button_manager.createTask(0);
+  button_managers.createTask(0);
   comm.createTask(0);
   atoms3modemanager.createTask(0);
   // By default, DisplayInformationMode and DisplayQRcodeMode are added

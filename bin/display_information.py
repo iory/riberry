@@ -32,7 +32,7 @@ battery_readers = []
 ros_available = False
 ros_additional_message = None
 atom_s3_mode = "DisplayInformationMode"
-button_count = 0
+button_counts = None
 ros_display_image_flag = False
 ros_display_image = None
 stop_event = threading.Event()
@@ -45,7 +45,7 @@ def try_init_ros():
     global ros_display_image
     global battery_readers
     global atom_s3_mode
-    global button_count
+    global button_counts
     ros_display_image_param = None
     prev_ros_display_image_param = None
 
@@ -57,6 +57,7 @@ def try_init_ros():
     status_and_fault = None
     status_and_fault_string = None
     battery_percentage = None
+    button_pubs_initialized = False
     while not stop_event.is_set():
         try:
             import cv_bridge
@@ -141,8 +142,18 @@ def try_init_ros():
                         pisugar_battery_pub.publish(battery_reader.get_filtered_percentage())
 
                 mode_pub.publish(String(data=atom_s3_mode))
-                button_pub.publish(Int32(data=button_count))
-                button_count = 0
+                if button_counts is not None:
+                    if button_counts:
+                        button_pub.publish(Int32(button_counts[0]))
+                    if button_pubs_initialized is False:
+                        button_pubs = []
+                        for i, _ in enumerate(button_counts):
+                            button_pubs.append(rospy.Publisher(f'/button/{i}',
+                                                               Int32, queue_size=1))
+                        button_pubs_initialized = True
+                    for i, count in enumerate(button_counts):
+                        button_pubs[i].publish(Int32(data=count))
+                    button_counts = [0] * len(button_counts)
                 ros_display_image_param = rospy.get_param("/display_image", None)
                 if battery_percentage is not None:
                     battery_pub.publish(battery_percentage)
@@ -286,7 +297,7 @@ class DisplayInformation:
         global ros_display_image
         global ros_display_image_flag
         global atom_s3_mode
-        global button_count
+        global button_counts
         ssid = f'{self.com.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
         qrcode_mode_is_forced = False
@@ -302,8 +313,9 @@ class DisplayInformation:
                 time.sleep(0.1)
                 mode_packet = self.com.read()
                 if len(mode_packet) > 1:
-                    button_count = int(mode_packet[0])
-                    atom_s3_mode = mode_packet[1:].decode(errors="ignore")
+                    num_button = mode_packet[0]
+                    button_counts = list(map(int, mode_packet[1:1 + num_button]))
+                    atom_s3_mode = mode_packet[1 + num_button:].decode(errors="ignore")
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode

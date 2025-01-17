@@ -7,7 +7,7 @@
 #endif
 
 #include <primitive_lcd.h>
-#include <button_manager.h>
+#include <button_managers.h>
 
 #include "packet.h"
 
@@ -21,7 +21,7 @@ public:
    * @param lcd Reference to the PrimitiveLCD object.
    * @param button Reference to the ButtonManager object.
    */
-  CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button);
+  CommunicationBase(PrimitiveLCD &lcd, ButtonManagers &buttons);
 
   /**
    * @brief Creates and starts the I2C communication task on the specified core.
@@ -67,7 +67,7 @@ private:
   bool receiveEventEnabled;
   static CommunicationBase* instance; /**< Singleton instance of CommunicationBase for managing callbacks. */
   PrimitiveLCD &lcd; /**< Reference to the PrimitiveLCD object for displaying information. */
-  ButtonManager &button_manager; /**< Reference to the ButtonManager object for button interactions. */
+  ButtonManagers &button_managers; /**< Reference to the ButtonManager object for button interactions. */
   unsigned long lastReceiveTime = 0; /**< Last time data was received over I2C. */
   const unsigned long receiveTimeout = 15000; /**< Timeout duration for I2C communication (15 seconds). */
 
