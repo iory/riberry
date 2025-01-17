@@ -3,15 +3,40 @@
 import os.path as osp
 from pathlib import Path
 import subprocess
+import sys
+
+# Ensure that the standard output is line-buffered. This makes sure that
+# each line of output is flushed immediately, which is useful for logging.
+# This is for systemd.
+sys.stdout.reconfigure(line_buffering=True)
 
 
-# Function to get the SSID of the connected WiFi network (if any)
-def get_ssid():
+def is_wifi_connected(interface="wlan0"):
     try:
-        ssid = subprocess.check_output(["iwgetid", "-r"]).decode().strip()
-        return ssid if ssid else None
-    except subprocess.CalledProcessError:
-        return None
+        # Check if the interface has an IP address
+        result = subprocess.run(
+            ["ip", "addr", "show", interface],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True
+        )
+        if "inet " in result.stdout:
+            # Get the SSID of the connected network
+            ssid_result = subprocess.run(
+                ["iwgetid", "-r"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True
+            )
+            ssid = ssid_result.stdout.strip()
+            print(f"Connected to SSID: {ssid}")
+            return True
+        else:
+            print("No IP address assigned to the interface.")
+            return False
+    except Exception as e:
+        print(f"Error checking Wi-Fi connection: {e}")
+        return False
 
 
 def identify_device():
@@ -43,10 +68,8 @@ def get_mac_address():
 
 
 # Check if connected to a WiFi network
-ssid = get_ssid()
-
-if ssid:
-    print(f"Skipping WiFi Connect. Connected to SSID: {ssid}")
+if is_wifi_connected():
+    print("Skipping WiFi Connect.")
 else:
     print("No default gateway found. Starting WiFi Connect.")
     model = identify_device().replace(" ", "-")
