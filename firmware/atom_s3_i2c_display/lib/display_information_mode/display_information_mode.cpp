@@ -1,4 +1,5 @@
 #include <display_information_mode.h>
+#include <string_utils.h>
 
 DisplayInformationMode* DisplayInformationMode::instance = nullptr;
 
@@ -26,7 +27,9 @@ void DisplayInformationMode::task(void *parameter) {
         instance->lcd.printColorText("Waiting for " + instance->getModeName());
         prevStr = "";
       } else {
-        if (prevStr.equals(instance->lcd.color_str)) {
+        // The reason for using this here is that the equals function relies on strcmp,
+        // which cannot properly handle escape sequences. As a result, it may fail to compare strings correctly.
+        if (compareIgnoringEscapeSequences(prevStr, instance->lcd.color_str)) {
           vTaskDelay(pdMS_TO_TICKS(10));
         } else {
           instance->lcd.drawBlack();
