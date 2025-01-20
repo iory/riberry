@@ -37,7 +37,7 @@ void DisplayInformationMode::task(void *parameter) {
           instance->lcd.printColorText(instance->lcd.color_str);
         }
       }
-      vTaskDelay(pdMS_TO_TICKS(1000));
+      vTaskDelay(pdMS_TO_TICKS(10));
     }
   }
 }
