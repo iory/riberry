@@ -1,0 +1,17 @@
+<launch>
+
+  <node name="keyword_extraction"
+	pkg="riberry_startup" type="keyword_extraction.py"
+	respawn="true" output="screen">
+    <rosparam>
+      keywords:
+        - 教示を始めます
+        - 教示を終わります
+        - 動作の再生を開始します
+        - 動作の再生を終了します
+        - サーボをオンします
+        - サーボをオフにします
+    </rosparam>
+  </node>
+
+</launch>
