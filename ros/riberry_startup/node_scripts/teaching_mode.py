@@ -10,8 +10,8 @@ from std_msgs.msg import Int32
 from std_msgs.msg import String
 
 from riberry.com.base import PacketType
-from riberry.com.filecheck_utils import get_cache_dir
 from riberry.com.i2c_base import I2CBase
+from riberry.filecheck_utils import get_cache_dir
 from riberry.select_list import SelectList
 from riberry.teaching_manager import TeachingManager
 
