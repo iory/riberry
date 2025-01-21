@@ -29,7 +29,7 @@
   </node>
 
   <node name="speech_to_text_google"
-        pkg="riberry_startup" type="speech_to_text_google.py"
+        pkg="riberry_startup" type="speech_to_text.py"
         respawn="true"
         output="screen">
     <remap from="audio" to="/webrtcvad_ros/speech_audio"  />
