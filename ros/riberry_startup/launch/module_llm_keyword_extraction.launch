@@ -1,5 +1,7 @@
 <launch>
 
+  <include file="$(find riberry_startup)/launch/module_llm_speech_to_text.launch" />
+
   <node name="keyword_extraction"
 	pkg="riberry_startup" type="keyword_extraction.py"
 	respawn="true" output="screen">
