@@ -11,6 +11,7 @@ from std_msgs.msg import String
 
 from riberry.com.base import PacketType
 from riberry.com.i2c_base import I2CBase
+from riberry.filecheck_utils import get_cache_dir
 from riberry.select_list import SelectList
 from riberry.teaching_manager import TeachingManager
 
@@ -56,8 +57,7 @@ class TeachingMode(I2CBase):
     def __init__(self, i2c_addr):
         super().__init__(i2c_addr)
         self.teaching_manager = TeachingManager()
-        self.json_dir = os.path.join(os.environ["HOME"], ".ros/riberry")
-        os.makedirs(self.json_dir, exist_ok=True)
+        self.json_dir = get_cache_dir()
         self.play_list = SelectList()
         self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
         self.load_teaching_files()
