@@ -102,7 +102,7 @@ class TeachingManager:
             f"{len(self.marker_manager.get_markers())} markers"
         return message
 
-    def play(self, play_filepath):
+    def play(self, play_filepath, speed=1.0):
         """Plays back recorded motion
 
         Args:
@@ -126,7 +126,7 @@ class TeachingManager:
         special_actions = self.motion_manager.get_actions()
         if len(self.marker_manager.get_markers()) == 0:
             return self.motion_manager.play_motion(
-                recorded_motion, special_actions)
+                recorded_motion, special_actions, speed)
         else:
             # The entire movement is performed again after the initial posture
             # to compensate for deflection of the arm due to gravity
@@ -163,4 +163,4 @@ class TeachingManager:
                 return message
             else:
                 return self.motion_manager.play_motion(
-                    moved_motion, special_actions)
+                    moved_motion, special_actions, speed)
