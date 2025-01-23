@@ -25,9 +25,7 @@ classifiers = [
 "Repository" = "https://github.com/iory/riberry"
 
 [tool.setuptools]
-packages = [
-    "riberry",
-]
+packages = { find = {} }
 
 [tool.ruff]
 target-version = "py38"
