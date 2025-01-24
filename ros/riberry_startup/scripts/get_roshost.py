@@ -48,8 +48,8 @@ def get_roshost(retry=None, ros_master_ip=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='IP Address Parser')
     parser.add_argument(
-        '-r', '--rossetmaster', type=str, default=None,
-        help='ROS_MASTER_URI IP address')
+        '-', '--rossetmaster', type=str, nargs='?', const=None,
+        help='IP address to display (default: 8.8.8.8)')
     args = parser.parse_args()
 
     roshost = get_roshost(ros_master_ip=args.rossetmaster)
