@@ -1,13 +1,19 @@
 #include <communication_base.h>
 
 CommunicationBase* CommunicationBase::instance = nullptr;
+Stream* CommunicationBase::_stream = nullptr;
 String CommunicationBase::requestStr = ""; // Initialize the static requestStr
 String CommunicationBase::forcedMode = ""; // Initialize the static forcedMode
 String CommunicationBase::selectedModesStr = ""; // Initialize the static selectedModesStr
 
-CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button)
+CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button, Stream* stream)
   : lcd(lcd), button_manager(button), receiveEventEnabled(true) {
   instance = this;
+  setStream(stream);
+}
+
+void CommunicationBase::CommunicationBase::setStream(Stream* stream) {
+  _stream = stream;
 }
 
 void CommunicationBase::updateLastReceiveTime() {
@@ -47,24 +53,16 @@ int CommunicationBase::splitString(const String &input, char delimiter, char* ou
 
 
 void CommunicationBase::receiveEvent(int howMany) {
-  if (instance->receiveEventEnabled == false)
+  if (_stream == nullptr || instance == nullptr || !instance->receiveEventEnabled)
     return;
-  if (instance == nullptr)
-    return;
+
   instance->updateLastReceiveTime();
   String str;
-#ifdef ATOM_S3
-  // Read data from the I2C bus
-  while (0 < WireSlave.available()) {
-    char c = WireSlave.read();  // receive byte as a character;
+
+  while (_stream->available()) {
+    char c = _stream->read();
     str += c;
   }
-#elif defined(USE_M5STACK_BASIC)
-  while (0 < Serial.available()) {
-    char c = Serial.read();  // receive byte as a character;
-    str += c;
-  }
-#endif
   if (str.length() < 1) {
     return;  // Invalid packet
   }
@@ -171,7 +169,7 @@ void CommunicationBase::startReceiveEvent() {
 }
 
 void CommunicationBase::requestEvent() {
-  if (instance == nullptr)
+  if (_stream == nullptr || instance == nullptr)
       return;
   uint8_t sentStr[100];
   sentStr[0] = (uint8_t)instance->button_manager.getButtonState();
@@ -183,11 +181,7 @@ void CommunicationBase::requestEvent() {
   }
   memcpy(&sentStr[1], modeData, strLen);  // sentStr[1]以降にstrDataをコピー
 
-#ifdef ATOM_S3
-  WireSlave.write(sentStr, strLen+1);
-#elif defined(USE_M5STACK_BASIC)
-  Serial.write(sentStr, strLen + 1);
-#endif
+  _stream->write(sentStr, strLen + 1);
   instance->button_manager.notChangedButtonState();
 }
 
@@ -196,33 +190,36 @@ void CommunicationBase::setRequestStr(const String &str) {
 }
 
 void CommunicationBase::task(void *parameter) {
-#ifdef ATOM_S3
-  bool success = WireSlave.begin(sda_pin, scl_pin, i2c_slave_addr, 200, 100);
-  if (!success) {
-    instance->lcd.printColorText("I2C slave init failed\n");
-    while (1) vTaskDelay(pdMS_TO_TICKS(100));;
+  if (_stream == nullptr) {
+    instance->lcd.printColorText("Stream not initialized\n");
+    return;
   }
-  // Ensure the program starts in a timeout state
-  instance->lastReceiveTime = millis() - instance->receiveTimeout;
-  WireSlave.onReceive(receiveEvent);
-  WireSlave.onRequest(requestEvent);
-  while (true) {
-    WireSlave.update();
-    vTaskDelay(pdMS_TO_TICKS(1));;  // let I2C and other ESP32 peripherals interrupts work
-  }
-#elif defined(USE_M5STACK_BASIC)
-  Serial.begin(115200, SERIAL_8N1, 16, 17);
-  instance->lastReceiveTime = millis() - instance->receiveTimeout;
-  while (true) {
-    if (Serial.available() > 0) {
-      receiveEvent(Serial.available());
+
+  if (_stream == &WireSlave) {
+    instance->lastReceiveTime = millis() - instance->receiveTimeout;
+    WireSlave.onReceive(receiveEvent);
+    WireSlave.onRequest(requestEvent);
+
+    while (true) {
+      WireSlave.update();
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
-    // Insert a short delay to yield control to the RTOS scheduler.
-    // Without this delay, the task could block other lower-priority tasks
-    // or prevent the watchdog timer from resetting in time, causing a "Task watchdog got triggered" error.
-    vTaskDelay(pdMS_TO_TICKS(1));
+  } else if (_stream == &Serial || _stream == &Serial1) {
+    instance->lastReceiveTime = millis() - instance->receiveTimeout;
+
+    while (true) {
+      if (_stream->available() > 0) {
+        receiveEvent(_stream->available());
+      }
+      // Insert a short delay to yield control to the RTOS scheduler.
+      // Without this delay, the task could block other lower-priority tasks
+      // or prevent the watchdog timer from resetting in time, causing a "Task watchdog got triggered" error.
+      vTaskDelay(pdMS_TO_TICKS(1));
+    }
+  } else {
+    instance->lcd.printColorText("Unsupported Stream type\n");
+    return;
   }
-#endif
 }
 
 void CommunicationBase::createTask(uint8_t xCoreID) {

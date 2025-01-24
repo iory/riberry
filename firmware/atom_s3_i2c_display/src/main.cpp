@@ -1,3 +1,4 @@
+
 #include <primitive_lcd.h>
 #include <communication_base.h>
 #include <button_manager.h>
@@ -13,9 +14,29 @@
 
 #include <atom_s3_mode_manager.h>
 
+#include <Arduino.h>
+#include <HardwareSerial.h>
 ButtonManager button_manager;
 PrimitiveLCD lcd;
-CommunicationBase comm(lcd, button_manager);
+#ifdef ATOM_S3
+#ifdef I2C_ADDR
+  static constexpr int i2c_slave_addr = I2C_ADDR; /**< I2C slave address for communication. */
+#else
+  static constexpr int i2c_slave_addr = 0x42; /**< I2C slave address for communication. */
+#endif // end of I2C_ADDR
+#ifdef USE_GROVE
+  static constexpr int sda_pin = 2; /**< I2C SDA pin for GROVE mode. */
+  static constexpr int scl_pin = 1; /**< I2C SCL pin for GROVE mode. */
+#else
+  static constexpr int sda_pin = 38; /**< I2C SDA pin for default mode. */
+  static constexpr int scl_pin = 39; /**< I2C SCL pin for default mode. */
+#endif // end of USE_GROVE
+
+#include <WireSlave.h>
+CommunicationBase comm(lcd, button_manager, &WireSlave);
+#elif USE_M5STACK_BASIC
+CommunicationBase comm(lcd, button_manager, &Serial);
+#endif
 
 // Define all available modes
 DisplayInformationMode display_information_mode(lcd, comm);
@@ -35,6 +56,16 @@ const std::vector<Mode*> allModes =
 AtomS3ModeManager atoms3modemanager(lcd, button_manager, comm, allModes);
 
 void setup() {
+#ifdef ATOM_S3
+  bool success = WireSlave.begin(sda_pin, scl_pin, i2c_slave_addr, 200, 100);
+#elif USE_M5STACK_BASIC
+  bool success = true;
+  Serial.begin(115200, SERIAL_8N1, 16, 17);
+#endif
+  if (!success) {
+    lcd.printColorText("I2C slave init failed\n");
+    while (1) vTaskDelay(pdMS_TO_TICKS(100));;
+  }
   button_manager.createTask(0);
   comm.createTask(0);
   atoms3modemanager.createTask(0);
