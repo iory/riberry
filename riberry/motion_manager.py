@@ -214,7 +214,7 @@ class MotionManager:
             "special_actions": special_actions
         }
 
-    def play_motion(self, motion, actions):
+    def play_motion(self, motion, actions, speed=1.0):
         """Executes a sequence of motions with safety checks and interruption handling.
 
         Returns:
@@ -224,6 +224,9 @@ class MotionManager:
         if 'joint_states' not in motion[0]:
             print("First element must have 'joint_states' key.")
             return
+        if speed == 0:
+            print("Speed cannot be zero. Setting speed to 1.0.")
+            speed = 1.0
         self.ri.servo_on()
         first_av = list(motion[0]['joint_states'].values())
         self.ri.angle_vector(first_av, 3)
@@ -246,7 +249,7 @@ class MotionManager:
                 if 'joint_states' in m:
                     av = np.array(list(m['joint_states'].values()))
                     avs.append(av)
-                    tms.append(current_time - prev_time)
+                    tms.append((current_time - prev_time) / speed)
                 prev_time = current_time
             rospy.loginfo('angle vectors')
             rospy.loginfo(f'{avs}')
