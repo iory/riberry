@@ -13,9 +13,9 @@ class Pairing {
 public:
   Pairing();
   virtual void setupESPNOW();
-  virtual void impl();
+  virtual void impl(Stream& outputStream);
   virtual String basicInformation();
-  void receivePairingDataFromComputer();
+  void receivePairingData(const String& ipAddress);
   virtual String myRole();
 protected:
   static bool isESPNOWReceived;

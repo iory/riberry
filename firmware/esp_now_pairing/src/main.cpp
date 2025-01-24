@@ -4,12 +4,12 @@
 #include <LGFX_AUTODETECT.hpp>
 static LGFX lcd;
 
-#include <pairing_sender.h>
-#include <pairing_receiver.h>
 #ifdef SENDER
+#include <pairing_sender.h>
 PairingSender com;
 #endif
 #ifdef RECEIVER
+#include <pairing_receiver.h>
 PairingReceiver com;
 #endif
 
@@ -37,7 +37,13 @@ void start_serial () {
   USBSerial.println(com.myRole());
   // Receive pairing data (host computer data)
   delay(100);  // Wait for pairing data from computer
-  com.receivePairingDataFromComputer();
+
+  String receivedData;
+  while (USBSerial.available() <= 0) {
+      delay(10);
+  };
+  receivedData = USBSerial.readStringUntil('\n');
+  com.receivePairingData(receivedData);
 }
 
 void setup() {
@@ -53,7 +59,7 @@ void setup() {
 }
 
 void loop() {
-  com.impl();
+  com.impl(USBSerial);
 
   String currentMessage = com.basicInformation();
   if (currentMessage != lastMessage) {

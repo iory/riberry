@@ -73,7 +73,7 @@ String PairingSender::myRole() {
   return String("Sender");
 }
 
-void PairingSender::impl() {
+void PairingSender::impl(Stream& outputStream) {
   // Show send data result
   sendPairingData();
 }

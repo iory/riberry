@@ -6,7 +6,7 @@
 class PairingSender : public Pairing {
 public:
   void setupESPNOW() override;
-  void impl() override;
+  void impl(Stream& outputStream) override;
   PairingSender();
   String getReceiverMACAddress();
   void sendPairingData();

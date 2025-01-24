@@ -17,7 +17,7 @@ void Pairing::setupESPNOW() {
   }
 }
 
-void Pairing::impl() {
+void Pairing::impl(Stream& outputStream) {
 }
 
 String Pairing::getMyMACAddress() {
@@ -29,17 +29,14 @@ String Pairing::getMyMACAddress() {
   return String(buf);
 }
 
-void Pairing::receivePairingDataFromComputer () {
-  // Receive pairing data if sender
-  String ipAddress;
-  while (USBSerial.available() <= 0) {delay(10);}
-  ipAddress = USBSerial.readStringUntil('\n');
-  ipAddress.trim(); // Remove newline
+void Pairing::receivePairingData(const String& ipAddress) {
+  String trimmedIPAddress = ipAddress;
+  trimmedIPAddress.trim(); // Remove newline
 
   // Set pairing data
   int listSize = 4;
   char** strList = (char**)malloc(listSize * sizeof(char*));
-  splitString(ipAddress, '.', strList, listSize);
+  splitString(trimmedIPAddress, '.', strList, listSize);
   pairingData data = {
     .IPv4 = {(uint8_t)atoi(strList[0]), (uint8_t)atoi(strList[1]),
              (uint8_t)atoi(strList[2]), (uint8_t)atoi(strList[3])}

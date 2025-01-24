@@ -41,17 +41,17 @@ pairingData PairingReceiver::getReceivedData() {
   return receivedData;
 }
 
-void PairingReceiver::sendDataToComputer() {
+void PairingReceiver::sendDataToComputer(Stream& outputStream) {
   char buf[25];
   sprintf(buf, "%u.%u.%u.%u",
           receivedData.IPv4[0], receivedData.IPv4[1], receivedData.IPv4[2], receivedData.IPv4[3]);
-  USBSerial.println(String(buf));
+  outputStream.println(String(buf));
 }
 
-void PairingReceiver::impl() {
+void PairingReceiver::impl(Stream& outputStream) {
   if (isESPNOWReceived) {
     // Show send data result
-    sendDataToComputer();
+    sendDataToComputer(outputStream);
   }
   else {
     broadcast();
