@@ -16,6 +16,39 @@ from riberry.select_list import SelectList
 from riberry.teaching_manager import TeachingManager
 
 
+def get_teaching_files(json_dir):
+    """Loads all teaching JSON files from the configured directory."""
+    teaching_files = [
+        os.path.join(json_dir, file)
+        for file in os.listdir(json_dir)
+        if file.startswith("teaching_") and file.endswith(".json")
+    ]
+    teaching_files_sorted = sorted(
+        teaching_files,
+        key=lambda f: os.path.getctime(f)
+    )
+    return teaching_files_sorted
+
+
+def get_json_path(json_dir, filename=None):
+    """Generates a path for a new or existing teaching JSON file.
+
+    Args:
+        filename (str, optional): Filename for the JSON file. Defaults to None.
+
+    Returns:
+        str: Full path to the teaching JSON file.
+    """
+    if filename is None:
+        current_time = datetime.now().strftime("%m%d_%H%M%S")
+        json_path = os.path.join(
+            json_dir, f'teaching_{current_time}.json')
+    else:
+        json_path = os.path.join(
+            json_dir, f'teaching_{filename}.json')
+    return json_path
+
+
 class State(Enum):
     """
     Enum representing the states of the TeachingMode.
@@ -30,7 +63,48 @@ class State(Enum):
     PLAY = 2
 
 
-class TeachingMode(I2CBase):
+class AtomS3TeachingInterface(I2CBase):
+    """
+    Communicate with AtomS3 to manage current Mode and State.
+
+    Attributes:
+        prev_state (State): The previous state of the system.
+        state (State): The current state of the system.
+        mode (str): Current operational mode, as set by the `/atom_s3_mode` topic.
+    """
+
+    def __init__(self, i2c_addr):
+        super().__init__(i2c_addr)
+        self.mode = None
+        rospy.Subscriber(
+            "/atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
+        self.prev_state = None
+        self.state = State.WAIT
+
+    def mode_cb(self, msg):
+        """Callback to update the current operational mode.
+
+        Args:
+            msg (std_msgs.msg.String): Message containing the mode string.
+        """
+        if self.mode != "TeachingMode" and msg.data == "TeachingMode":
+            rospy.loginfo("Start teaching mode")
+        self.mode = msg.data
+
+    def print_state(self):
+        if self.mode != "TeachingMode":
+            return
+        if self.prev_state != self.state:
+            sent_str = f'State: {self.state.name}'
+            rospy.loginfo(sent_str)
+        self.prev_state = self.state
+
+    def send_packet(self, sent_str):
+        header = chr(PacketType.TEACHING_MODE)
+        self.write(header+sent_str)
+
+
+class TeachingMode:
     """
     TeachingMode is a class that manages robot motion teaching and playback through AtomS3 communication.
 
@@ -45,32 +119,35 @@ class TeachingMode(I2CBase):
         play_list (SelectList): List of available motion files for playback.
         recording (bool): Indicates whether the system is currently recording motions.
         playing (bool): Indicates whether the system is currently playing motions.
-        mode (str): Current operational mode, as set by the `/atom_s3_mode` topic.
         special_actions (list): Configurable list of special actions for recording.
         special_action_selected (dict): The currently selected special action during recording.
         special_action_executed (bool): Indicates if the selected special action is currently active.
-        prev_state (State): The previous state of the system.
-        state (State): The current state of the system.
         additional_str (str): Additional message string for display during operations.
     """
 
     def __init__(self, i2c_addr):
-        super().__init__(i2c_addr)
+        self.atoms3_interface = AtomS3TeachingInterface(i2c_addr)
         self.teaching_manager = TeachingManager()
-        self.json_dir = get_cache_dir()
+        self.recording = False
+        self.prev_playing = False
+        self.playing = False
+        self.speed = rospy.get_param('~speed', 1.0)
+
+        # Load teaching files
         self.play_list = SelectList()
         self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
-        self.load_teaching_files()
-        self.recording = False
-        self.playing = False
-        self.mode = None
-        self.speed = rospy.get_param('~speed', 1.0)
-        # Button and mode callback
+        self.json_dir = get_cache_dir()
+        for file in get_teaching_files(self.json_dir):
+            self.play_list.add_option(file)
+
+        # ROS callbacks
         rospy.Subscriber(
             "/atom_s3_button_state",
-            Int32, callback=self.button_cb, queue_size=1)
-        rospy.Subscriber(
-            "/atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
+            Int32, callback=self.state_transition_cb, queue_size=1)
+        rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
+        self.additional_str = ""
+
+        # Special actions
         self.special_actions = rospy.get_param(
             '~special_actions', [])
         self.special_action_list = SelectList()
@@ -86,69 +163,53 @@ class TeachingMode(I2CBase):
             self.special_action_list.add_option(action["name"], position="end")
         self.special_action_selected = None
         self.special_action_executed = False
-        self.prev_state = None
-        self.state = State.WAIT
-        rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
-        self.additional_str = ""
 
-    def mode_cb(self, msg):
-        """Callback to update the current operational mode.
-
-        Args:
-            msg (std_msgs.msg.String): Message containing the mode string.
-        """
-        if self.mode != "TeachingMode" and msg.data == "TeachingMode":
-            rospy.loginfo("Start teaching mode")
-        self.mode = msg.data
-
-    def button_cb(self, msg):
+    def state_transition_cb(self, msg):
         """Handles button state transitions for recording and playback.
 
         Args:
             msg (std_msgs.msg.Int32): Message containing the button state.
 
         Note:
-            This class manages the internal state of its operations (e.g., self.state, self.playing, etc.).
+            This class manages the internal state of its operations (e.g., self.playing, etc.).
             It does not directly manage or influence the UI updates or external displays, such as those handled by
             the self.update_atoms3 function.
-
-            Basic state transitions:
-            - WAIT -> RECORD -> WAIT (via single-click).
-            - WAIT -> PLAY -> WAIT (via double-click).
         """
-        if self.mode != "TeachingMode":
-            return
-        if self.prev_state != self.state:
-            sent_str = f'State: {self.state.name}'
-            rospy.loginfo(sent_str)
-        self.prev_state = self.state
-        # State transition
-        if self.state == State.WAIT:
-            self.handle_wait_state(msg)
-        elif self.state == State.RECORD:
-            self.handle_record_state(msg)
-        elif self.state == State.PLAY:
-            self.handle_play_state(msg)
 
-    def handle_wait_state(self, msg):
+        # NOTE: To unify the management of self.atoms3_interface.state,
+        # this variable must be changed
+        # only within the state_transition_cb() method.
+        if self.atoms3_interface.state == State.WAIT:
+            self.atoms3_interface.state = self.handle_wait_state(msg)
+        elif self.atoms3_interface.state == State.RECORD:
+            self.atoms3_interface.state = self.handle_record_state(msg)
+        elif self.atoms3_interface.state == State.PLAY:
+            self.atoms3_interface.state = self.handle_play_state(msg)
+        self.atoms3_interface.print_state()
+
+    def handle_wait_state(self, msg: Int32) -> State:
         if msg.data == 1:
-            self.state = State.RECORD
+            return State.RECORD
         elif msg.data == 2:
-            self.state = State.PLAY
+            return State.PLAY
         elif msg.data == 3:
             self.teaching_manager.servo_off()
+            return State.WAIT
+        # If no button is pressed, stay State.WAIT and wait for button input
+        return State.WAIT
 
-    def handle_record_state(self, msg):
+    def handle_record_state(self, msg: Int32) -> State:
         # select special action
         if self.special_action_not_selected():
             if msg.data == 1:
                 self.special_action_list.increment_index()
             if msg.data == 2:
                 self.special_action_selected = self.special_actions[self.special_action_list.get_index()]
-            return
+            return State.RECORD
         # record until stopped
         if self.recording is False:
             self.start_recording()
+            return State.RECORD
         # Record and execute special action
         if msg.data == 1:
             if self.special_action_executed is True:
@@ -169,39 +230,51 @@ class TeachingMode(I2CBase):
                 daemon=True)
             thread1.start()
             self.special_action_executed = not self.special_action_executed
+            return State.RECORD
         # finish recording
         elif msg.data == 2:
             self.stop_recording()
+            return State.WAIT
         elif msg.data == 3:
             self.teaching_manager.servo_off()
+            return State.RECORD
+        # If no button is pressed, stay State.RECORD and wait for button input
+        return State.RECORD
 
-    def handle_play_state(self, msg):
-        if self.playing is False:
+    def handle_play_state(self, msg: Int32) -> State:
+        next_state = None
+        if self.prev_playing is True and self.playing is False:
+            next_state = State.WAIT
+        elif self.playing is False:
             if msg.data != 0 and len(self.play_list.options) <= 0:
-                self.state = State.WAIT
-                return
+                next_state = State.WAIT
             # select play file
-            if msg.data == 1:
+            elif msg.data == 1:
                 self.play_list.increment_index()
+                next_state = State.PLAY
             # confirm play file
             elif msg.data == 2:
                 self.play_file = self.play_list.selected_option()
                 self.start_playing()
+                next_state = State.PLAY
             # delete play file
             elif msg.data == 3:
                 delete_file = self.play_list.selected_option()
                 if os.path.exists(delete_file):
                     os.remove(delete_file)
                 self.play_list.remove_option(delete_file)
-                self.state = State.WAIT
+                next_state = State.WAIT
         else:
             # stop playing
             if msg.data == 2:
                 self.stop_playing()
+                next_state = State.WAIT
 
-    def special_action_not_selected(self):
-        return len(self.special_actions) > 0 and\
-            self.special_action_selected is None
+        self.prev_playing = self.playing
+        # If no button is pressed, stay State.PLAY and wait for button input
+        if next_state is None:
+            next_state = State.PLAY
+        return next_state
 
     def update_atoms3(self, event):
         """Timer callback to update AtomS3 LCD with the current state and marker information.
@@ -211,29 +284,30 @@ class TeachingMode(I2CBase):
 
         Note:
             This method is responsible for updating the UI and display information on the AtomS3 device.
-            It does not modify the internal state of this class (e.g., self.state, self.playing, etc.).
+            It does not modify the internal state of this class (e.g., self.playing, etc.).
             Instead, it reads these states and reflects them on the AtomS3 LCD.
         """
-        if self.mode != "TeachingMode":
+        if self.atoms3_interface.mode != "TeachingMode":
             # When mode is changed,
             # state automatically returns to WAIT
-            self.state = State.WAIT
+            self.atoms3_interface.state = State.WAIT
             self.play_list.reset_index()
             return
-        sent_str = chr(PacketType.TEACHING_MODE)
+
+        sent_str = ""
         if self.teaching_manager.marker_manager.is_marker_recognized():
             marker_ids = self.teaching_manager.marker_manager.current_marker_ids()
             sent_str += str(marker_ids[0])
         delimiter = ','
         sent_str += delimiter
-        if self.state == State.WAIT:
+        if self.atoms3_interface.state == State.WAIT:
             sent_str += 'Teaching mode\n\n'\
                 + '1tap: record\n'\
                 + '2tap: play\n'\
                 + '3tap: free'
             if self.additional_str != "":
                 sent_str += "\n\n" + self.additional_str
-        elif self.state == State.RECORD:
+        elif self.atoms3_interface.state == State.RECORD:
             self.additional_str = ""
             sent_str += 'Record mode\n\n'
             # Select special action if ~special_actions param is defined
@@ -254,7 +328,7 @@ class TeachingMode(I2CBase):
                     sent_str += f'{self.special_action_selected["name"]}\n\n'
                 sent_str += '2tap: finish\n\n'
                 sent_str += '3tap: free'
-        elif self.state == State.PLAY:
+        elif self.atoms3_interface.state == State.PLAY:
             self.additional_str = ""
             if self.playing is False:
                 if len(self.play_list.options) <= 0:
@@ -271,45 +345,16 @@ class TeachingMode(I2CBase):
                 sent_str += 'Play mode\n\n'\
                     + f'{self.play_list.selected_option(True)}\n\n'\
                     + '2tap:\n stop playing'
-                if self.speed != 1.0:
-                    sent_str += f'\n\nSpeed x{self.speed}'
+                sent_str += f'\n\nSpeed x{self.speed}'
         delimiter_num = 1
         if len([char for char in sent_str if char == delimiter]) != delimiter_num:
             rospy.logerr(f"sent string: {sent_str}")
             rospy.logerr(f"The number of delimiter '{delimiter}' must be {delimiter_num}")
-        self.write(sent_str)
+        self.atoms3_interface.send_packet(sent_str)
 
-    def load_teaching_files(self):
-        """Loads all teaching JSON files from the configured directory."""
-        teaching_files = [
-            os.path.join(self.json_dir, file)
-            for file in os.listdir(self.json_dir)
-            if file.startswith("teaching_") and file.endswith(".json")
-        ]
-        teaching_files_sorted = sorted(
-            teaching_files,
-            key=lambda f: os.path.getctime(f)
-        )
-        for file in teaching_files_sorted:
-            self.play_list.add_option(file)
-
-    def get_json_path(self, filename=None):
-        """Generates a path for a new or existing teaching JSON file.
-
-        Args:
-            filename (str, optional): Filename for the JSON file. Defaults to None.
-
-        Returns:
-            str: Full path to the teaching JSON file.
-        """
-        if filename is None:
-            current_time = datetime.now().strftime("%m%d_%H%M%S")
-            json_path = os.path.join(
-                self.json_dir, f'teaching_{current_time}.json')
-        else:
-            json_path = os.path.join(
-                self.json_dir, f'teaching_{filename}.json')
-        return json_path
+    def special_action_not_selected(self):
+        return len(self.special_actions) > 0 and\
+            self.special_action_selected is None
 
     def start_recording(self):
         """
@@ -322,7 +367,7 @@ class TeachingMode(I2CBase):
         self.special_action_executed = False
 
         def record_task():
-            json_path = self.get_json_path()
+            json_path = get_json_path(self.json_dir)
             result_message = self.teaching_manager.record(json_path)
             self.additional_str = result_message
             self.play_list.add_option(json_path)
@@ -333,7 +378,6 @@ class TeachingMode(I2CBase):
 
     def stop_recording(self):
         self.teaching_manager.stop()
-        self.state = State.WAIT
         self.recording = False
         self.special_action_selected = None
 
@@ -359,7 +403,6 @@ class TeachingMode(I2CBase):
     def stop_playing(self):
         self.teaching_manager.stop()
         self.playing = False
-        self.state = State.WAIT
 
 
 if __name__ == '__main__':
