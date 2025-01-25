@@ -16,6 +16,39 @@ from riberry.select_list import SelectList
 from riberry.teaching_manager import TeachingManager
 
 
+def get_teaching_files(json_dir):
+    """Loads all teaching JSON files from the configured directory."""
+    teaching_files = [
+        os.path.join(json_dir, file)
+        for file in os.listdir(json_dir)
+        if file.startswith("teaching_") and file.endswith(".json")
+    ]
+    teaching_files_sorted = sorted(
+        teaching_files,
+        key=lambda f: os.path.getctime(f)
+    )
+    return teaching_files_sorted
+
+
+def get_json_path(json_dir, filename=None):
+    """Generates a path for a new or existing teaching JSON file.
+
+    Args:
+        filename (str, optional): Filename for the JSON file. Defaults to None.
+
+    Returns:
+        str: Full path to the teaching JSON file.
+    """
+    if filename is None:
+        current_time = datetime.now().strftime("%m%d_%H%M%S")
+        json_path = os.path.join(
+            json_dir, f'teaching_{current_time}.json')
+    else:
+        json_path = os.path.join(
+            json_dir, f'teaching_{filename}.json')
+    return json_path
+
+
 class State(Enum):
     """
     Enum representing the states of the TeachingMode.
@@ -95,19 +128,26 @@ class TeachingMode:
     def __init__(self, i2c_addr):
         self.atoms3_interface = AtomS3TeachingInterface(i2c_addr)
         self.teaching_manager = TeachingManager()
-        self.json_dir = get_cache_dir()
-        self.play_list = SelectList()
-        self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
-        self.load_teaching_files()
         self.recording = False
         self.prev_playing = False
         self.playing = False
-
         self.speed = rospy.get_param('~speed', 1.0)
-        # Button callback
+
+        # Load teaching files
+        self.play_list = SelectList()
+        self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
+        self.json_dir = get_cache_dir()
+        for file in get_teaching_files(self.json_dir):
+            self.play_list.add_option(file)
+
+        # ROS callbacks
         rospy.Subscriber(
             "/atom_s3_button_state",
             Int32, callback=self.state_transition_cb, queue_size=1)
+        rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
+        self.additional_str = ""
+
+        # Special actions
         self.special_actions = rospy.get_param(
             '~special_actions', [])
         self.special_action_list = SelectList()
@@ -123,8 +163,6 @@ class TeachingMode:
             self.special_action_list.add_option(action["name"], position="end")
         self.special_action_selected = None
         self.special_action_executed = False
-        rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
-        self.additional_str = ""
 
     def state_transition_cb(self, msg):
         """Handles button state transitions for recording and playback.
@@ -318,38 +356,6 @@ class TeachingMode:
         return len(self.special_actions) > 0 and\
             self.special_action_selected is None
 
-    def load_teaching_files(self):
-        """Loads all teaching JSON files from the configured directory."""
-        teaching_files = [
-            os.path.join(self.json_dir, file)
-            for file in os.listdir(self.json_dir)
-            if file.startswith("teaching_") and file.endswith(".json")
-        ]
-        teaching_files_sorted = sorted(
-            teaching_files,
-            key=lambda f: os.path.getctime(f)
-        )
-        for file in teaching_files_sorted:
-            self.play_list.add_option(file)
-
-    def get_json_path(self, filename=None):
-        """Generates a path for a new or existing teaching JSON file.
-
-        Args:
-            filename (str, optional): Filename for the JSON file. Defaults to None.
-
-        Returns:
-            str: Full path to the teaching JSON file.
-        """
-        if filename is None:
-            current_time = datetime.now().strftime("%m%d_%H%M%S")
-            json_path = os.path.join(
-                self.json_dir, f'teaching_{current_time}.json')
-        else:
-            json_path = os.path.join(
-                self.json_dir, f'teaching_{filename}.json')
-        return json_path
-
     def start_recording(self):
         """
         Initiates recording in a separate thread.
@@ -361,7 +367,7 @@ class TeachingMode:
         self.special_action_executed = False
 
         def record_task():
-            json_path = self.get_json_path()
+            json_path = get_json_path(self.json_dir)
             result_message = self.teaching_manager.record(json_path)
             self.additional_str = result_message
             self.play_list.add_option(json_path)
