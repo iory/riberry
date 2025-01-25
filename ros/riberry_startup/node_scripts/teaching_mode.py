@@ -64,6 +64,7 @@ class TeachingMode(I2CBase):
         self.recording = False
         self.playing = False
         self.mode = None
+        self.speed = rospy.get_param('~speed', 1.0)
         # Button and mode callback
         rospy.Subscriber(
             "/atom_s3_button_state",
@@ -270,6 +271,8 @@ class TeachingMode(I2CBase):
                 sent_str += 'Play mode\n\n'\
                     + f'{self.play_list.selected_option(True)}\n\n'\
                     + '2tap:\n stop playing'
+                if self.speed != 1.0:
+                    sent_str += f'\n\nSpeed x{self.speed}'
         delimiter_num = 1
         if len([char for char in sent_str if char == delimiter]) != delimiter_num:
             rospy.logerr(f"sent string: {sent_str}")
@@ -345,7 +348,7 @@ class TeachingMode(I2CBase):
 
         def play_task():
             result_message = self.teaching_manager.play(
-                self.play_file)
+                self.play_file, self.speed)
             self.additional_str = result_message
             # Automatically stop after play
             self.stop_playing()
