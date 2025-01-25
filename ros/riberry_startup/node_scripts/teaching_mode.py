@@ -271,6 +271,8 @@ class TeachingMode(I2CBase):
                 sent_str += 'Play mode\n\n'\
                     + f'{self.play_list.selected_option(True)}\n\n'\
                     + '2tap:\n stop playing'
+                if self.speed != 1.0:
+                    sent_str += f'\n\nSpeed x{self.speed}'
         delimiter_num = 1
         if len([char for char in sent_str if char == delimiter]) != delimiter_num:
             rospy.logerr(f"sent string: {sent_str}")
