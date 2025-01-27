@@ -204,7 +204,15 @@ void CommunicationBase::task(void *parameter) {
       WireSlave.update();
       vTaskDelay(pdMS_TO_TICKS(1));
     }
-  } else if (_stream == &Serial || _stream == &Serial1) {
+  #if ARDUINO_USB_MODE
+  #if ARDUINO_USB_CDC_ON_BOOT // Serial used for USB CDC
+    } else if (_stream == &Serial || _stream == &Serial1) {
+  #else
+    } else if (_stream == &Serial || _stream == &Serial1 || _stream == &USBSerial) {
+  #endif
+  #else
+    } else if (_stream == &Serial || _stream == &Serial1) {
+  #endif
     instance->lastReceiveTime = millis() - instance->receiveTimeout;
 
     while (true) {

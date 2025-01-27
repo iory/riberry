@@ -26,6 +26,7 @@ Import("env")
 USE_GROVE = os.getenv("USE_GROVE")
 LCD_ROTATION = os.getenv("LCD_ROTATION")
 I2C_ADDR = os.getenv("I2C_ADDR")
+USE_USB_SERIAL = os.getenv("USE_USB_SERIAL")
 
 if USE_GROVE == "1":
     env.Append(CPPDEFINES=["USE_GROVE"])
@@ -46,3 +47,6 @@ if LCD_ROTATION:
     env.Append(CPPDEFINES=[f"LCD_ROTATION={LCD_ROTATION}"])
 else:
     env.Append(CPPDEFINES=["LCD_ROTATION=1"])
+
+if USE_USB_SERIAL == "1":
+    env.Append(CPPDEFINES=["USE_USB_SERIAL"])

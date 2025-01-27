@@ -47,6 +47,12 @@ If you want to set the I2C address, set the `I2C_ADDR` environment variable to t
 I2C_ADDR=0x42 pio run -t upload
 ```
 
+If you want to use USB serial communication, set the `USE_USB_SERIAL` environment variable to `1` before running the command:
+
+```
+USE_USB_SERIAL=1 pio run -t upload
+```
+
 ## Control multiple modes
 
 The `atom_s3_i2c_display` includes multiple modes. This feature allows the robot to be controlled using both the `/i2c_button_state` and `/i2c_mode topics`, making control programming easier.
