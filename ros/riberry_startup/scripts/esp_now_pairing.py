@@ -73,7 +73,10 @@ def receive_pairing_info(com):
 
 def pairing(ports):
     pairing_devices = find_pairing_devices(ports)
-    ip_address = get_ros_ip()
+    ip_address = None
+    while ip_address is None:
+        print('Waiting for IP address...')
+        ip_address = get_ros_ip()
     for dev in pairing_devices:
         port = dev['serial'].serial.port
         if port in prev_ports:
