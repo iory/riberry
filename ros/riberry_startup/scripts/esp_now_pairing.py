@@ -3,9 +3,8 @@
 import threading
 import time
 
-import serial.tools.list_ports
-
 from riberry.com.uart_base import UARTBase
+from riberry.com.uart_base import usb_devices
 from riberry.network import get_ros_ip
 
 
@@ -17,22 +16,7 @@ def print_throttle(interval, *args, **kwargs):
         print(*args, **kwargs)
         print_throttle.last_print_time = current_time
 
-def usb_devices():
-    """Find the port to which the ESP32 is connected
 
-    Returns usb_ports[str]: e.g. /dev/ttyACM0
-    """
-    usb_ports = []
-    available_tty_types = ["USB", "ACM"]
-    ports = serial.tools.list_ports.comports()
-    for port in ports:
-        if "USB" in port.description:
-            usb_ports.append(port.device)
-            continue
-        if any(tty_type in port.device for tty_type in available_tty_types):
-            usb_ports.append(port.device)
-            continue
-    return usb_ports
 
 def find_pairing_devices(usb_ports, baudrate=115200):
     ret = []
