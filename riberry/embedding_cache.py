@@ -32,9 +32,17 @@ class EmbeddingCache:
             for key in list(self.cache.keys()):
                 print(f"- {key}")
             print("")
+        try:
+            api_key = os.environ['AZURE_API_KEY']
+            endpoint = os.environ['AZURE_ENDPOINT']
+        except KeyError as e:
+            print(f"[WARNING] Environment variable '{e}' is not set.")
+            print("Azure API cannot be used.\n")
+            api_key = ""
+            endpoint = ""
         self.client = AzureOpenAI(
-            api_key='YOUR_API_KEY',
-            azure_endpoint="END_POINT",
+            api_key=api_key,
+            azure_endpoint=endpoint,
             api_version="2024-10-01-preview",)
 
     def _load_cache(self):
