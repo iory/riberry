@@ -42,8 +42,12 @@ void start_serial () {
   while (USBSerial.available() <= 0) {
       delay(10);
   };
-  receivedData = USBSerial.readStringUntil('\n');
-  com.receivePairingData(receivedData);
+  while (1) {
+    receivedData = USBSerial.readStringUntil('\n');
+    if (com.receivePairingData(receivedData)) {
+      break;
+    }
+  }
 }
 
 void setup() {

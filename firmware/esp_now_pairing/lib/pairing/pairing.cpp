@@ -4,7 +4,7 @@ esp_now_peer_info_t Pairing::peerInfo;
 String Pairing::statusStr = "Waiting for USB connection";
 bool Pairing::isESPNOWReceived = false;
 
-Pairing::Pairing() {
+Pairing::Pairing() : initialized(false) {
   esp_read_mac(myMACAddress, ESP_MAC_WIFI_STA);
 }
 
@@ -29,14 +29,33 @@ String Pairing::getMyMACAddress() {
   return String(buf);
 }
 
-void Pairing::receivePairingData(const String& ipAddress) {
+bool Pairing::receivePairingData(const String& ipAddress) {
   String trimmedIPAddress = ipAddress;
   trimmedIPAddress.trim(); // Remove newline
 
   // Set pairing data
   int listSize = 4;
   char** strList = (char**)malloc(listSize * sizeof(char*));
-  splitString(trimmedIPAddress, '.', strList, listSize);
+  int parts = splitString(trimmedIPAddress, '.', strList, listSize);
+
+  if (parts != listSize) {
+    statusStr = "Invalid IP address format";
+    free(strList);
+    return false;
+  }
+
+  for (int i = 0; i < listSize; i++) {
+    int num = atoi(strList[i]);
+    if (num < 0 || num > 255) {
+      statusStr = "Invalid IP address value";
+      for (int j = 0; j < listSize; j++) {
+        free(strList[j]);
+      }
+      free(strList);
+      return false;
+    }
+  }
+
   pairingData data = {
     .IPv4 = {(uint8_t)atoi(strList[0]), (uint8_t)atoi(strList[1]),
              (uint8_t)atoi(strList[2]), (uint8_t)atoi(strList[3])}
@@ -47,6 +66,13 @@ void Pairing::receivePairingData(const String& ipAddress) {
   sprintf(buf, "Receive pairing data from Computer:\n %u:%u:%u:%u",
           data.IPv4[0], data.IPv4[1], data.IPv4[2], data.IPv4[3]);
   statusStr = buf;
+
+  for (int i = 0; i < listSize; i++) {
+    free(strList[i]);
+  }
+  free(strList);
+
+  return true;
 }
 
 String Pairing::basicInformation() {

@@ -10,4 +10,6 @@ enum PacketType : uint8_t {
     TEACHING_MODE = 0x08,
     DISPLAY_ODOM_MODE = 0x09,
     BUTTON_STATE_REQUEST = 0x10,
+    PAIRING_IP_REQUEST = 0x11,
+    SET_IP_REQUEST = 0x12,
 };

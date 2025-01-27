@@ -12,8 +12,12 @@ CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button, S
   setStream(stream);
 }
 
-void CommunicationBase::CommunicationBase::setStream(Stream* stream) {
+void CommunicationBase::setStream(Stream* stream) {
   _stream = stream;
+}
+
+Stream* CommunicationBase::getStream() const {
+  return _stream;
 }
 
 void CommunicationBase::updateLastReceiveTime() {
@@ -107,6 +111,13 @@ void CommunicationBase::receiveEvent(int howMany) {
 
   case BUTTON_STATE_REQUEST:
     requestEvent();
+    break;
+
+  case PAIRING_IP_REQUEST:
+    break;
+
+  case SET_IP_REQUEST:
+    instance->lcd.color_str = str.substring(1); // remove PacketType Header
     break;
 
   default:

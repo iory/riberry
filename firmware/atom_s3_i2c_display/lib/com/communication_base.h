@@ -45,6 +45,7 @@ public:
   static String selectedModesStr;
 
   static void setStream(Stream* stream);
+  Stream* getStream() const;
 private:
   static Stream* _stream;
 

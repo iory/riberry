@@ -26,6 +26,9 @@ String PairingSender::getReceiverMACAddress() {
 }
 
 void PairingSender::sendPairingData() {
+  if (!initialized) {
+    return;
+  }
   esp_now_send(receiverMACAddress,
                (uint8_t*)&pairingDataFromComputer, sizeof(pairingDataFromComputer));
   char buf[40];

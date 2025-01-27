@@ -15,12 +15,13 @@ public:
   virtual void setupESPNOW();
   virtual void impl(Stream& outputStream);
   virtual String basicInformation();
-  void receivePairingData(const String& ipAddress);
+  bool receivePairingData(const String& ipAddress);
   virtual String myRole();
 protected:
   static bool isESPNOWReceived;
   static String statusStr;
   pairingData pairingDataFromComputer;
+  bool initialized;
   uint8_t broadcastAddress[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
   static esp_now_peer_info_t peerInfo;
   String getMyMACAddress();

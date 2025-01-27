@@ -13,6 +13,7 @@
 #include <teaching_mode.h>
 
 #include <atom_s3_mode_manager.h>
+#include <pairing_mode.h>
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
@@ -53,10 +54,12 @@ DisplayOdomMode display_odom_mode(lcd, comm);
 ServoControlMode servo_control_mode(lcd, comm);
 PressureControlMode pressure_control_mode(lcd, comm);
 TeachingMode teaching_mode(lcd, comm);
+PairingMode pairing_mode(lcd, comm);
 const std::vector<Mode*> allModes =
   {&display_information_mode, &display_qrcode_mode, &display_image_mode, &display_battery_graph_mode,
    &display_odom_mode,
    &servo_control_mode, &pressure_control_mode, &teaching_mode,
+   &pairing_mode,
   };
 
 AtomS3ModeManager atoms3modemanager(lcd, button_manager, comm, allModes);
@@ -83,6 +86,7 @@ void setup() {
   // By default, DisplayInformationMode and DisplayQRcodeMode are added
   atoms3modemanager.addSelectedMode(display_information_mode);
   atoms3modemanager.addSelectedMode(display_qrcode_mode);
+  atoms3modemanager.addSelectedMode(pairing_mode);
   atoms3modemanager.initializeSelectedModes();
   atoms3modemanager.startCurrentMode();
 }
