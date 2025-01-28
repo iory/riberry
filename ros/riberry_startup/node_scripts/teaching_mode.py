@@ -248,6 +248,8 @@ class TeachingMode(I2CBase):
     def handle_record_state(self, msg: Int32) -> State:
         # Record and execute special action
         if msg.data == 1:
+            if len(self.special_actions) == 0:
+                return State.RECORD
             if self.special_action_executed is True:
                 action_state = 'Stop'
                 command = self.special_action_selected["stop_command"]
