@@ -1,34 +1,27 @@
 #include <pressure_control_mode.h>
 
-PressureControlMode* PressureControlMode::instance = nullptr;
-
-PressureControlMode::PressureControlMode(PrimitiveLCD &lcd, CommunicationBase &i2c)
-  : lcd(lcd), comm(i2c), Mode("PressureControlMode") {
-    instance = this;
+PressureControlMode::PressureControlMode()
+  : Mode("PressureControlMode") {
 }
 
-void PressureControlMode::task(void *parameter) {
+void PressureControlMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
   while (true) {
-    instance->comm.setRequestStr(instance->getModeName());
+    com.setRequestStr(getModeName());
     // Check for I2C timeout
-    if (instance->comm.checkTimeout()) {
-      instance->lcd.drawNoDataReceived();
-      instance->lcd.printColorText(instance->getModeName() + "\n");
+    if (com.checkTimeout()) {
+      lcd.drawNoDataReceived();
+      lcd.printColorText(getModeName() + "\n");
       vTaskDelay(pdMS_TO_TICKS(500));
       continue;
     }
     // Display information
     else {
-      instance->lcd.drawBlack();
-      if (instance->lcd.color_str.isEmpty())
-        instance->lcd.printColorText("Waiting for " + instance->getModeName());
+      lcd.drawBlack();
+      if (lcd.color_str.isEmpty())
+        lcd.printColorText("Waiting for " + getModeName());
       else
-        instance->lcd.printColorText(instance->lcd.color_str);
+        lcd.printColorText(lcd.color_str);
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }
-}
-
-void PressureControlMode::createTask(uint8_t xCoreID) {
-  xTaskCreatePinnedToCore(task, "Pressure Control Mode", 2048, NULL, 1, &taskHandle, xCoreID);
 }

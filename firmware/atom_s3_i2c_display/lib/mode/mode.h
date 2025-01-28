@@ -5,6 +5,9 @@
 #include <freertos/task.h>
 #include <Arduino.h> // To use String class
 
+#include <primitive_lcd.h>
+#include <communication_base.h>
+
 /**
  * @brief Base class for handling FreeRTOS tasks.
  */
@@ -44,12 +47,21 @@ public:
     }
   }
 
-  /**
-   * @brief Create the task. To be implemented in derived classes.
-   *
-   * @param xCoreID The core to pin the task to.
-   */
-  virtual void createTask(uint8_t xCoreID) = 0;
+  virtual void task(PrimitiveLCD& lcd, CommunicationBase& com) = 0;
+
+  static void startTaskImpl(void* _params) {
+    auto* params = static_cast<std::tuple<Mode*, PrimitiveLCD*, CommunicationBase*>*>(_params);
+    Mode* _this = std::get<0>(*params);
+    PrimitiveLCD* lcd = std::get<1>(*params);
+    CommunicationBase* com = std::get<2>(*params);
+    _this->task(*lcd, *com);
+    delete params;
+  }
+
+  void createTask(uint8_t xCoreID, PrimitiveLCD& lcd, CommunicationBase& com) {
+    auto* params = new std::tuple<Mode*, PrimitiveLCD*, CommunicationBase*>(this, &lcd, &com);
+    xTaskCreatePinnedToCore(this->startTaskImpl, getModeName().c_str(), 2048, params, 1, &taskHandle, xCoreID);
+  }
 
   /**
    * @brief Get the mode name.

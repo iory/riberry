@@ -13,15 +13,10 @@
 
 class PairingMode : public Mode {
 public:
-  PairingMode(PrimitiveLCD &lcd, CommunicationBase &com);
-  void createTask(uint8_t xCoreID) override;
+  PairingMode();
 
 private:
-  static PairingMode* instance; /**< Singleton instance of PairingMode. */
-  PrimitiveLCD &lcd;
-  CommunicationBase &comm;
-
-  static void task(void *parameter);
+  void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
 
 #ifdef SENDER
   PairingSender _pairing_com;

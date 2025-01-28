@@ -88,7 +88,7 @@ void ModeManager::initializeSelectedModes() {
   uint8_t xCoreID = 1;
   for (int i = 0; i < selectedModes.size(); i++) {
     if (!selectedModes[i]->isTaskCreated()) {
-      selectedModes[i]->createTask(xCoreID);
+      selectedModes[i]->createTask(xCoreID, lcd, comm);
     }
     selectedModes[i]->suspendTask();
   }

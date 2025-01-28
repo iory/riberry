@@ -7,15 +7,10 @@
 
 class DisplayOdomMode : public Mode {
 public:
-  DisplayOdomMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
-  void createTask(uint8_t xCoreID) override;
+  DisplayOdomMode();
 
 private:
-  static DisplayOdomMode* instance; /**< Singleton instance of DisplayInformationMode. */
-  PrimitiveLCD &lcd;
-  CommunicationBase &comm;
-
-  static void task(void *parameter);
+  void task(PrimitiveLCD &lcd, CommunicationBase &com);
 };
 
 #endif // DISPLAY_INFORMATION_MODE_H

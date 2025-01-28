@@ -13,7 +13,6 @@
 #include <teaching_mode.h>
 
 #include <mode_manager.h>
-#include <pairing_mode.h>
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
@@ -46,20 +45,20 @@ PrimitiveLCD lcd;
 #endif
 
 // Define all available modes
-DisplayInformationMode display_information_mode(lcd, comm);
-DisplayQRcodeMode display_qrcode_mode(lcd, comm);
-DisplayImageMode display_image_mode(lcd, comm);
-DisplayBatteryGraphMode display_battery_graph_mode(lcd, comm);
-DisplayOdomMode display_odom_mode(lcd, comm);
-ServoControlMode servo_control_mode(lcd, comm);
-PressureControlMode pressure_control_mode(lcd, comm);
-TeachingMode teaching_mode(lcd, comm);
-PairingMode pairing_mode(lcd, comm);
+DisplayInformationMode display_information_mode;
+DisplayQRcodeMode display_qrcode_mode;
+DisplayImageMode display_image_mode;
+DisplayBatteryGraphMode display_battery_graph_mode;
+DisplayOdomMode display_odom_mode;
+ServoControlMode servo_control_mode;
+PressureControlMode pressure_control_mode;
+TeachingMode teaching_mode;
+// PairingMode pairing_mode;
 const std::vector<Mode*> allModes =
   {&display_information_mode, &display_qrcode_mode, &display_image_mode, &display_battery_graph_mode,
    &display_odom_mode,
    &servo_control_mode, &pressure_control_mode, &teaching_mode,
-   &pairing_mode,
+   // &pairing_mode,
   };
 
 ModeManager modemanager(lcd, button_manager, comm, allModes);
@@ -86,7 +85,6 @@ void setup() {
   // By default, DisplayInformationMode and DisplayQRcodeMode are added
   modemanager.addSelectedMode(display_information_mode);
   modemanager.addSelectedMode(display_qrcode_mode);
-  modemanager.addSelectedMode(pairing_mode);
   modemanager.initializeSelectedModes();
   modemanager.startCurrentMode();
 }
