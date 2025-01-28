@@ -24,9 +24,9 @@ private:
   static void task(void *parameter);
 
 #ifdef SENDER
-  PairingSender pairing_com;
+  PairingSender _pairing_com;
 #else
-  PairingReceiver pairing_com;
+  PairingReceiver _pairing_com;
 #endif
 
 };

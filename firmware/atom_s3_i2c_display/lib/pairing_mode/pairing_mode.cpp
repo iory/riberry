@@ -6,13 +6,13 @@ PairingMode* PairingMode::instance = nullptr;
 PairingMode::PairingMode(PrimitiveLCD &lcd, CommunicationBase &com)
   : lcd(lcd), comm(com), Mode("PairingMode") {
     instance = this;
+    instance->_pairing_com.setupESPNOW();
 }
 
 void PairingMode::task(void *parameter) {
   String currentMessage;
   String lastMessage = "";
   String prevStr = "";
-  instance->pairing_com.setupESPNOW();
 
   while (true) {
     instance->comm.setRequestStr(instance->getModeName());
@@ -23,10 +23,10 @@ void PairingMode::task(void *parameter) {
 
     if (!compareIgnoringEscapeSequences(prevStr, instance->lcd.color_str)) {
       prevStr = instance->lcd.color_str;
-      instance->comm.receivePairingData(instance->lcd.color_str);
+      instance->_pairing_com.receivePairingData(instance->lcd.color_str);
     }
 
-    currentMessage = instance->pairing_com.basicInformation();
+    currentMessage = instance->_pairing_com.basicInformation();
     if (currentMessage != lastMessage) {
       lastMessage = currentMessage;
       instance->lcd.drawBlack();
