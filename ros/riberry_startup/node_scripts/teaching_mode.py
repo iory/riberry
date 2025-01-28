@@ -8,6 +8,8 @@ import threading
 import rospy
 from std_msgs.msg import Int32
 from std_msgs.msg import String
+from std_srvs.srv import SetBool
+from std_srvs.srv import SetBoolResponse
 
 from riberry.com.base import PacketType
 from riberry.com.i2c_base import I2CBase
@@ -116,6 +118,11 @@ class TeachingMode(I2CBase):
             Int32, callback=self.state_transition_cb, queue_size=1)
         rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
 
+        # Call action from rosservice
+        rospy.Service('~play', SetBool, self.play_srv)
+        self.virtual_button_pub = rospy.Publisher(
+            "/atom_s3_button_state", Int32, queue_size=1)
+
         # Special actions
         self.special_actions = rospy.get_param(
             '~special_actions', [])
@@ -173,6 +180,43 @@ class TeachingMode(I2CBase):
         if self.prev_state != self.state:
             rospy.loginfo(f'State: {self.state.name}')
         self.prev_state = self.state
+
+    def wait_for_state(self, target_state, timeout=None):
+        if timeout is not None:
+            start_time = rospy.Time.now()
+            timeout_duration = rospy.Duration(timeout)
+        while self.state != target_state:
+            if timeout is not None:
+                if (rospy.Time.now() - start_time) > timeout_duration:
+                    rospy.logwarn(f"Timeout waiting for state {target_state}")
+                    return False
+            rospy.sleep(0.1)
+        return True
+
+    def play_srv(self, req):
+        """
+        Execute start playing or stop playing from rosservice call.
+        """
+        def virtual_button_tap(tap_num):
+            self.virtual_button_pub.publish(Int32(data=tap_num))
+        # Start playing
+        if req.data is True:
+            if self.wait_for_state(State.WAIT, 1) is False:
+                return SetBoolResponse(success=False)
+            virtual_button_tap(2)
+            if self.wait_for_state(State.PLAY_LIST_SELECT, 1) is False:
+                return SetBoolResponse(success=False)
+            virtual_button_tap(2)  # Play the latest motion
+            if self.wait_for_state(State.PLAY, 1) is False:
+                return SetBoolResponse(success=False)
+        # Stop playing
+        else:
+            if self.wait_for_state(State.PLAY, 1) is False:
+                return SetBoolResponse(success=False)
+            virtual_button_tap(2)
+            if self.wait_for_state(State.WAIT, 3) is False:
+                return SetBoolResponse(success=False)
+        return SetBoolResponse(success=True)
 
     def handle_wait_state(self, msg: Int32) -> State:
         if msg.data == 1:
