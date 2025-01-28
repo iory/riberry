@@ -2,74 +2,83 @@
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
 #include <LGFX_AUTODETECT.hpp>
+#include "pairing.h"
+
+#ifdef ENV_MAIN
+const char *main_or_secondary = "Main";
+#else
+const char *main_or_secondary = "Secondary";
+#endif
+
 static LGFX lcd;
+Pairing pairing;
+String previousMessage = "";
 
-#ifdef SENDER
-#include <pairing_sender.h>
-PairingSender com;
-#endif
-#ifdef RECEIVER
-#include <pairing_receiver.h>
-PairingReceiver com;
-#endif
-
-String lastMessage = "";
-
-void print(const String &Message) {
-  lcd.fillScreen(lcd.color565(0, 0, 0));  // Fill the screen with black
+void printToLCD(const String &message) {
+  if (message == previousMessage) {
+    return;
+  }
+  previousMessage = message;
+  lcd.fillScreen(lcd.color565(0, 0, 0));
   lcd.setCursor(0, 0);
-  lcd.println(Message);
+  lcd.println(message);
 }
 
-void init_lcd () {
+void initLCD() {
   lcd.init();
   lcd.setRotation(0);
   lcd.clear();
   lcd.setTextSize(1.2);
 }
 
-// Setup Serial with host computer
-void start_serial () {
-  USBSerial.begin(115200);
-  // If this delay is short, ESP32 may become core panic
-  // Delay to stabilize serial connection
-  delay(1500);
-  USBSerial.println(com.myRole());
-  // Receive pairing data (host computer data)
-  delay(100);  // Wait for pairing data from computer
-
-  String receivedData;
-  while (USBSerial.available() <= 0) {
-      delay(10);
-  };
-  while (1) {
-    receivedData = USBSerial.readStringUntil('\n');
-    if (com.receivePairingData(receivedData)) {
-      break;
-    }
-  }
-}
-
 void setup() {
-  init_lcd();
-  print(com.basicInformation());
+  initLCD();
+  printToLCD("Initializing...");
 
-  start_serial();
-  print(com.basicInformation());
+  pairing.startBackgroundTask(1);
+  printToLCD(String(main_or_secondary) + "\nMy MAC:\n" + pairing.getMyMACAddress());
 
-  // WiFi setup must be done in setup() function. Not in global scope.
-  com.setupESPNOW();
-  print(com.basicInformation());
+  USBSerial.begin(115200);
+  delay(1500);
 }
+
+PairingData dataToSend = { { 255, 255, 255, 255 } };
 
 void loop() {
-  com.impl(USBSerial);
-
-  String currentMessage = com.basicInformation();
-  if (currentMessage != lastMessage) {
-    print(currentMessage);
-    lastMessage = currentMessage;
+  if (USBSerial.available() > 0) {
+    uint8_t header = USBSerial.read();
+    switch (header) {
+      case 0x11:
+        USBSerial.println(main_or_secondary);
+        break;
+      case 0x12:
+        {
+          std::map<String, PairingData> pairedDataMap = pairing.getPairedData();
+          if (!pairedDataMap.empty()) {
+            auto it = pairedDataMap.begin();
+            USBSerial.write(it->second.IPv4[0]);
+            USBSerial.write(it->second.IPv4[1]);
+            USBSerial.write(it->second.IPv4[2]);
+            USBSerial.write(it->second.IPv4[3]);
+          }
+          break;
+        }
+      case 0x13:
+        for (int i = 0; i < 4; i++) {
+          dataToSend.IPv4[i] = USBSerial.read();
+        }
+        pairing.setDataToSend(dataToSend);
+        break;
+      default:
+        break;
+    }
   }
 
+  std::map<String, PairingData> pairedDataMap = pairing.getPairedData();
+  for (const auto &pair : pairedDataMap) {
+    String displayMessage = String(main_or_secondary)
+                            + "\nMAC:\n" + pair.first + "\nData:\n" + String(pair.second.IPv4[0]) + "." + String(pair.second.IPv4[1]) + "." + String(pair.second.IPv4[2]) + "." + String(pair.second.IPv4[3]);
+    printToLCD(displayMessage);
+  }
   delay(100);
 }

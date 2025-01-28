@@ -11,11 +11,11 @@ Send the following data to pair two linux machines
 ```
 # For sender device.
 # This device is usually connected to ROS master.
-PAIRING_TYPE=SENDER pio run -t upload
+pio run -t upload -e main
 
 # For receiver device.
 # This device is usually connected to ROS client.
-PAIRING_TYPE=RECEIVER pio run -t upload
+pio run -t upload -e secondary
 ```
 
 2. Start pairing program in each host computer
