@@ -224,7 +224,9 @@ class TeachingMode(I2CBase):
             if len(self.special_actions) > 0 and\
                self.special_action_selected is None:
                 return State.SPECIAL_ACTION_SELECT
-            return State.RECORD
+            else:
+                self.start_recording()
+                return State.RECORD
         elif msg.data == 2:
             return State.PLAY_LIST_SELECT
         elif msg.data == 3:
