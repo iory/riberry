@@ -1,5 +1,5 @@
-#ifndef ATOM_S3_MODE_MANAGER_H
-#define ATOM_S3_MODE_MANAGER_H
+#ifndef MODE_MANAGER_H
+#define MODE_MANAGER_H
 
 #include <vector>
 
@@ -9,17 +9,17 @@
 
 #include <mode.h>
 
-class AtomS3ModeManager {
+class ModeManager {
 public:
-  AtomS3ModeManager(PrimitiveLCD &lcd, ButtonManager &button, CommunicationBase &i2c, const std::vector<Mode *> &modes);
+  ModeManager(PrimitiveLCD &lcd, ButtonManager &button, CommunicationBase &i2c, const std::vector<Mode *> &modes);
   void createTask(uint8_t xCoreID);
   void initializeSelectedModes();
   void startCurrentMode();
   void addSelectedMode(Mode &mode);
 
 private:
-  static AtomS3ModeManager* instance; /**< Singleton instance of AtomS3ModeManager. */
-  // Common tasks for AtomS3
+  static ModeManager* instance; /**< Singleton instance of ModeManager. */
+  // Common tasks for ModeManager
   ButtonManager &button_manager;
   PrimitiveLCD &lcd;
   CommunicationBase &comm;

@@ -1,20 +1,20 @@
-#include <atom_s3_mode_manager.h>
+#include <mode_manager.h>
 
-AtomS3ModeManager* AtomS3ModeManager::instance = nullptr;
+ModeManager* ModeManager::instance = nullptr;
 
-std::vector<Mode*> AtomS3ModeManager::selectedModes = {};
-String AtomS3ModeManager::selectedModesStr = "";
-int AtomS3ModeManager::current_mode_index = 0;
-const std::vector<Mode*>* AtomS3ModeManager::allModes = nullptr;
+std::vector<Mode*> ModeManager::selectedModes = {};
+String ModeManager::selectedModesStr = "";
+int ModeManager::current_mode_index = 0;
+const std::vector<Mode*>* ModeManager::allModes = nullptr;
 
-AtomS3ModeManager::AtomS3ModeManager(PrimitiveLCD &lcd, ButtonManager &button, CommunicationBase &i2c, const std::vector<Mode *> &modes)
+ModeManager::ModeManager(PrimitiveLCD &lcd, ButtonManager &button, CommunicationBase &i2c, const std::vector<Mode *> &modes)
   : lcd(lcd), button_manager(button), comm(i2c)
 {
   instance = this;
   allModes = &modes;
 }
 
-void AtomS3ModeManager::task(void *parameter) {
+void ModeManager::task(void *parameter) {
   if (instance == nullptr) {
     return;
   }
@@ -79,11 +79,11 @@ void AtomS3ModeManager::task(void *parameter) {
   }
 }
 
-void AtomS3ModeManager::createTask(uint8_t xCoreID) {
+void ModeManager::createTask(uint8_t xCoreID) {
   xTaskCreatePinnedToCore(task, "Mode Manager Task", 2048, this, 24, NULL, xCoreID);
 }
 
-void AtomS3ModeManager::initializeSelectedModes() {
+void ModeManager::initializeSelectedModes() {
   // Start user-defined mode
   uint8_t xCoreID = 1;
   for (int i = 0; i < selectedModes.size(); i++) {
@@ -94,24 +94,24 @@ void AtomS3ModeManager::initializeSelectedModes() {
   }
 }
 
-void AtomS3ModeManager::startCurrentMode() {
+void ModeManager::startCurrentMode() {
   if (selectedModes.size() == 0)
     return;
   selectedModes[current_mode_index]->resumeTask();
 }
 
-void AtomS3ModeManager::stopCurrentMode() {
+void ModeManager::stopCurrentMode() {
   if (selectedModes.size() == 0)
     return;
   selectedModes[current_mode_index]->suspendTask();
 }
 
-bool AtomS3ModeManager::isValidIndex(const std::vector<Mode*>& vec, int index) {
+bool ModeManager::isValidIndex(const std::vector<Mode*>& vec, int index) {
   // index が 0 以上 vec.size() 未満であれば true を返す
   return index >= 0 && index < static_cast<int>(vec.size());
 }
 
-void AtomS3ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
+void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
   if (!isValidIndex(selectedModes, suspend_mode_index) || !isValidIndex(selectedModes, resume_mode_index))
       return;
   // Suspend
@@ -128,11 +128,11 @@ void AtomS3ModeManager::changeMode(int suspend_mode_index, int resume_mode_index
   instance->comm.startReceiveEvent();
 }
 
-void AtomS3ModeManager::addSelectedMode(Mode &mode) {
+void ModeManager::addSelectedMode(Mode &mode) {
   selectedModes.push_back(&mode);
 }
 
-void AtomS3ModeManager::deleteSelectedModes() {
+void ModeManager::deleteSelectedModes() {
   // Before deleting modes, all modes must be suspended
   for (int i = 0; i < selectedModes.size(); i++) {
     if (!selectedModes[i]->isTaskSuspended()) {

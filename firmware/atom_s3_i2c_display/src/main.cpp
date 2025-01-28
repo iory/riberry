@@ -12,7 +12,7 @@
 #include <pressure_control_mode.h>
 #include <teaching_mode.h>
 
-#include <atom_s3_mode_manager.h>
+#include <mode_manager.h>
 #include <pairing_mode.h>
 
 #include <Arduino.h>
@@ -62,7 +62,7 @@ const std::vector<Mode*> allModes =
    &pairing_mode,
   };
 
-AtomS3ModeManager atoms3modemanager(lcd, button_manager, comm, allModes);
+ModeManager modemanager(lcd, button_manager, comm, allModes);
 
 void setup() {
 #ifdef ATOM_S3
@@ -82,13 +82,13 @@ void setup() {
   }
   button_manager.createTask(0);
   comm.createTask(0);
-  atoms3modemanager.createTask(0);
+  modemanager.createTask(0);
   // By default, DisplayInformationMode and DisplayQRcodeMode are added
-  atoms3modemanager.addSelectedMode(display_information_mode);
-  atoms3modemanager.addSelectedMode(display_qrcode_mode);
-  atoms3modemanager.addSelectedMode(pairing_mode);
-  atoms3modemanager.initializeSelectedModes();
-  atoms3modemanager.startCurrentMode();
+  modemanager.addSelectedMode(display_information_mode);
+  modemanager.addSelectedMode(display_qrcode_mode);
+  modemanager.addSelectedMode(pairing_mode);
+  modemanager.initializeSelectedModes();
+  modemanager.startCurrentMode();
 }
 
 void loop() {
