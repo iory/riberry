@@ -17,7 +17,13 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
   std::vector<String> pairedMACs = pairing.getPairedMACAddresses();
   unsigned long pairingStartTime = 0;
   while (true) {
+    // TODO: Create a function to return an appropriate text size for each display
+#ifdef ATOM_S3
     lcd.setTextSize(1.2);
+#elif defined(USE_M5STACK_BASIC)
+    lcd.setTextSize(2.0);
+#endif
+
     com.setRequestStr(getModeName());
 
     buttonState = button_manager.getButtonState();
