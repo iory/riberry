@@ -2,6 +2,8 @@
 #include <pairing_mode.h>
 #include <string_utils.h>
 
+#include <mac_address.h>
+
 PairingMode::PairingMode(ButtonManager &button_manager, Pairing &pairing)
     : Mode("PairingMode"), button_manager(button_manager), pairing(pairing) {}
 
@@ -37,11 +39,11 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
       displayText += Color::Background::RED + "Pairing inactive\n" +
                      Color::Background::RESET;
     }
+    displayText += "My MAC address:\n" + fancyMacAddress(pairing.getMyMACAddress().c_str()) + "\n";
     if (!pairedMACs.empty()) {
       displayText += "\nPaired devices:\n";
       for (const auto &mac : pairedMACs) {
-        displayText +=
-            Color::Foreground::YELLOW + mac + Color::Background::RESET + "\n";
+        displayText += fancyMacAddress(mac.c_str()) + "\n";
       }
     }
 
