@@ -7,15 +7,10 @@
 
 class DisplayQRcodeMode : public Mode {
 public:
-  DisplayQRcodeMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
-  void createTask(uint8_t xCoreID) override;
+  DisplayQRcodeMode();
 
 private:
-  static DisplayQRcodeMode* instance; /**< Singleton instance of DisplayQRcodeMode. */
-  PrimitiveLCD &lcd;
-  CommunicationBase &comm;
-
-  static void task(void *parameter);
+  void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
 };
 
 #endif // DISPLAY_QRCODE_MODE_H

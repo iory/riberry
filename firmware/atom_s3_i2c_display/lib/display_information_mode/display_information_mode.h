@@ -7,15 +7,10 @@
 
 class DisplayInformationMode : public Mode {
 public:
-  DisplayInformationMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
-  void createTask(uint8_t xCoreID) override;
+  DisplayInformationMode();
 
 private:
-  static DisplayInformationMode* instance; /**< Singleton instance of DisplayInformationMode. */
-  PrimitiveLCD &lcd;
-  CommunicationBase &comm;
-
-  static void task(void *parameter);
+  void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
 };
 
 #endif // DISPLAY_INFORMATION_MODE_H

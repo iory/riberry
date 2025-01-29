@@ -1,6 +1,25 @@
 import serial
+import serial.tools.list_ports
 
 from riberry.com.base import ComBase
+
+
+def usb_devices():
+    """Find the port to which the ESP32 is connected
+
+    Returns usb_ports[str]: e.g. /dev/ttyACM0
+    """
+    usb_ports = []
+    available_tty_types = ["USB", "ACM"]
+    ports = serial.tools.list_ports.comports()
+    for port in ports:
+        if "USB" in port.description:
+            usb_ports.append(port.device)
+            continue
+        if any(tty_type in port.device for tty_type in available_tty_types):
+            usb_ports.append(port.device)
+            continue
+    return usb_ports
 
 
 class UARTBase(ComBase):
@@ -11,6 +30,12 @@ class UARTBase(ComBase):
             device = self.identify_device()
             if device == 'm5stack-LLM':
                 serial_port = '/dev/ttyS1'
+            elif device in ['Linux', 'Darwin']:
+                usb_ports = usb_devices()
+                if len(usb_ports) == 0:
+                    raise ValueError('Cannot find USB devices')
+                serial_port = usb_ports[0]
+                print(serial_port)
             else:
                 raise NotImplementedError(f"Not supported device {device}")
         self.serial = serial.Serial(
@@ -21,6 +46,9 @@ class UARTBase(ComBase):
             stopbits=serial.STOPBITS_ONE,
             timeout=1
         )
+
+    def reset_input_buffer(self):
+        self.serial.reset_input_buffer()
 
     def write(self, data):
         if isinstance(data, str):
