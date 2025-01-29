@@ -21,6 +21,7 @@ public:
   void broadcastMACAddress();
   String getMyMACAddress() const;
   String getStatus() const;
+  void reset();
   static bool isPairingActive() {
     return _pairingActive;
   }

@@ -179,3 +179,10 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
     receivePairingData(macString, receivedData);
   }
 }
+
+void Pairing::reset() {
+  pairedMACAddresses.clear();
+  pairingDataMap.clear();
+  pendingPeers.clear();
+  setupBroadcastPeer();
+}
