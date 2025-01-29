@@ -47,6 +47,9 @@ class UARTBase(ComBase):
             timeout=1
         )
 
+    def reset_input_buffer(self):
+        self.serial.reset_input_buffer()
+
     def write(self, data):
         if isinstance(data, str):
             self.serial.write(list(map(ord, data)))

@@ -15,8 +15,9 @@ class PacketType(IntEnum):
     TEACHING_MODE = 0x08
     DISPLAY_ODOM_MODE = 0x09
     BUTTON_STATE_REQUEST = 0x10
-    PAIRING_IP_REQUEST = 0x11
-    SET_IP_REQUEST = 0x12
+    GET_PAIRING_TYPE = 0x11
+    PAIRING_IP_REQUEST = 0x12
+    SET_IP_REQUEST = 0x13
 
 
 class ComBase:
@@ -26,6 +27,9 @@ class ComBase:
 
     def write(self, data):
         raise NotImplementedError('You should implement write function.')
+
+    def reset_input_buffer(self):
+        pass
 
     @staticmethod
     def identify_device():
