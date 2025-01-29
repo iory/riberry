@@ -31,6 +31,9 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
         pairing.stopPairing();
       }
     }
+    else if (buttonState == DOUBLE_CLICK) {
+      pairing.reset();
+    }
     pairedMACs = pairing.getPairedMACAddresses();
 
     if (pairing.isPairingActive() && millis() - pairingStartTime >= 3000) {
