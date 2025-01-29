@@ -1,15 +1,13 @@
 #ifndef COMMUNICATION_BASE_H
 #define COMMUNICATION_BASE_H
 
-#ifdef ATOM_S3
-  #include <Wire.h>
-  #include <WireSlave.h> // for i2c
-#endif
+#include <WireSlave.h> // for i2c
 
 #include <primitive_lcd.h>
 #include <button_manager.h>
 
 #include "packet.h"
+#include "pairing.h"
 
 class CommunicationBase {
 public:
@@ -21,7 +19,7 @@ public:
    * @param lcd Reference to the PrimitiveLCD object.
    * @param button Reference to the ButtonManager object.
    */
-  CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button);
+  CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button, Pairing &pairing, Stream* stream, String main_or_secondary = "Main");
 
   /**
    * @brief Creates and starts the I2C communication task on the specified core.
@@ -47,27 +45,17 @@ public:
   static String forcedMode;
   static String selectedModesStr;
 
+  static void setStream(Stream* stream);
+  Stream* getStream() const;
 private:
-
-#ifdef ATOM_S3
-#ifdef I2C_ADDR
-  static constexpr int i2c_slave_addr = I2C_ADDR; /**< I2C slave address for communication. */
-#else
-  static constexpr int i2c_slave_addr = 0x42; /**< I2C slave address for communication. */
-#endif // end of I2C_ADDR
-#ifdef USE_GROVE
-  static constexpr int sda_pin = 2; /**< I2C SDA pin for GROVE mode. */
-  static constexpr int scl_pin = 1; /**< I2C SCL pin for GROVE mode. */
-#else
-  static constexpr int sda_pin = 38; /**< I2C SDA pin for default mode. */
-  static constexpr int scl_pin = 39; /**< I2C SCL pin for default mode. */
-#endif // end of USE_GROVE
-#endif // end of ATOM_S3
+  static Stream* _stream;
 
   bool receiveEventEnabled;
   static CommunicationBase* instance; /**< Singleton instance of CommunicationBase for managing callbacks. */
   PrimitiveLCD &lcd; /**< Reference to the PrimitiveLCD object for displaying information. */
   ButtonManager &button_manager; /**< Reference to the ButtonManager object for button interactions. */
+  Pairing &pairing;
+  static String main_or_secondary;
   unsigned long lastReceiveTime = 0; /**< Last time data was received over I2C. */
   const unsigned long receiveTimeout = 15000; /**< Timeout duration for I2C communication (15 seconds). */
 

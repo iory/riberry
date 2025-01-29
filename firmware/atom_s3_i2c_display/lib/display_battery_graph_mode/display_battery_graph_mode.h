@@ -7,27 +7,23 @@
 
 class DisplayBatteryGraphMode : public Mode {
 public:
-  DisplayBatteryGraphMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
-  void createTask(uint8_t xCoreID) override;
+  DisplayBatteryGraphMode();
 
 private:
-  static const int32_t title_h = 35;
-  static const int32_t y_label_w = 18;
-  static const int32_t y_line_w = 1;
-  static const int32_t x_label_h = 8;
-  const int32_t graph_h;  //83 for atom s3
-  const int32_t graph_w; //109 for atom s3
-  static DisplayBatteryGraphMode* instance;
+  const int32_t title_h = 35;
+  const int32_t y_label_w = 18;
+  const int32_t y_line_w = 1;
+  const int32_t x_label_h = 8;
+  int32_t graph_h;  //83 for atom s3
+  int32_t graph_w; //109 for atom s3
   // これを100など大きくしすぎるとプログラムが落ちる
-  static const int max_buffer_length = 20;
+  const int max_buffer_length = 20;
   uint charge_status;
-  PrimitiveLCD &lcd;
-  CommunicationBase &comm;
 
-  static void task(void *parameter);
-  void updateGraph(float* buffer, int buffer_length, uint new_charge_status, String current, int duration);
-  uint16_t calculateColor(float percentage);
-  void drawBatteryIcon(int x, int y, int width, int height, int batteryLevel);
+  void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
+  void updateGraph(float* buffer, int buffer_length, uint new_charge_status, String current, int duration, PrimitiveLCD &lcd);
+  uint16_t calculateColor(float percentage, PrimitiveLCD &lcd);
+  void drawBatteryIcon(int x, int y, int width, int height, int batteryLevel, PrimitiveLCD &lcd);
 };
 
 #endif // DISPLAY_BATTERY_GRAPH_MODE_H

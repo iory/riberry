@@ -195,7 +195,7 @@ def try_init_ros():
 class DisplayInformation:
     def __init__(self):
         device = ComBase.identify_device()
-        if device == 'm5stack-LLM':
+        if device in ['m5stack-LLM', 'Linux', 'Darwin']:
             self.com = UARTBase()
         else:
             self.com = I2CBase(0x42)

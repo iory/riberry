@@ -2,7 +2,7 @@
 #define STRING_UTILS_H
 
 
-bool compareIgnoringEscapeSequences(const String &str1, const String &str2) {
+inline bool compareIgnoringEscapeSequences(const String &str1, const String &str2) {
   int i1 = 0, i2 = 0;
   while (i1 < str1.length() && i2 < str2.length()) {
     if (i1 >= str1.length() || i2 >= str2.length() || str1.charAt(i1) != str2.charAt(i2)) {

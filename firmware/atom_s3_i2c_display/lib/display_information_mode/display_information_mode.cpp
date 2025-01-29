@@ -1,47 +1,40 @@
 #include <display_information_mode.h>
 #include <string_utils.h>
 
-DisplayInformationMode* DisplayInformationMode::instance = nullptr;
-
-DisplayInformationMode::DisplayInformationMode(PrimitiveLCD &lcd, CommunicationBase &i2c)
-  : lcd(lcd), comm(i2c), Mode("DisplayInformationMode") {
-    instance = this;
+DisplayInformationMode::DisplayInformationMode()
+  : Mode("DisplayInformationMode") {
 }
 
-void DisplayInformationMode::task(void *parameter) {
+void DisplayInformationMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
   String prevStr;
   while (true) {
-    instance->comm.setRequestStr(instance->getModeName());
+    com.setRequestStr(getModeName());
     // Check for I2C timeout
-    if (instance->comm.checkTimeout()) {
-      instance->lcd.drawNoDataReceived();
-      instance->lcd.printColorText(instance->getModeName() + "\n");
+    if (com.checkTimeout()) {
+      lcd.drawNoDataReceived();
+      lcd.printColorText(getModeName() + "\n");
       vTaskDelay(pdMS_TO_TICKS(500));
       prevStr = "";
       continue;
     }
     // Display information
     else {
-      if (instance->lcd.color_str.isEmpty()) {
-        instance->lcd.drawBlack();
-        instance->lcd.printColorText("Waiting for " + instance->getModeName());
+      if (lcd.color_str.isEmpty()) {
+        lcd.drawBlack();
+        lcd.printColorText("Waiting for " + getModeName());
         prevStr = "";
       } else {
         // The reason for using this here is that the equals function relies on strcmp,
         // which cannot properly handle escape sequences. As a result, it may fail to compare strings correctly.
-        if (compareIgnoringEscapeSequences(prevStr, instance->lcd.color_str)) {
+        if (compareIgnoringEscapeSequences(prevStr, lcd.color_str)) {
           vTaskDelay(pdMS_TO_TICKS(10));
         } else {
-          instance->lcd.drawBlack();
-          prevStr = instance->lcd.color_str;
-          instance->lcd.printColorText(instance->lcd.color_str);
+          lcd.drawBlack();
+          prevStr = lcd.color_str;
+          lcd.printColorText(lcd.color_str);
         }
       }
       vTaskDelay(pdMS_TO_TICKS(10));
     }
   }
-}
-
-void DisplayInformationMode::createTask(uint8_t xCoreID) {
-  xTaskCreatePinnedToCore(task, "Display Information Mode", 2048, NULL, 1, &taskHandle, xCoreID);
 }

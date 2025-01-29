@@ -1,13 +1,25 @@
 #include <communication_base.h>
 
 CommunicationBase* CommunicationBase::instance = nullptr;
+Stream* CommunicationBase::_stream = nullptr;
 String CommunicationBase::requestStr = ""; // Initialize the static requestStr
 String CommunicationBase::forcedMode = ""; // Initialize the static forcedMode
 String CommunicationBase::selectedModesStr = ""; // Initialize the static selectedModesStr
+String CommunicationBase::main_or_secondary = "";
 
-CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button)
-  : lcd(lcd), button_manager(button), receiveEventEnabled(true) {
+CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button, Pairing &pairing, Stream* stream, String main_or_secondary)
+  : lcd(lcd), button_manager(button), pairing(pairing), receiveEventEnabled(true) {
   instance = this;
+  setStream(stream);
+  this->main_or_secondary = main_or_secondary;
+}
+
+void CommunicationBase::setStream(Stream* stream) {
+  _stream = stream;
+}
+
+Stream* CommunicationBase::getStream() const {
+  return _stream;
 }
 
 void CommunicationBase::updateLastReceiveTime() {
@@ -47,24 +59,16 @@ int CommunicationBase::splitString(const String &input, char delimiter, char* ou
 
 
 void CommunicationBase::receiveEvent(int howMany) {
-  if (instance->receiveEventEnabled == false)
+  if (_stream == nullptr || instance == nullptr || !instance->receiveEventEnabled)
     return;
-  if (instance == nullptr)
-    return;
+
   instance->updateLastReceiveTime();
   String str;
-#ifdef ATOM_S3
-  // Read data from the I2C bus
-  while (0 < WireSlave.available()) {
-    char c = WireSlave.read();  // receive byte as a character;
+
+  while (_stream->available()) {
+    char c = _stream->read();
     str += c;
   }
-#elif defined(USE_M5STACK_BASIC)
-  while (0 < Serial.available()) {
-    char c = Serial.read();  // receive byte as a character;
-    str += c;
-  }
-#endif
   if (str.length() < 1) {
     return;  // Invalid packet
   }
@@ -111,6 +115,29 @@ void CommunicationBase::receiveEvent(int howMany) {
     requestEvent();
     break;
 
+  case GET_PAIRING_TYPE:
+    _stream->write(main_or_secondary.c_str(), main_or_secondary.length());
+    break;
+
+  case PAIRING_IP_REQUEST: {
+    std::map<String, PairingData> pairedDataMap = instance->pairing.getPairedData();
+    if (!pairedDataMap.empty()) {
+      auto it = pairedDataMap.begin();
+      _stream->write(it->second.IPv4[0]);
+      _stream->write(it->second.IPv4[1]);
+      _stream->write(it->second.IPv4[2]);
+      _stream->write(it->second.IPv4[3]);
+    }
+    break;
+  }
+  case SET_IP_REQUEST: {
+    PairingData dataToSend;
+    for (int i = 0; i < 4; i++) {
+      dataToSend.IPv4[i] = str[i + 1];
+    }
+    instance->pairing.setDataToSend(dataToSend);
+    break;
+  }
   default:
     // Handle TEXT or unknown packets
     instance->lcd.color_str = str;
@@ -171,7 +198,7 @@ void CommunicationBase::startReceiveEvent() {
 }
 
 void CommunicationBase::requestEvent() {
-  if (instance == nullptr)
+  if (_stream == nullptr || instance == nullptr)
       return;
   uint8_t sentStr[100];
   sentStr[0] = (uint8_t)instance->button_manager.getButtonState();
@@ -183,11 +210,7 @@ void CommunicationBase::requestEvent() {
   }
   memcpy(&sentStr[1], modeData, strLen);  // sentStr[1]以降にstrDataをコピー
 
-#ifdef ATOM_S3
-  WireSlave.write(sentStr, strLen+1);
-#elif defined(USE_M5STACK_BASIC)
-  Serial.write(sentStr, strLen + 1);
-#endif
+  _stream->write(sentStr, strLen + 1);
   instance->button_manager.notChangedButtonState();
 }
 
@@ -196,33 +219,44 @@ void CommunicationBase::setRequestStr(const String &str) {
 }
 
 void CommunicationBase::task(void *parameter) {
-#ifdef ATOM_S3
-  bool success = WireSlave.begin(sda_pin, scl_pin, i2c_slave_addr, 200, 100);
-  if (!success) {
-    instance->lcd.printColorText("I2C slave init failed\n");
-    while (1) vTaskDelay(pdMS_TO_TICKS(100));;
+  if (_stream == nullptr) {
+    instance->lcd.printColorText("Stream not initialized\n");
+    return;
   }
-  // Ensure the program starts in a timeout state
-  instance->lastReceiveTime = millis() - instance->receiveTimeout;
-  WireSlave.onReceive(receiveEvent);
-  WireSlave.onRequest(requestEvent);
-  while (true) {
-    WireSlave.update();
-    vTaskDelay(pdMS_TO_TICKS(1));;  // let I2C and other ESP32 peripherals interrupts work
-  }
-#elif defined(USE_M5STACK_BASIC)
-  Serial.begin(115200, SERIAL_8N1, 16, 17);
-  instance->lastReceiveTime = millis() - instance->receiveTimeout;
-  while (true) {
-    if (Serial.available() > 0) {
-      receiveEvent(Serial.available());
+
+  if (_stream == &WireSlave) {
+    instance->lastReceiveTime = millis() - instance->receiveTimeout;
+    WireSlave.onReceive(receiveEvent);
+    WireSlave.onRequest(requestEvent);
+
+    while (true) {
+      WireSlave.update();
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
-    // Insert a short delay to yield control to the RTOS scheduler.
-    // Without this delay, the task could block other lower-priority tasks
-    // or prevent the watchdog timer from resetting in time, causing a "Task watchdog got triggered" error.
-    vTaskDelay(pdMS_TO_TICKS(1));
+  #if ARDUINO_USB_MODE
+  #if ARDUINO_USB_CDC_ON_BOOT // Serial used for USB CDC
+    } else if (_stream == &Serial || _stream == &Serial1) {
+  #else
+    } else if (_stream == &Serial || _stream == &Serial1 || _stream == &USBSerial) {
+  #endif
+  #else
+    } else if (_stream == &Serial || _stream == &Serial1) {
+  #endif
+    instance->lastReceiveTime = millis() - instance->receiveTimeout;
+
+    while (true) {
+      if (_stream->available() > 0) {
+        receiveEvent(_stream->available());
+      }
+      // Insert a short delay to yield control to the RTOS scheduler.
+      // Without this delay, the task could block other lower-priority tasks
+      // or prevent the watchdog timer from resetting in time, causing a "Task watchdog got triggered" error.
+      vTaskDelay(pdMS_TO_TICKS(1));
+    }
+  } else {
+    instance->lcd.printColorText("Unsupported Stream type\n");
+    return;
   }
-#endif
 }
 
 void CommunicationBase::createTask(uint8_t xCoreID) {

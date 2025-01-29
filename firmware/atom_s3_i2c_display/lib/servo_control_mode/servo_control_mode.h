@@ -7,15 +7,10 @@
 
 class ServoControlMode : public Mode {
 public:
-  ServoControlMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
-  void createTask(uint8_t xCoreID) override;
+  ServoControlMode();
 
 private:
-  static ServoControlMode* instance; /**< Singleton instance of ServoControlMode. */
-  PrimitiveLCD &lcd;
-  CommunicationBase &comm;
-
-  static void task(void *parameter);
+  void task(PrimitiveLCD &lcd, CommunicationBase &com);
 };
 
 #endif // ATOM_S3_SERVO_CONTROL_MODE_H

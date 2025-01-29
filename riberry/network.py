@@ -1,4 +1,5 @@
 import os
+import platform
 import socket
 import subprocess
 import time
@@ -31,13 +32,26 @@ def wait_and_get_ros_ip(retry=300):
     return None
 
 
-def get_mac_address(interface="wlan0"):
+def get_mac_address(interface=None):
+    if interface is None:
+        if platform.system() == "Darwin":  # macOS
+            interface = "en0"
+        else:
+            interface = "wlan0"
     try:
-        mac_address = (
-            subprocess.check_output(["cat", f"/sys/class/net/{interface}/address"])
-            .decode("utf-8")
-            .strip()
-        )
+        if platform.system() == "Darwin":
+            mac_address = (
+                subprocess.check_output(["ifconfig", interface])
+                .decode("utf-8")
+                .split("ether ")[1]
+                .split()[0]
+            )
+        else:
+            mac_address = (
+                subprocess.check_output(["cat", f"/sys/class/net/{interface}/address"])
+                .decode("utf-8")
+                .strip()
+            )
         mac_address = mac_address.replace(":", "")
         return mac_address
     except Exception as e:

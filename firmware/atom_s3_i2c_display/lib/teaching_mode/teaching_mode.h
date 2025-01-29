@@ -7,16 +7,11 @@
 
 class TeachingMode : public Mode {
 public:
-  TeachingMode(PrimitiveLCD &lcd, CommunicationBase &i2c);
-  void createTask(uint8_t xCoreID) override;
+  TeachingMode();
 
 private:
-  static TeachingMode* instance; /**< Singleton instance of TeachingMode. */
-  PrimitiveLCD &lcd;
-  CommunicationBase &comm;
-
-  static void task(void *parameter);
-  void drawARMarker(int marker_id, int x, int y, int size);
+  void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
+  void drawARMarker(int marker_id, int x, int y, int size, PrimitiveLCD &lcd);
 };
 
 #endif // ATOM_S3_TEACHING_MODE_H

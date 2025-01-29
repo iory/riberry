@@ -3,9 +3,9 @@
 import threading
 import time
 
-import serial.tools.list_ports
-
+from riberry.com.base import PacketType
 from riberry.com.uart_base import UARTBase
+from riberry.com.uart_base import usb_devices
 from riberry.network import get_ros_ip
 
 
@@ -17,22 +17,7 @@ def print_throttle(interval, *args, **kwargs):
         print(*args, **kwargs)
         print_throttle.last_print_time = current_time
 
-def usb_devices():
-    """Find the port to which the ESP32 is connected
 
-    Returns usb_ports[str]: e.g. /dev/ttyACM0
-    """
-    usb_ports = []
-    available_tty_types = ["USB", "ACM"]
-    ports = serial.tools.list_ports.comports()
-    for port in ports:
-        if "USB" in port.description:
-            usb_ports.append(port.device)
-            continue
-        if any(tty_type in port.device for tty_type in available_tty_types):
-            usb_ports.append(port.device)
-            continue
-    return usb_ports
 
 def find_pairing_devices(usb_ports, baudrate=115200):
     ret = []
@@ -40,12 +25,14 @@ def find_pairing_devices(usb_ports, baudrate=115200):
     if len(ports) == 0:
         print("Cannot find USB devices")
         return ret
-    device_types = ["Sender", "Receiver"]
+    device_types = ["Main", "Secondary"]
     for port in ports:
         try:
             com = UARTBase(port, baudrate)
             print(f"Connect to USB device: {port}")
             while True:
+                com.write([PacketType.GET_PAIRING_TYPE])
+                time.sleep(0.1)
                 packet = com.read()
                 if packet == b'':
                     print_throttle(1.0, "Waiting for initial packet from pairing device...")
@@ -71,17 +58,20 @@ def send_string(com, string):
         print(f"Send error: {e}")
 
 def send_pairing_info(com, ip_address):
-    send_string(com, ip_address + "\n")
+    send_string(com, ip_address)
 
 def receive_pairing_info(com):
     try:
         while True:
+            com.reset_input_buffer()
+            com.write([PacketType.PAIRING_IP_REQUEST])
+            time.sleep(0.1)
             packet = com.read()
             if packet == b'':
-                print_throttle(1.0, "[Receiver] Waiting for pairing information from Receiver...")
-            else:
-                pairing_info = packet.decode().strip()
-                print(f"[Receiver] Receive pairing info: {pairing_info}")
+                print_throttle(1.0, "[Secondary] Waiting for pairing information from Receiver...")
+            elif len(packet) == 4:
+                pairing_info = '.'.join(map(str, list(packet)))
+                print(f"[Secondary] Receive pairing info: {pairing_info}")
                 return pairing_info
             time.sleep(0.1)
     except Exception as e:
@@ -89,7 +79,11 @@ def receive_pairing_info(com):
 
 def pairing(ports):
     pairing_devices = find_pairing_devices(ports)
-    ip_address = get_ros_ip()
+    ip_address = None
+    while ip_address is None:
+        print('Waiting for IP address...')
+        ip_address = get_ros_ip()
+    ip_address = [PacketType.SET_IP_REQUEST] + list(map(int, ip_address.split('.')))
     for dev in pairing_devices:
         port = dev['serial'].serial.port
         if port in prev_ports:
@@ -98,7 +92,7 @@ def pairing(ports):
         device_type = dev['device_type']
         # Use threading to test both Sender and Receiver device
         # on single computer
-        if device_type == "Sender":
+        if device_type == "Main":
             print(f"[{device_type}] Send pairing info: {ip_address}")
             thread = threading.Thread(
                 name=device_type,
@@ -106,8 +100,7 @@ def pairing(ports):
                 args=(com, ip_address,),
                 daemon=True)
             thread.start()
-        elif device_type == "Receiver":
-            send_pairing_info(com, ip_address)  # This ip_address is not used
+        elif device_type == "Secondary":
             print(f"[{device_type}] Start receive_pairing_info")
             thread = threading.Thread(
                 name=device_type,
