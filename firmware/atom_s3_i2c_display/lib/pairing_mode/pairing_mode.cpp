@@ -15,6 +15,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
   pairing.stopPairing();
   pairing.startBackgroundTask(xCoreID);
   std::vector<String> pairedMACs = pairing.getPairedMACAddresses();
+  unsigned long pairingStartTime = 0;
   while (true) {
     lcd.setTextSize(1.2);
     com.setRequestStr(getModeName());
@@ -24,6 +25,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     String displayText = "";
     if (buttonState == SINGLE_CLICK) {
       if (!pairing.isPairingActive()) {
+        pairingStartTime = millis();
         pairing.startPairing();
       } else {
         pairing.stopPairing();
@@ -31,6 +33,9 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     }
     pairedMACs = pairing.getPairedMACAddresses();
 
+    if (pairing.isPairingActive() && millis() - pairingStartTime >= 3000) {
+      pairing.stopPairing();
+    }
     if (pairing.isPairingActive()) {
       displayText += Color::Foreground::BLACK + Color::Background::GREEN +
                      "Pairing active\n" + Color::Background::RESET +
@@ -39,7 +44,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
       displayText += Color::Background::RED + "Pairing inactive\n" +
                      Color::Background::RESET;
     }
-    displayText += "My MAC address:\n" + fancyMacAddress(pairing.getMyMACAddress().c_str()) + "\n";
+    displayText += "\nMy name:\n" + fancyMacAddress(pairing.getMyMACAddress().c_str()) + "\n";
     if (!pairedMACs.empty()) {
       displayText += "\nPaired devices:\n";
       for (const auto &mac : pairedMACs) {
@@ -62,6 +67,7 @@ void PairingMode::suspendTask() {
 }
 
 void PairingMode::resumeTask() {
+  unsigned long pairingStartTime = 0;
   prevStr = "";
   Mode::resumeTask();
 }

@@ -16,9 +16,23 @@ String fancyMacAddress(const char* seed) {
   hasher.doUpdate(seed, strlen(seed));
   hasher.doFinal(hash);
 
-  uint32_t adjective_index = ((uint32_t)hash[0] << 24 | (uint32_t)hash[1] << 16 | (uint32_t)hash[2] << 8 | (uint32_t)hash[3]) % num_words;
-  uint32_t noun_index = ((uint32_t)hash[4] << 24 | (uint32_t)hash[5] << 16 | (uint32_t)hash[6] << 8 | (uint32_t)hash[7]) % num_words;
-  uint32_t color_index = ((uint32_t)hash[8] << 24 | (uint32_t)hash[9] << 16 | (uint32_t)hash[10] << 8 | (uint32_t)hash[11]) % num_colors;
+  uint64_t adjective_index = ((uint64_t)hash[0] << 56 | (uint64_t)hash[1] << 48 | (uint64_t)hash[2] << 40 |
+                               (uint64_t)hash[3] << 32 | (uint64_t)hash[4] << 24 | (uint64_t)hash[5] << 16 |
+                               (uint64_t)hash[6] << 8  | (uint64_t)hash[7]) ^
+                              ((uint64_t)hash[8] << 32 | (uint64_t)hash[9] << 24 | (uint64_t)hash[10] << 16 | (uint64_t)hash[11] << 8);
+  adjective_index %= num_words;
+
+  uint64_t noun_index = ((uint64_t)hash[12] << 56 | (uint64_t)hash[13] << 48 | (uint64_t)hash[14] << 40 |
+                          (uint64_t)hash[15] << 32 | (uint64_t)hash[16] << 24 | (uint64_t)hash[17] << 16 |
+                          (uint64_t)hash[18] << 8  | (uint64_t)hash[19]) ^
+                         ((uint64_t)hash[20] << 32 | (uint64_t)hash[21] << 24 | (uint64_t)hash[22] << 16 | (uint64_t)hash[23] << 8);
+  noun_index %= num_words;
+
+  uint64_t color_index = ((uint64_t)hash[24] << 56 | (uint64_t)hash[25] << 48 | (uint64_t)hash[26] << 40 |
+                           (uint64_t)hash[27] << 32 | (uint64_t)hash[28] << 24 | (uint64_t)hash[29] << 16 |
+                           (uint64_t)hash[30] << 8  | (uint64_t)hash[31]);
+  color_index %= num_colors;
+
 
   String str = colors[color_index] + String(english_table[adjective_index]) + "-" + String(english_table[noun_index]) + Color::Foreground::RESET;
   return str;
