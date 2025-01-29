@@ -30,13 +30,9 @@ TaskHandle_t i2sTaskHandle = NULL;
 
 class RingBuffer {
 public:
-    RingBuffer(int size) : size(size), readIdx(0), writeIdx(0) {
-        buffer = new int8_t[size];
-    }
+    RingBuffer(int size) : size(size), readIdx(0), writeIdx(0) { buffer = new int8_t[size]; }
 
-    ~RingBuffer() {
-        delete[] buffer;
-    }
+    ~RingBuffer() { delete[] buffer; }
 
     int available() const {
         int diff = writeIdx - readIdx;
@@ -69,17 +65,17 @@ bool InitI2SSpeakOrMic(int mode) {
 
     i2s_driver_uninstall(SPEAK_I2S_NUMBER);
     i2s_config_t i2s_config = {
-        .mode = (i2s_mode_t)(I2S_MODE_MASTER),
-        .sample_rate = I2S_SAMPLE_RATE,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,  // fixed at 12bit, stereo, MSB
-        .channel_format = I2S_CHANNEL_FMT_ALL_LEFT,
-        .communication_format = I2S_COMM_FORMAT_I2S,
-        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = I2S_BUFFER_COUNT,
-        .dma_buf_len = I2S_BUFFER_SIZE,
-        .use_apll = false,
-        .tx_desc_auto_clear = false,
-        .fixed_mclk = 0};
+            .mode = (i2s_mode_t)(I2S_MODE_MASTER),
+            .sample_rate = I2S_SAMPLE_RATE,
+            .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,  // fixed at 12bit, stereo, MSB
+            .channel_format = I2S_CHANNEL_FMT_ALL_LEFT,
+            .communication_format = I2S_COMM_FORMAT_I2S,
+            .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
+            .dma_buf_count = I2S_BUFFER_COUNT,
+            .dma_buf_len = I2S_BUFFER_SIZE,
+            .use_apll = false,
+            .tx_desc_auto_clear = false,
+            .fixed_mclk = 0};
     if (mode == MODE_MIC) {
         i2s_config.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_PDM);
     } else {
@@ -113,17 +109,20 @@ void i2sTask(void* parameter) {
         for (int i = 0; i < transBytes; i += 2) {
             uint16_t* val = (uint16_t*)&buffer[i];
 
-            // Process the 12-bit audio sample, adjust and scale it to 16-bit range
+            // Process the 12-bit audio sample, adjust and scale it to 16-bit
+            // range
             int16_t p = (((0x0fff - (*val & 0x0fff)) * 16) - 0x8000);
             int16_t tmp_x = p;
 
-            /* https://stackoverflow.com/questions/77383602/do-these-two-dc-filter-algorithms-achieve-the-same-thing-and-is-one-better */
+            /* https://stackoverflow.com/questions/77383602/do-these-two-dc-filter-algorithms-achieve-the-same-thing-and-is-one-better
+             */
             /* apply DC filter */
             p = p - previous_x + 0.995 * previous_y;
             previous_y = p;
             previous_x = tmp_x;
 
-            // Scale the result down to fit into an 8-bit signed integer by right-shifting 8 bits
+            // Scale the result down to fit into an 8-bit signed integer by
+            // right-shifting 8 bits
             p = p >> 8;
             ringBuffer.write((uint8_t)p);
         }
@@ -139,7 +138,8 @@ void setup() {
 
     InitI2SSpeakOrMic(MODE_MIC);
 
-    /* bool begin(int sda, int scl, int address, int rxBufferSize, int txBufferSize); */
+    /* bool begin(int sda, int scl, int address, int rxBufferSize, int
+     * txBufferSize); */
     bool res = WireSlave.begin(SDA_PIN, SCL_PIN, I2C_SLAVE_ADDR, 100, 4096);
 
     if (!res) {
@@ -174,15 +174,14 @@ void requestEvent() {
     }
 }
 
-
 void receiveEvent(int howMany) {
-  int r = 0, g = 0, b = 0;
-  if (WireSlave.available() >= 3) {
-    r = WireSlave.read();
-    g = WireSlave.read();
-    b = WireSlave.read();
-  }
+    int r = 0, g = 0, b = 0;
+    if (WireSlave.available() >= 3) {
+        r = WireSlave.read();
+        g = WireSlave.read();
+        b = WireSlave.read();
+    }
 
-  M5.dis.clear();
-  M5.dis.drawpix(0, CRGB(r, g, b));
+    M5.dis.clear();
+    M5.dis.drawpix(0, CRGB(r, g, b));
 }

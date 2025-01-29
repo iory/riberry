@@ -1,16 +1,16 @@
 #ifndef ATOM_S3_SERVO_CONTROL_MODE_H
 #define ATOM_S3_SERVO_CONTROL_MODE_H
 
+#include <communication_base.h>
 #include <mode.h>
 #include <primitive_lcd.h>
-#include <communication_base.h>
 
 class ServoControlMode : public Mode {
 public:
-  ServoControlMode();
+    ServoControlMode();
 
 private:
-  void task(PrimitiveLCD &lcd, CommunicationBase &com);
+    void task(PrimitiveLCD &lcd, CommunicationBase &com);
 };
 
-#endif // ATOM_S3_SERVO_CONTROL_MODE_H
+#endif  // ATOM_S3_SERVO_CONTROL_MODE_H

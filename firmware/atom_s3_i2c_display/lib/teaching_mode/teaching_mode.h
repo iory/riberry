@@ -1,17 +1,17 @@
 #ifndef ATOM_S3_TEACHING_MODE_H
 #define ATOM_S3_TEACHING_MODE_H
 
+#include <communication_base.h>
 #include <mode.h>
 #include <primitive_lcd.h>
-#include <communication_base.h>
 
 class TeachingMode : public Mode {
 public:
-  TeachingMode();
+    TeachingMode();
 
 private:
-  void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
-  void drawARMarker(int marker_id, int x, int y, int size, PrimitiveLCD &lcd);
+    void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
+    void drawARMarker(int marker_id, int x, int y, int size, PrimitiveLCD &lcd);
 };
 
-#endif // ATOM_S3_TEACHING_MODE_H
+#endif  // ATOM_S3_TEACHING_MODE_H
