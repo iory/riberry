@@ -6,6 +6,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <primitive_lcd.h>
+#include <string_utils.h>
 
 /**
  * @brief Base class for handling FreeRTOS tasks.
@@ -27,6 +28,7 @@ public:
      * @brief Resume the task.
      */
     virtual void resumeTask() {
+        prevStr = "";
         if (taskHandle != NULL) {
             vTaskResume(taskHandle);
         }
@@ -42,7 +44,24 @@ public:
         }
     }
 
-    virtual void task(PrimitiveLCD& lcd, CommunicationBase& com) = 0;
+    virtual void task(PrimitiveLCD& lcd, CommunicationBase& com) {
+        while (true) {
+            if (handleTimeout(lcd, com) || handleEmptyDisplay(lcd)) continue;
+
+            // The reason for using this here is that the equals function
+            // relies on strcmp, which cannot properly handle escape
+            // sequences. As a result, it may fail to compare strings
+            // correctly.
+            if (compareIgnoringEscapeSequences(prevStr, lcd.color_str)) {
+                vTaskDelay(pdMS_TO_TICKS(10));
+            } else {
+                lcd.drawBlack();
+                prevStr = lcd.color_str;
+                lcd.printColorText(lcd.color_str);
+            }
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+    }
 
     static void startTaskImpl(void* _params) {
         auto* params = static_cast<std::tuple<Mode*, PrimitiveLCD*, CommunicationBase*>*>(_params);
@@ -65,9 +84,31 @@ public:
      */
     String getModeName() const { return modeName; }
 
+    bool handleTimeout(PrimitiveLCD& lcd, CommunicationBase& com) {
+        if (com.checkTimeout()) {
+            lcd.drawNoDataReceived();
+            lcd.printColorText(getModeName() + "\n");
+            vTaskDelay(pdMS_TO_TICKS(500));
+            prevStr = "";
+            return true;
+        }
+        return false;
+    }
+
+    bool handleEmptyDisplay(PrimitiveLCD& lcd) {
+        if (lcd.color_str.isEmpty()) {
+            lcd.drawBlack();
+            lcd.printColorText("Waiting for " + getModeName());
+            prevStr = "";
+            return true;
+        }
+        return false;
+    }
+
 protected:
     TaskHandle_t taskHandle;
     String modeName;
+    String prevStr;
 };
 
 #endif  // MODE_H

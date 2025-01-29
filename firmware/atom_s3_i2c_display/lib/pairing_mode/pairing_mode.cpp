@@ -72,6 +72,5 @@ void PairingMode::suspendTask() {
 
 void PairingMode::resumeTask() {
     unsigned long pairingStartTime = 0;
-    prevStr = "";
     Mode::resumeTask();
 }

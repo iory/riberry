@@ -6,54 +6,46 @@ void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     graph_h = (lcd.height() - title_h - x_label_h - 2);
     graph_w = (lcd.width() - y_label_w - y_line_w);
     while (true) {
-        // Check for I2C timeout
-        if (com.checkTimeout()) {
-            lcd.drawNoDataReceived();
-            lcd.printColorText(getModeName() + "\n");
-            vTaskDelay(pdMS_TO_TICKS(500));
-            continue;
-        }
-        // Display information
-        else {
-            unsigned long currentTime = millis();
-            if (lcd.color_str.isEmpty()) {
-                lcd.drawBlack();
-                lcd.printColorText("Waiting for " + getModeName());
-            } else {
-                // Split by comma
-                char *parts[max_buffer_length + 3];
-                int numParts = com.splitString(lcd.color_str, ',', parts, max_buffer_length + 3);
+        if (handleTimeout(lcd, com)) continue;
 
-                uint new_charge_status = 0;
-                if (numParts > 0) new_charge_status = atoi(parts[0]);
+        unsigned long currentTime = millis();
+        if (lcd.color_str.isEmpty()) {
+            lcd.drawBlack();
+            lcd.printColorText("Waiting for " + getModeName());
+        } else {
+            // Split by comma
+            char *parts[max_buffer_length + 3];
+            int numParts = com.splitString(lcd.color_str, ',', parts, max_buffer_length + 3);
 
-                String charge_current = "";
-                if (numParts > 1) charge_current = String(parts[1]);
+            uint new_charge_status = 0;
+            if (numParts > 0) new_charge_status = atoi(parts[0]);
 
-                int duration = 0;
-                if (numParts > 2) duration = atoi(parts[2]);  // Convert string to integer
+            String charge_current = "";
+            if (numParts > 1) charge_current = String(parts[1]);
 
-                float percentages[max_buffer_length];
-                for (int i = 3; i < numParts && i - 3 < max_buffer_length; ++i) {
-                    percentages[i - 3] = atof(parts[i]);  // Convert string to float
-                }
+            int duration = 0;
+            if (numParts > 2) duration = atoi(parts[2]);  // Convert string to integer
 
-                // Not redraw until 10 seconds have passed
-                bool skipDrawing = (new_charge_status == charge_status) &&
-                                   (currentTime - lcd.getLastDrawTime() < 10000);
-                if (skipDrawing) {
-                    vTaskDelay(pdMS_TO_TICKS(1000));
-                    continue;
-                }
-
-                if (numParts > 0) {
-                    updateGraph(percentages, numParts - 3, new_charge_status, charge_current,
-                                duration, lcd);
-                }
-                lcd.setLastDrawTime(currentTime);
+            float percentages[max_buffer_length];
+            for (int i = 3; i < numParts && i - 3 < max_buffer_length; ++i) {
+                percentages[i - 3] = atof(parts[i]);  // Convert string to float
             }
-            vTaskDelay(pdMS_TO_TICKS(1000));
+
+            // Not redraw until 10 seconds have passed
+            bool skipDrawing = (new_charge_status == charge_status) &&
+                               (currentTime - lcd.getLastDrawTime() < 10000);
+            if (skipDrawing) {
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                continue;
+            }
+
+            if (numParts > 0) {
+                updateGraph(percentages, numParts - 3, new_charge_status, charge_current, duration,
+                            lcd);
+            }
+            lcd.setLastDrawTime(currentTime);
         }
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
