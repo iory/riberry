@@ -27,7 +27,7 @@ const String LIGHTBLUE = CSI + "94m";
 const String LIGHTMAGENTA = CSI + "95m";
 const String LIGHTCYAN = CSI + "96m";
 const String LIGHTWHITE = CSI + "97m";
-} // namespace Foreground
+}  // namespace Foreground
 
 // Background Colors
 namespace Background {
@@ -49,7 +49,7 @@ const String LIGHTBLUE = CSI + "104m";
 const String LIGHTMAGENTA = CSI + "105m";
 const String LIGHTCYAN = CSI + "106m";
 const String LIGHTWHITE = CSI + "107m";
-} // namespace Background
+}  // namespace Background
 
 // Text Styles
 namespace Style {
@@ -60,7 +60,7 @@ const String UNDERLINE = CSI + "4m";
 const String BLINK = CSI + "5m";
 const String REVERSE = CSI + "7m";
 const String HIDDEN = CSI + "8m";
-} // namespace Style
-} // namespace Color
+}  // namespace Style
+}  // namespace Color
 
-#endif // COLOR_H
+#endif  // COLOR_H

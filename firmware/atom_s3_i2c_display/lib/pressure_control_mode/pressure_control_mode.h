@@ -1,16 +1,16 @@
 #ifndef ATOM_S3_PRESSURE_CONTROL_MODE_H
 #define ATOM_S3_PRESSURE_CONTROL_MODE_H
 
+#include <communication_base.h>
 #include <mode.h>
 #include <primitive_lcd.h>
-#include <communication_base.h>
 
 class PressureControlMode : public Mode {
 public:
-  PressureControlMode();
+    PressureControlMode();
 
 private:
-  void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
+    void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
 };
 
-#endif // ATOM_S3_PRESSURE_CONTROL_MODE_H
+#endif  // ATOM_S3_PRESSURE_CONTROL_MODE_H

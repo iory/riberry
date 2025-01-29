@@ -1,12 +1,13 @@
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
+#include <unistd.h>
+
 #include <cstdint>
-#include <cstring>
 #include <cstdio>
+#include <cstring>
 
 #include "riberry_startup/filelock.h"
 
@@ -20,7 +21,7 @@
 #define ACCEL_FS_SEL_2G 0b00000000
 #define GYRO_FS_SEL_250DPS 0b00000000
 
-int fd; // File descriptor for the I2C device
+int fd;  // File descriptor for the I2C device
 const double convert_to_mss = 9.80665 / 16384.0;
 const double convert_to_radian_per_sec = (250.0 / 32768.0) * (M_PI / 180.0);
 
@@ -29,10 +30,10 @@ void initialize_sensor(int fd, uint8_t accel_fs_sel, uint8_t gyro_fs_sel) {
     uint8_t buf[2];
     // Reset device
     buf[0] = PWR_MGMT_1;
-    buf[1] = 0b10000000; // Reset
+    buf[1] = 0b10000000;  // Reset
     write(fd, buf, 2);
-    usleep(100000); // 100ms
-    buf[1] = 0b00000001; // Set clock source
+    usleep(100000);       // 100ms
+    buf[1] = 0b00000001;  // Set clock source
     write(fd, buf, 2);
 
     // Set accelerometer and gyroscope range
@@ -42,11 +43,18 @@ void initialize_sensor(int fd, uint8_t accel_fs_sel, uint8_t gyro_fs_sel) {
     buf[0] = GYRO_CONFIG;
     buf[1] = gyro_fs_sel;
     write(fd, buf, 2);
-    usleep(50000); // 50ms
+    usleep(50000);  // 50ms
 }
 
 // Function to read sensor data
-bool read_sensor_data(int fd, int16_t& accel_x, int16_t& accel_y, int16_t& accel_z, int16_t& gyro_x, int16_t& gyro_y, int16_t& gyro_z, double wait_msec_to_read) {
+bool read_sensor_data(int fd,
+                      int16_t& accel_x,
+                      int16_t& accel_y,
+                      int16_t& accel_z,
+                      int16_t& gyro_x,
+                      int16_t& gyro_y,
+                      int16_t& gyro_z,
+                      double wait_msec_to_read) {
     uint8_t reg_addr = ACCEL_XOUT_H;
     uint8_t buf[14];
     if (write(fd, &reg_addr, 1) != 1) return false;
@@ -66,7 +74,7 @@ bool read_sensor_data(int fd, int16_t& accel_x, int16_t& accel_y, int16_t& accel
     return true;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     ros::init(argc, argv, "mpu6886_imu_publisher_node");
     ros::NodeHandle nh_private("~");
 
@@ -100,13 +108,13 @@ int main(int argc, char **argv) {
     // Search and replace the node name with an empty string if it exists in the frame_id
     auto pos = clean_frame_id.find(node_name);
     if (pos != std::string::npos) {
-        clean_frame_id.erase(pos, node_name.length() + 1); // +1 to also remove the following slash
+        clean_frame_id.erase(pos, node_name.length() + 1);  // +1 to also remove the following slash
     }
 
     // Update the frame_id with the cleaned version
     frame_id = clean_frame_id;
     if (!frame_id.empty() && frame_id.front() == '/') {
-      frame_id.erase(0, 1);
+        frame_id.erase(0, 1);
     }
 
     // Initialize I2C device
@@ -127,14 +135,15 @@ int main(int argc, char **argv) {
     sensor_msgs::Imu imu_msg;
     imu_msg.header.frame_id = frame_id;
 
-    ros::Rate loop_rate(loop_rate_hz); // Publishing rate in Hz
+    ros::Rate loop_rate(loop_rate_hz);  // Publishing rate in Hz
     int16_t accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z;
     bool read;
     while (ros::ok()) {
         ros::spinOnce();
         try {
             fileLock.acquire();
-            read = read_sensor_data(fd, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, wait_msec_to_read);
+            read = read_sensor_data(fd, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z,
+                                    wait_msec_to_read);
             fileLock.release();
         } catch (const std::runtime_error& e) {
             ROS_ERROR_STREAM("[mp6886 imu] An error occurred: " << e.what());

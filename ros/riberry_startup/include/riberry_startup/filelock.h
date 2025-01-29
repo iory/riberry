@@ -1,20 +1,20 @@
 #include <fcntl.h>
+#include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/file.h>
 #include <unistd.h>
 
 #include <chrono>
 #include <filesystem>
 #include <thread>
 
-
 // The code has been adapted to ensure consistency with the FileLock behavior in a Python program.
 // https://github.com/tox-dev/filelock/blob/main/src/filelock/_unix.py
 class FileLock {
 public:
-    FileLock(const std::string& filename, int timeoutSecs = 10) : lockFile(filename), timeoutSecs(timeoutSecs), lockFileFd(-1), mode(0666) {}
+    FileLock(const std::string& filename, int timeoutSecs = 10)
+        : lockFile(filename), timeoutSecs(timeoutSecs), lockFileFd(-1), mode(0666) {}
 
     void acquire() {
         ensureDirectoryExists();
