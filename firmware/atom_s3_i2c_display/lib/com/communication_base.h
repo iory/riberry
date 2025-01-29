@@ -7,6 +7,7 @@
 #include <button_manager.h>
 
 #include "packet.h"
+#include "pairing.h"
 
 class CommunicationBase {
 public:
@@ -18,7 +19,7 @@ public:
    * @param lcd Reference to the PrimitiveLCD object.
    * @param button Reference to the ButtonManager object.
    */
-  CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button, Stream* stream);
+  CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button, Pairing &pairing, Stream* stream, String main_or_secondary = "Main");
 
   /**
    * @brief Creates and starts the I2C communication task on the specified core.
@@ -53,6 +54,8 @@ private:
   static CommunicationBase* instance; /**< Singleton instance of CommunicationBase for managing callbacks. */
   PrimitiveLCD &lcd; /**< Reference to the PrimitiveLCD object for displaying information. */
   ButtonManager &button_manager; /**< Reference to the ButtonManager object for button interactions. */
+  Pairing &pairing;
+  static String main_or_secondary;
   unsigned long lastReceiveTime = 0; /**< Last time data was received over I2C. */
   const unsigned long receiveTimeout = 15000; /**< Timeout duration for I2C communication (15 seconds). */
 

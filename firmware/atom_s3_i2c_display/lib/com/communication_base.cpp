@@ -5,11 +5,15 @@ Stream* CommunicationBase::_stream = nullptr;
 String CommunicationBase::requestStr = ""; // Initialize the static requestStr
 String CommunicationBase::forcedMode = ""; // Initialize the static forcedMode
 String CommunicationBase::selectedModesStr = ""; // Initialize the static selectedModesStr
+String CommunicationBase::main_or_secondary = "";
 
-CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button, Stream* stream)
-  : lcd(lcd), button_manager(button), receiveEventEnabled(true) {
+CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button, Pairing &pairing, Stream* stream, String main_or_secondary)
+  : lcd(lcd), button_manager(button), pairing(pairing), receiveEventEnabled(true) {
   instance = this;
   setStream(stream);
+  this->main_or_secondary = main_or_secondary;
+  uint8_t xCoreID = 0;
+  pairing.startBackgroundTask(xCoreID);
 }
 
 void CommunicationBase::setStream(Stream* stream) {
@@ -113,13 +117,29 @@ void CommunicationBase::receiveEvent(int howMany) {
     requestEvent();
     break;
 
-  case PAIRING_IP_REQUEST:
+  case GET_PAIRING_TYPE:
+    _stream->write(main_or_secondary.c_str(), main_or_secondary.length());
     break;
 
-  case SET_IP_REQUEST:
-    instance->lcd.color_str = str.substring(1); // remove PacketType Header
+  case PAIRING_IP_REQUEST: {
+    std::map<String, PairingData> pairedDataMap = instance->pairing.getPairedData();
+    if (!pairedDataMap.empty()) {
+      auto it = pairedDataMap.begin();
+      _stream->write(it->second.IPv4[0]);
+      _stream->write(it->second.IPv4[1]);
+      _stream->write(it->second.IPv4[2]);
+      _stream->write(it->second.IPv4[3]);
+    }
     break;
-
+  }
+  case SET_IP_REQUEST: {
+    PairingData dataToSend;
+    for (int i = 0; i < 4; i++) {
+      dataToSend.IPv4[i] = str[i + 1];
+    }
+    instance->pairing.setDataToSend(dataToSend);
+    break;
+  }
   default:
     // Handle TEXT or unknown packets
     instance->lcd.color_str = str;

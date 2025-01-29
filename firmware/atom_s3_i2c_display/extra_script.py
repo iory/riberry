@@ -53,4 +53,7 @@ if USE_USB_SERIAL == "1":
 
 PAIRING_TYPE = os.getenv("PAIRING_TYPE")
 if PAIRING_TYPE is not None:
-    env.Append(CPPDEFINES=[PAIRING_TYPE])
+    if PAIRING_TYPE.lower() == "main":
+        env.Append(CPPDEFINES=['PAIRING_TYPE=0'])
+    else:
+        env.Append(CPPDEFINES=['PAIRING_TYPE=1'])

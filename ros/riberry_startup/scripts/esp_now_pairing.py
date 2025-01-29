@@ -69,7 +69,7 @@ def receive_pairing_info(com):
             packet = com.read()
             if packet == b'':
                 print_throttle(1.0, "[Secondary] Waiting for pairing information from Receiver...")
-            else:
+            elif len(packet) == 4:
                 pairing_info = '.'.join(map(str, list(packet)))
                 print(f"[Secondary] Receive pairing info: {pairing_info}")
                 return pairing_info
@@ -101,7 +101,6 @@ def pairing(ports):
                 daemon=True)
             thread.start()
         elif device_type == "Secondary":
-            send_pairing_info(com, ip_address)  # This ip_address is not used
             print(f"[{device_type}] Start receive_pairing_info")
             thread = threading.Thread(
                 name=device_type,

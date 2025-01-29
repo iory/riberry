@@ -13,11 +13,20 @@
 #include <teaching_mode.h>
 
 #include <mode_manager.h>
+#include <pairing.h>
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
 ButtonManager button_manager;
 PrimitiveLCD lcd;
+Pairing pairing;
+
+#if defined(PAIRING_TYPE) && PAIRING_TYPE == 0
+  const char *main_or_secondary = "Main";
+#else
+  const char *main_or_secondary = "Secondary";
+#endif
+
 #ifdef ATOM_S3
   #ifdef I2C_ADDR
     static constexpr int i2c_slave_addr = I2C_ADDR; /**< I2C slave address for communication. */
@@ -34,14 +43,14 @@ PrimitiveLCD lcd;
   #endif // end of USE_GROVE
 
   #ifdef USE_USB_SERIAL
-    CommunicationBase comm(lcd, button_manager, &USBSerial);
+    CommunicationBase comm(lcd, button_manager, pairing, &USBSerial, main_or_secondary);
   #else
     #include <WireSlave.h>
-    CommunicationBase comm(lcd, button_manager, &WireSlave);
+    CommunicationBase comm(lcd, button_manager, pairing, &WireSlave, main_or_secondary);
   #endif
 
 #elif USE_M5STACK_BASIC
-  CommunicationBase comm(lcd, button_manager, &Serial);
+  CommunicationBase comm(lcd, button_manager, pairing, &Serial, main_or_secondary);
 #endif
 
 // Define all available modes
