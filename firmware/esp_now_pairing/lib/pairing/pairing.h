@@ -21,6 +21,15 @@ public:
   void broadcastMACAddress();
   String getMyMACAddress() const;
   String getStatus() const;
+  static bool isPairingActive() {
+    return _pairingActive;
+  }
+  static void stopPairing() {
+    _pairingActive = false;
+  }
+  static void startPairing() {
+    _pairingActive = true;
+  }
   bool isPaired() const {
     return pairedMACAddresses.size() > 0;
   }
@@ -73,6 +82,7 @@ private:
   const unsigned long pairingTimeout = 5000;
   PairingData dataToSend;
   bool dataToSendInitialized = false;
+  static bool _pairingActive;
   TaskHandle_t taskHandle = nullptr;
 
   void task() {
@@ -81,7 +91,9 @@ private:
     }
     for (;;) {
       checkPendingPeers();
-      broadcastMACAddress();
+      if (_pairingActive) {
+        broadcastMACAddress();
+      }
       if (isPaired() && dataToSendInitialized) {
         sendPairingData(dataToSend);
       }

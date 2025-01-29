@@ -2,6 +2,7 @@
 
 std::map<String, unsigned long> Pairing::pendingPeers = {};
 String Pairing::statusStr = "";
+bool Pairing::_pairingActive = true;
 std::vector<String> Pairing::pairedMACAddresses = {};
 std::map<String, PairingData> Pairing::pairingDataMap = {};
 
@@ -145,7 +146,7 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
 
   statusStr = "Received data from: " + macString + " Data length: " + String(data_len);
 
-  if (data_len == 1 && data[0] == 0x01) {
+  if (_pairingActive && data_len == 1 && data[0] == 0x01) {
     statusStr = "Pairing request received from: " + macString;
     pendingPeers[macString] = millis();
 
@@ -157,7 +158,7 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
     }
     statusStr = "Pairing response sent to: " + macString;
 
-  } else if (data_len == 1 && data[0] == 0x02) {
+  } else if (_pairingActive && data_len == 1 && data[0] == 0x02) {
     statusStr = "Pairing response received from: " + macString;
     if (std::find(pairedMACAddresses.begin(), pairedMACAddresses.end(), macString) == pairedMACAddresses.end()) {
       pairedMACAddresses.push_back(macString);
