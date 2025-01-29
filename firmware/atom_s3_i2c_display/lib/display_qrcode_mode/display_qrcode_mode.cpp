@@ -5,7 +5,6 @@ DisplayQRcodeMode::DisplayQRcodeMode() : Mode("DisplayQRcodeMode") {}
 void DisplayQRcodeMode::task(PrimitiveLCD &lcd, CommunicationBase &i2c) {
     String previousQrCodeData;
     while (true) {
-        i2c.setRequestStr(getModeName());
         // Check for I2C timeout
         if (i2c.checkTimeout()) {
             lcd.drawNoDataReceived();

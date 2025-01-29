@@ -4,7 +4,6 @@ PressureControlMode::PressureControlMode() : Mode("PressureControlMode") {}
 
 void PressureControlMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     while (true) {
-        com.setRequestStr(getModeName());
         // Check for I2C timeout
         if (com.checkTimeout()) {
             lcd.drawNoDataReceived();

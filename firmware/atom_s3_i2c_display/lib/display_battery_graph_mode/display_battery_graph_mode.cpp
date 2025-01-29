@@ -6,7 +6,6 @@ void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     graph_h = (lcd.height() - title_h - x_label_h - 2);
     graph_w = (lcd.width() - y_label_w - y_line_w);
     while (true) {
-        com.setRequestStr(getModeName());
         // Check for I2C timeout
         if (com.checkTimeout()) {
             lcd.drawNoDataReceived();

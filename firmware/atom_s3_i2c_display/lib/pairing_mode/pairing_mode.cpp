@@ -24,8 +24,6 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
         lcd.setTextSize(2.0);
 #endif
 
-        com.setRequestStr(getModeName());
-
         buttonState = button_manager.getButtonState();
         button_manager.notChangedButtonState();
         String displayText = "";
