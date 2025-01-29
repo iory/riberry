@@ -97,7 +97,7 @@ private:
       if (isPaired() && dataToSendInitialized) {
         sendPairingData(dataToSend);
       }
-      vTaskDelay(100 / portTICK_PERIOD_MS);
+      vTaskDelay(100);
     }
   }
 };
