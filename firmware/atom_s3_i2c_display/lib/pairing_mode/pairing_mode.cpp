@@ -1,34 +1,65 @@
+#include <color.h>
 #include <pairing_mode.h>
 #include <string_utils.h>
 
-PairingMode::PairingMode()
-  : Mode("PairingMode") {
-    _pairing_com.setupESPNOW();
-}
+PairingMode::PairingMode(ButtonManager &button_manager, Pairing &pairing)
+    : Mode("PairingMode"), button_manager(button_manager), pairing(pairing) {}
 
 void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
-  String currentMessage;
-  String lastMessage = "";
-  String prevStr = "";
+  prevStr = "";
+  ButtonState buttonState;
+  uint8_t xCoreID = 0;
 
+  pairing.stopPairing();
+  pairing.startBackgroundTask(xCoreID);
+  std::vector<String> pairedMACs = pairing.getPairedMACAddresses();
   while (true) {
+    lcd.setTextSize(1.2);
     com.setRequestStr(getModeName());
-#ifdef SENDER
-    instance->pairing_com.sendPairingData();
-#else
-#endif
 
-    if (!compareIgnoringEscapeSequences(prevStr, lcd.color_str)) {
-      prevStr = lcd.color_str;
-      _pairing_com.receivePairingData(lcd.color_str);
+    buttonState = button_manager.getButtonState();
+    button_manager.notChangedButtonState();
+    String displayText = "";
+    if (buttonState == SINGLE_CLICK) {
+      if (!pairing.isPairingActive()) {
+        pairing.startPairing();
+      } else {
+        pairing.stopPairing();
+      }
+    }
+    pairedMACs = pairing.getPairedMACAddresses();
+
+    if (pairing.isPairingActive()) {
+      displayText += Color::Foreground::BLACK + Color::Background::GREEN +
+                     "Pairing active\n" + Color::Background::RESET +
+                     Color::Foreground::RESET;
+    } else {
+      displayText += Color::Background::RED + "Pairing inactive\n" +
+                     Color::Background::RESET;
+    }
+    if (!pairedMACs.empty()) {
+      displayText += "\nPaired devices:\n";
+      for (const auto &mac : pairedMACs) {
+        displayText +=
+            Color::Foreground::YELLOW + mac + Color::Background::RESET + "\n";
+      }
     }
 
-    currentMessage = _pairing_com.basicInformation();
-    if (currentMessage != lastMessage) {
-      lastMessage = currentMessage;
+    if (!compareIgnoringEscapeSequences(prevStr, displayText)) {
+      prevStr = displayText;
       lcd.drawBlack();
-      lcd.printColorText(currentMessage);
+      lcd.printColorText(displayText);
     }
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(500));
   }
+}
+
+void PairingMode::suspendTask() {
+  pairing.stopPairing();
+  Mode::suspendTask();
+}
+
+void PairingMode::resumeTask() {
+  prevStr = "";
+  Mode::resumeTask();
 }

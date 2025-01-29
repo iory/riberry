@@ -12,8 +12,6 @@ CommunicationBase::CommunicationBase(PrimitiveLCD &lcd, ButtonManager &button, P
   instance = this;
   setStream(stream);
   this->main_or_secondary = main_or_secondary;
-  uint8_t xCoreID = 0;
-  pairing.startBackgroundTask(xCoreID);
 }
 
 void CommunicationBase::setStream(Stream* stream) {

@@ -1,29 +1,24 @@
 #ifndef PAIRING_MODE_H
 #define PAIRING_MODE_H
 
-#include <mode.h>
-#include <primitive_lcd.h>
+#include <button_manager.h>
 #include <communication_base.h>
-
-#ifdef SENDER
-#include <pairing_sender.h>
-#else
-#include <pairing_receiver.h>
-#endif
+#include <mode.h>
+#include <pairing.h>
+#include <primitive_lcd.h>
 
 class PairingMode : public Mode {
 public:
-  PairingMode();
+  PairingMode(ButtonManager &button_manager, Pairing &pairing);
+  void suspendTask() override;
+  void resumeTask() override;
 
 private:
   void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
 
-#ifdef SENDER
-  PairingSender _pairing_com;
-#else
-  PairingReceiver _pairing_com;
-#endif
-
+  ButtonManager &button_manager;
+  Pairing &pairing;
+  String prevStr;
 };
 
 #endif // PAIRING_MODE_H

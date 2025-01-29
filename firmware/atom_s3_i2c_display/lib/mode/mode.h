@@ -18,7 +18,7 @@ public:
   /**
    * @brief Suspend the task.
    */
-  void suspendTask() {
+  virtual void suspendTask() {
     if (taskHandle != NULL) {
       vTaskSuspend(taskHandle);
     }
@@ -27,7 +27,7 @@ public:
   /**
    * @brief Resume the task.
    */
-  void resumeTask() {
+  virtual void resumeTask() {
     if (taskHandle != NULL) {
       vTaskResume(taskHandle);
     }
