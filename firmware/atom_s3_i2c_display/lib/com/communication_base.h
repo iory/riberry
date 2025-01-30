@@ -7,6 +7,7 @@
 
 #include "packet.h"
 #include "pairing.h"
+#include "role.h"
 
 class CommunicationBase {
 public:
@@ -23,7 +24,7 @@ public:
                       ButtonManager& button,
                       Pairing& pairing,
                       Stream* stream,
-                      String main_or_secondary = "Main");
+                      Role role = Role::Main);
 
     /**
      * @brief Creates and starts the I2C communication task on the specified
@@ -49,6 +50,7 @@ public:
 
     static String forcedMode;
     static String selectedModesStr;
+    static Role role;
 
     static void setStream(Stream* stream);
     Stream* getStream() const;
@@ -64,7 +66,7 @@ private:
     ButtonManager& button_manager;      /**< Reference to the ButtonManager object
                                            for button interactions. */
     Pairing& pairing;
-    static String main_or_secondary;
+
     unsigned long lastReceiveTime = 0; /**< Last time data was received over I2C. */
     const unsigned long receiveTimeout =
             15000; /**< Timeout duration for I2C communication (15 seconds). */

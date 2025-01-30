@@ -5,17 +5,14 @@ Stream* CommunicationBase::_stream = nullptr;
 String CommunicationBase::requestStr = "";        // Initialize the static requestStr
 String CommunicationBase::forcedMode = "";        // Initialize the static forcedMode
 String CommunicationBase::selectedModesStr = "";  // Initialize the static selectedModesStr
-String CommunicationBase::main_or_secondary = "";
+Role CommunicationBase::role;
 
-CommunicationBase::CommunicationBase(PrimitiveLCD& lcd,
-                                     ButtonManager& button,
-                                     Pairing& pairing,
-                                     Stream* stream,
-                                     String main_or_secondary)
+CommunicationBase::CommunicationBase(
+        PrimitiveLCD& lcd, ButtonManager& button, Pairing& pairing, Stream* stream, Role role)
     : lcd(lcd), button_manager(button), pairing(pairing), receiveEventEnabled(true) {
     instance = this;
     setStream(stream);
-    this->main_or_secondary = main_or_secondary;
+    this->role = role;
 }
 
 void CommunicationBase::setStream(Stream* stream) { _stream = stream; }
@@ -113,7 +110,7 @@ void CommunicationBase::receiveEvent(int howMany) {
             break;
 
         case GET_PAIRING_TYPE:
-            _stream->write(main_or_secondary.c_str(), main_or_secondary.length());
+            _stream->write(getRoleStr(role).c_str(), getRoleStr(role).length());
             break;
 
         case PAIRING_IP_REQUEST: {

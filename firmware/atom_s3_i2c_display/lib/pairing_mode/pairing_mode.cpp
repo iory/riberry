@@ -11,7 +11,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     ButtonState buttonState;
     uint8_t xCoreID = 0;
     preferences.begin("pairing_mode", false);
-    preferences.getBytes("role", &currentRole, sizeof(Role));
+    preferences.getBytes("role", &com.role, sizeof(Role));
 
     pairing.stopPairing();
     pairing.startBackgroundTask(xCoreID);
@@ -37,12 +37,12 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
                 pairing.stopPairing();
             }
         } else if (buttonState == DOUBLE_CLICK) {
-            if (currentRole == Role::Main) {
-                currentRole = Role::Secondary;
-                preferences.putBytes("role", &currentRole, sizeof(Role));
+            if (com.role == Role::Main) {
+                com.role = Role::Secondary;
+                preferences.putBytes("role", &com.role, sizeof(Role));
             } else {
-                currentRole = Role::Main;
-                preferences.putBytes("role", &currentRole, sizeof(Role));
+                com.role = Role::Main;
+                preferences.putBytes("role", &com.role, sizeof(Role));
             }
             pairing.reset();
         }
@@ -61,13 +61,9 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
         } else {
             displayText += Color::Background::RED + "Pairing OFF\n" + Color::Background::RESET;
         }
-        displayText += "2tap ";
-        if (currentRole == Role::Main) {
-            displayText += "Role: Main\n";
-        } else {
-            displayText += "Role: Second\n";
-        }
-        displayText += "\nMy name:\n" + fancyMacAddress(pairing.getMyMACAddress().c_str()) + "\n";
+        displayText += "2tap Role: ";
+        displayText += getRoleStr(com.role);
+        displayText += "\n\nMy name:\n" + fancyMacAddress(pairing.getMyMACAddress().c_str()) + "\n";
         if (!pairedMACs.empty()) {
             displayText += "\nPaired devices:\n";
             for (const auto &mac : pairedMACs) {
