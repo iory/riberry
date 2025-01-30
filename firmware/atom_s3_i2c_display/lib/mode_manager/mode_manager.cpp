@@ -30,7 +30,6 @@ void ModeManager::task(void *parameter) {
             selectedModesStr = instance->comm.selectedModesStr;
             char **selectedModesStrList = (char **)malloc(allModes->size() * sizeof(char *));
             if (selectedModesStrList == nullptr) {
-                // メモリ確保失敗時の処理
                 Serial.println("Failed to allocate memory for selectedModesStrList.");
                 return;
             }
@@ -39,7 +38,7 @@ void ModeManager::task(void *parameter) {
             for (int i = 0; i < modeCount; i++) {
                 for (Mode *mode : *allModes) {
                     if (mode->getModeName().equals(String(selectedModesStrList[i]))) {
-                        instance->addSelectedMode(*mode);  // ポインタから参照に変換
+                        instance->addSelectedMode(*mode);
                     }
                 }
             }
@@ -109,7 +108,6 @@ void ModeManager::stopCurrentMode() {
 }
 
 bool ModeManager::isValidIndex(const std::vector<Mode *> &vec, int index) {
-    // index が 0 以上 vec.size() 未満であれば true を返す
     return index >= 0 && index < static_cast<int>(vec.size());
 }
 
