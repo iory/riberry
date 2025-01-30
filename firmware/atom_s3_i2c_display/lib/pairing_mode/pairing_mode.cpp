@@ -24,8 +24,6 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
         lcd.setTextSize(2.0);
 #endif
 
-        com.setRequestStr(getModeName());
-
         buttonState = button_manager.getButtonState();
         button_manager.notChangedButtonState();
         String displayText = "";
@@ -63,7 +61,8 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             lcd.drawBlack();
             lcd.printColorText(displayText);
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+        // short delay to catch button presses
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -74,6 +73,5 @@ void PairingMode::suspendTask() {
 
 void PairingMode::resumeTask() {
     unsigned long pairingStartTime = 0;
-    prevStr = "";
     Mode::resumeTask();
 }

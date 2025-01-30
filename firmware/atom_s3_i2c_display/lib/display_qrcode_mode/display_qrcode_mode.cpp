@@ -2,34 +2,23 @@
 
 DisplayQRcodeMode::DisplayQRcodeMode() : Mode("DisplayQRcodeMode") {}
 
-void DisplayQRcodeMode::task(PrimitiveLCD &lcd, CommunicationBase &i2c) {
-    String previousQrCodeData;
+void DisplayQRcodeMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     while (true) {
-        i2c.setRequestStr(getModeName());
-        // Check for I2C timeout
-        if (i2c.checkTimeout()) {
-            lcd.drawNoDataReceived();
-            lcd.printColorText(getModeName() + "\n");
+        if (handleTimeout(lcd, com)) continue;
+        if (lcd.qrCodeData.isEmpty()) {
+            String waitStr = "Waiting for " + getModeName();
+            lcd.drawBlack();
+            lcd.printColorText(waitStr);
             vTaskDelay(pdMS_TO_TICKS(500));
-            previousQrCodeData = "";
             continue;
         }
-        // Display QR code
-        else {
-            if (lcd.qrCodeData.isEmpty()) {
-                lcd.drawBlack();
-                lcd.printColorText("Waiting for " + getModeName());
-                previousQrCodeData = "";
-            } else {
-                if (previousQrCodeData.equals(lcd.qrCodeData)) {
-                    vTaskDelay(pdMS_TO_TICKS(10));
-                } else {
-                    lcd.drawBlack();
-                    lcd.drawQRcode(lcd.qrCodeData);
-                    previousQrCodeData = lcd.qrCodeData;
-                }
-            }
-            vTaskDelay(pdMS_TO_TICKS(1000));
+        if (prevStr.equals(lcd.qrCodeData)) {
+            vTaskDelay(pdMS_TO_TICKS(10));
+        } else {
+            lcd.drawBlack();
+            lcd.drawQRcode(lcd.qrCodeData);
+            prevStr = lcd.qrCodeData;
         }
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

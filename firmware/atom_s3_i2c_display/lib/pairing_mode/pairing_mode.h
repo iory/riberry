@@ -18,7 +18,6 @@ private:
 
     ButtonManager &button_manager;
     Pairing &pairing;
-    String prevStr;
 };
 
 #endif  // PAIRING_MODE_H

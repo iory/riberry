@@ -99,6 +99,7 @@ void ModeManager::initializeSelectedModes() {
 
 void ModeManager::startCurrentMode() {
     if (selectedModes.size() == 0) return;
+    comm.setRequestStr(selectedModes[current_mode_index]->getModeName());
     selectedModes[current_mode_index]->resumeTask();
 }
 
@@ -127,6 +128,7 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     vTaskDelay(pdMS_TO_TICKS(1000));
     instance->lcd.resetLcdData();
     // Resume
+    comm.setRequestStr(selectedModes[resume_mode_index]->getModeName());
     selectedModes[resume_mode_index]->resumeTask();
     instance->comm.startReceiveEvent();
 }

@@ -4,36 +4,22 @@ TeachingMode::TeachingMode() : Mode("TeachingMode") {}
 
 void TeachingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     while (true) {
-        com.setRequestStr(getModeName());
-        // Check for I2C timeout
-        if (com.checkTimeout()) {
-            lcd.drawNoDataReceived();
-            lcd.printColorText(getModeName() + "\n");
-            vTaskDelay(pdMS_TO_TICKS(500));
-            continue;
+        if (handleTimeout(lcd, com) || handleEmptyDisplay(lcd)) continue;
+        int listSize = 2;
+        // Draw string
+        char **StrList = (char **)malloc(listSize * sizeof(char *));
+        int modeCount = com.splitString(lcd.color_str, ',', StrList, listSize);
+        lcd.drawBlack();
+        lcd.printColorText(String(StrList[1]));
+        // Draw AR Marker if found
+        if (!String(StrList[0]).equals(String(""))) {
+            int marker_id = atoi(StrList[0]);
+            int width = lcd.width();
+            int height = lcd.height();
+            int size = 64;
+            drawARMarker(marker_id, width - size - 5, height - size - 5, size, lcd);
         }
-        // Display information
-        else {
-            lcd.drawBlack();
-            if (lcd.color_str.isEmpty())
-                lcd.printColorText("Waiting for " + getModeName());
-            else {
-                int listSize = 2;
-                // Draw string
-                char **StrList = (char **)malloc(listSize * sizeof(char *));
-                int modeCount = com.splitString(lcd.color_str, ',', StrList, listSize);
-                lcd.printColorText(String(StrList[1]));
-                // Draw AR Marker if found
-                if (!String(StrList[0]).equals(String(""))) {
-                    int marker_id = atoi(StrList[0]);
-                    int width = lcd.width();
-                    int height = lcd.height();
-                    int size = 64;
-                    drawARMarker(marker_id, width - size - 5, height - size - 5, size, lcd);
-                }
-            }
-            vTaskDelay(pdMS_TO_TICKS(1000));
-        }
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
