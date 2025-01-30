@@ -2,9 +2,9 @@
 
 CommunicationBase* CommunicationBase::instance = nullptr;
 Stream* CommunicationBase::_stream = nullptr;
-String CommunicationBase::requestStr = "";        // Initialize the static requestStr
-String CommunicationBase::forcedMode = "";        // Initialize the static forcedMode
-String CommunicationBase::selectedModesStr = "";  // Initialize the static selectedModesStr
+String CommunicationBase::requestStr = "";
+String CommunicationBase::forcedMode = "";
+String CommunicationBase::selectedModesStr = "";
 Role CommunicationBase::role;
 
 CommunicationBase::CommunicationBase(
@@ -34,23 +34,23 @@ int CommunicationBase::splitString(const String& input,
 
     while (true) {
         int end = input.indexOf(delimiter, start);
-        if (end == -1) {  // 区切り文字が見つからない場合
+        if (end == -1) {  // If the delimiter is not found
             if (index < maxParts) {
-                String part = input.substring(start);  // 最後の部分を取得
-                output[index] = strdup(part.c_str());  // strdupで動的メモリにコピー
+                String part = input.substring(start);
+                output[index] = strdup(part.c_str());
                 index++;
             }
             break;
         }
         if (index < maxParts) {
-            String part = input.substring(start, end);  // 区切り文字までの部分を取得
-            output[index] = strdup(part.c_str());       // strdupで動的メモリにコピー
+            String part = input.substring(start, end);
+            output[index] = strdup(part.c_str());
             index++;
         }
-        start = end + 1;  // 次の部分へ進む
+        start = end + 1;
     }
 
-    return index;  // 分割された部分の数を返す
+    return index;  // Returns the number of divided portions
 }
 
 void CommunicationBase::receiveEvent(int howMany) {
@@ -193,12 +193,11 @@ void CommunicationBase::requestEvent() {
     uint8_t sentStr[100];
     sentStr[0] = (uint8_t)instance->button_manager.getButtonState();
     const char* modeData = requestStr.c_str();
-    // sentStr[1]以降にstrDataをコピー (長さを確認)
-    size_t strLen = strlen(modeData);  // requestStrの長さを取得
+    size_t strLen = strlen(modeData);
     if (strLen > 98) {
-        strLen = 98;  // バッファオーバーフローを防ぐため最大98バイトに制限
+        strLen = 98;  // Limited to a maximum of 98 bytes to prevent buffer overflow
     }
-    memcpy(&sentStr[1], modeData, strLen);  // sentStr[1]以降にstrDataをコピー
+    memcpy(&sentStr[1], modeData, strLen);
 
     _stream->write(sentStr, strLen + 1);
     instance->button_manager.notChangedButtonState();
