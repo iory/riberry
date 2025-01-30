@@ -121,7 +121,7 @@ ruff check --fix .
 ### Clang-Format
 To install `clang-format`, you can use the following command:
 ```
-sudo apt-get install clang-format
+pip install clang-format
 ```
 
 Once installed, you can format your files using a `.clang-format` configuration file. To format a file, run:
