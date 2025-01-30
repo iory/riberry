@@ -101,9 +101,9 @@ public:
             if (compareIgnoringEscapeSequences(prevStr, waitStr)) {
                 vTaskDelay(pdMS_TO_TICKS(10));
             } else {
-              lcd.drawBlack();
-              prevStr = waitStr;
-              lcd.printColorText(waitStr);
+                lcd.drawBlack();
+                prevStr = waitStr;
+                lcd.printColorText(waitStr);
             }
             return true;
         }
