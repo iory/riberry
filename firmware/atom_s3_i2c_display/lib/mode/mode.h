@@ -97,9 +97,14 @@ public:
 
     bool handleEmptyDisplay(PrimitiveLCD& lcd) {
         if (lcd.color_str.isEmpty()) {
-            lcd.drawBlack();
-            lcd.printColorText("Waiting for " + getModeName());
-            prevStr = "";
+            String waitStr = "Waiting for " + getModeName();
+            if (compareIgnoringEscapeSequences(prevStr, waitStr)) {
+                vTaskDelay(pdMS_TO_TICKS(10));
+            } else {
+              lcd.drawBlack();
+              prevStr = waitStr;
+              lcd.printColorText(waitStr);
+            }
             return true;
         }
         return false;
