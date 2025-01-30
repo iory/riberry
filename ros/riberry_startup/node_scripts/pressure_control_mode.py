@@ -66,6 +66,7 @@ class PressureControlMode(I2CBase):
             return
         if msg.data == 1:
             self.air_work_list.increment_index()
+            self.send_string()
         if msg.data == 2:
             selected = self.air_work_list.selected_option()
             idx = int(selected.split(self.delimiter)[0])
@@ -74,6 +75,7 @@ class PressureControlMode(I2CBase):
                 + f" Toggle ID {idx} pressure control."
             )
             self.toggle_pressure_control(idx)
+            self.send_string()
 
     def mode_cb(self, msg):
         """
@@ -116,6 +118,9 @@ class PressureControlMode(I2CBase):
         self.pressures[idx] = msg.data
 
     def timer_callback(self, event):
+        self.send_string()
+
+    def send_string(self):
         if self.mode != "PressureControlMode":
             return
         sent_str = chr(PacketType.PRESSURE_CONTROL_MODE)
