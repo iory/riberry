@@ -20,8 +20,7 @@ public:
     void addSelectedMode(Mode &mode);
 
 private:
-    static ModeManager *instance; /**< Singleton instance of ModeManager. */
-    // Common tasks for ModeManager
+    static ModeManager *instance;
     ButtonManager &button_manager;
     PrimitiveLCD &lcd;
     CommunicationBase &comm;

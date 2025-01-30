@@ -14,4 +14,4 @@ private:
     void drawARMarker(int marker_id, int x, int y, int size, PrimitiveLCD &lcd);
 };
 
-#endif  // ATOM_S3_TEACHING_MODE_H
+#endif  // TEACHING_MODE_H

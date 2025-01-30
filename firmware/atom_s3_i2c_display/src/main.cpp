@@ -1,4 +1,3 @@
-
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <button_manager.h>
@@ -27,17 +26,17 @@ const char *main_or_secondary = "Secondary";
 
 #ifdef ATOM_S3
     #ifdef I2C_ADDR
-static constexpr int i2c_slave_addr = I2C_ADDR; /**< I2C slave address for communication. */
+static constexpr int i2c_slave_addr = I2C_ADDR;
     #else
-static constexpr int i2c_slave_addr = 0x42; /**< I2C slave address for communication. */
+static constexpr int i2c_slave_addr = 0x42;
     #endif  // end of I2C_ADDR
 
     #ifdef USE_GROVE
-static constexpr int sda_pin = 2; /**< I2C SDA pin for GROVE mode. */
-static constexpr int scl_pin = 1; /**< I2C SCL pin for GROVE mode. */
+static constexpr int sda_pin = 2;
+static constexpr int scl_pin = 1;
     #else
-static constexpr int sda_pin = 38; /**< I2C SDA pin for default mode. */
-static constexpr int scl_pin = 39; /**< I2C SCL pin for default mode. */
+static constexpr int sda_pin = 38;
+static constexpr int scl_pin = 39;
     #endif  // end of USE_GROVE
 
     #ifdef USE_USB_SERIAL
@@ -89,7 +88,7 @@ void setup() {
     button_manager.createTask(0);
     comm.createTask(0);
     modemanager.createTask(0);
-    // By default, DisplayInformationMode and DisplayQRcodeMode are added
+    // By default, DisplayInformationMode, DisplayQRcodeMode and PairingMode are added
     modemanager.addSelectedMode(display_information_mode);
     modemanager.addSelectedMode(display_qrcode_mode);
     modemanager.addSelectedMode(pairing_mode);

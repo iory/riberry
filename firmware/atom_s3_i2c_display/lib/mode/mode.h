@@ -8,25 +8,16 @@
 #include <primitive_lcd.h>
 #include <string_utils.h>
 
-/**
- * @brief Base class for handling FreeRTOS tasks.
- */
 class Mode {
 public:
     Mode(const String& name) : taskHandle(NULL), modeName(name) {}
 
-    /**
-     * @brief Suspend the task.
-     */
     virtual void suspendTask() {
         if (taskHandle != NULL) {
             vTaskSuspend(taskHandle);
         }
     }
 
-    /**
-     * @brief Resume the task.
-     */
     virtual void resumeTask() {
         prevStr = "";
         if (taskHandle != NULL) {
@@ -78,10 +69,6 @@ public:
                                 &taskHandle, xCoreID);
     }
 
-    /**
-     * @brief Get the mode name.
-     * @return The name of the mode.
-     */
     String getModeName() const { return modeName; }
 
     bool handleTimeout(PrimitiveLCD& lcd, CommunicationBase& com) {
