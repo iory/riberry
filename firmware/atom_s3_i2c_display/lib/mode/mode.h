@@ -91,6 +91,9 @@ public:
             vTaskDelay(pdMS_TO_TICKS(500));
             prevStr = "";
             return true;
+        } else {
+            // Short delay to avoiding watch-dog timer reset
+            vTaskDelay(pdMS_TO_TICKS(1 / portTICK_PERIOD_MS));
         }
         return false;
     }
@@ -98,13 +101,9 @@ public:
     bool handleEmptyDisplay(PrimitiveLCD& lcd) {
         if (lcd.color_str.isEmpty()) {
             String waitStr = "Waiting for " + getModeName();
-            if (compareIgnoringEscapeSequences(prevStr, waitStr)) {
-                vTaskDelay(pdMS_TO_TICKS(10));
-            } else {
-                lcd.drawBlack();
-                prevStr = waitStr;
-                lcd.printColorText(waitStr);
-            }
+            lcd.drawBlack();
+            lcd.printColorText(waitStr);
+            vTaskDelay(pdMS_TO_TICKS(500));
             return true;
         }
         return false;
