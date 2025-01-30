@@ -55,7 +55,7 @@ class PressureControlMode(I2CBase):
                 callback_args=idx,
             )
             self.pressures[idx] = None
-        rospy.Timer(rospy.Duration(0.1), self.timer_callback)
+        rospy.Timer(rospy.Duration(1), self.timer_callback)
 
     def button_cb(self, msg):
         """
