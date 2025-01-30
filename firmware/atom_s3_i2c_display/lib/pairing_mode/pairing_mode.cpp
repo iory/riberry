@@ -10,6 +10,8 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     prevStr = "";
     ButtonState buttonState;
     uint8_t xCoreID = 0;
+    preferences.begin("pairing_mode", false);
+    preferences.getBytes("role", &currentRole, sizeof(Role));
 
     pairing.stopPairing();
     pairing.startBackgroundTask(xCoreID);
@@ -35,18 +37,35 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
                 pairing.stopPairing();
             }
         } else if (buttonState == DOUBLE_CLICK) {
+            if (currentRole == Role::Main) {
+                currentRole = Role::Secondary;
+                preferences.putBytes("role", &currentRole, sizeof(Role));
+            } else {
+                currentRole = Role::Main;
+                preferences.putBytes("role", &currentRole, sizeof(Role));
+            }
             pairing.reset();
         }
+
         pairedMACs = pairing.getPairedMACAddresses();
 
         if (pairing.isPairingActive() && millis() - pairingStartTime >= 3000) {
             pairing.stopPairing();
         }
+
+        // Display
+        displayText += "1tap ";
         if (pairing.isPairingActive()) {
-            displayText += Color::Foreground::BLACK + Color::Background::GREEN +
-                           "Pairing active\n" + Color::Background::RESET + Color::Foreground::RESET;
+            displayText += Color::Foreground::BLACK + Color::Background::GREEN + "Pairing ON\n" +
+                           Color::Background::RESET + Color::Foreground::RESET;
         } else {
-            displayText += Color::Background::RED + "Pairing inactive\n" + Color::Background::RESET;
+            displayText += Color::Background::RED + "Pairing OFF\n" + Color::Background::RESET;
+        }
+        displayText += "2tap ";
+        if (currentRole == Role::Main) {
+            displayText += "Role: Main\n";
+        } else {
+            displayText += "Role: Second\n";
         }
         displayText += "\nMy name:\n" + fancyMacAddress(pairing.getMyMACAddress().c_str()) + "\n";
         if (!pairedMACs.empty()) {

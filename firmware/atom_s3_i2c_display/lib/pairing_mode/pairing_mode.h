@@ -1,11 +1,14 @@
 #ifndef PAIRING_MODE_H
 #define PAIRING_MODE_H
 
+#include <Preferences.h>
 #include <button_manager.h>
 #include <communication_base.h>
 #include <mode.h>
 #include <pairing.h>
 #include <primitive_lcd.h>
+
+enum class Role { Main, Secondary };
 
 class PairingMode : public Mode {
 public:
@@ -18,6 +21,8 @@ private:
 
     ButtonManager &button_manager;
     Pairing &pairing;
+    Preferences preferences;
+    Role currentRole = Role::Main;
 };
 
 #endif  // PAIRING_MODE_H
