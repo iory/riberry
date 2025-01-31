@@ -151,7 +151,8 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
         addPeer(macString);
         while (esp_now_send(mac_addr, &pairingResponse, sizeof(pairingResponse)) != ESP_OK) {
             statusStr = "Trying to send pairing response to: " + macString;
-            delay(1000);
+            // Set minimum delay on interrupt callbacks not to affect other processes
+            delay(1);
         }
         statusStr = "Pairing response sent to: " + macString;
 
@@ -162,7 +163,8 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
             pairedMACAddresses.push_back(macString);
             statusStr = "Added to paired list: " + macString;
             while (addPeer(macString) == false) {
-                delay(1000);
+                // Set minimum delay on interrupt callbacks not to affect other processes
+                delay(1);
             }
         }
         statusStr = "Pairing complete with: " + macString;
