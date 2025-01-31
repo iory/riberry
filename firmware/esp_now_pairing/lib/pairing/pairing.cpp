@@ -144,13 +144,15 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
     statusStr = "Received data from: " + macString + " Data length: " + String(data_len);
 
     if (_pairingActive && data_len == 1 && data[0] == 0x01) {
+        statusStr = "Pairing request received from: " + macString;
         uint8_t pairingResponse = 0x02;
+        if (addPeer(macString) == false) {
+            return;
+        }
         if (esp_now_send(mac_addr, &pairingResponse, sizeof(pairingResponse)) != ESP_OK) {
             return;
         }
-        statusStr = "Pairing request received from: " + macString;
         pendingPeers[macString] = millis();
-        addPeer(macString);
         statusStr = "Pairing response sent to: " + macString;
 
     } else if (_pairingActive && data_len == 1 && data[0] == 0x02) {
