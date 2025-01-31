@@ -18,7 +18,6 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     pairing.startBackgroundTask(xCoreID);
     std::vector<String> pairedMACs = pairing.getPairedMACAddresses();
     unsigned long pairingStartTime = 0;
-    unsigned long lastButtonChangeTime = 0;
     while (true) {
         // TODO: Create a function to return an appropriate text size for each
         // display
@@ -32,7 +31,6 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
         String displayText = "";
         if (previousButtonState != buttonState) {
             previousButtonState = buttonState;
-            lastButtonChangeTime = millis();
             if (buttonState == SINGLE_CLICK) {
                 if (!pairing.isPairingActive()) {
                     pairingStartTime = millis();
@@ -50,8 +48,6 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
                 }
                 pairing.reset();
             }
-        } else if (millis() - lastButtonChangeTime >= 1000) {
-            previousButtonState = NOT_CHANGED;
         }
 
         pairedMACs = pairing.getPairedMACAddresses();
