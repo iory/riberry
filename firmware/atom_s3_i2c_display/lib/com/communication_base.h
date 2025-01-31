@@ -32,6 +32,8 @@ public:
     static String forcedMode;
     static String selectedModesStr;
     static Role role;
+    void startPairing() { pairingEnabled = true; }
+    void stopPairing() { pairingEnabled = false; }
 
     static void setStream(Stream* stream);
     Stream* getStream() const;
@@ -44,6 +46,7 @@ private:
     PrimitiveLCD& lcd;
     ButtonManager& button_manager;
     Pairing& pairing;
+    static bool pairingEnabled;
 
     unsigned long lastReceiveTime = 0;
     const unsigned long receiveTimeout = 15000;

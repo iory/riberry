@@ -200,5 +200,4 @@ void Pairing::reset() {
     pairingDataMap.clear();
     pendingPeers.clear();
     mutex_.unlock();
-    setupBroadcastPeer();
 }
