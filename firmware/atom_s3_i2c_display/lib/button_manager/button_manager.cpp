@@ -21,7 +21,7 @@ void ButtonManager::begin() {
 
 void ButtonManager::tick() { btn.tick(); }
 
-ButtonState ButtonManager::getButtonState() { return currentButtonState; }
+ButtonState ButtonManager::getButtonState() const { return currentButtonState; }
 
 ButtonState ButtonManager::notChangedButtonState() { return currentButtonState = NOT_CHANGED; }
 
@@ -129,8 +129,19 @@ bool ButtonManager::wasLongPressed() {
 
 void ButtonManager::task(void *parameter) {
     ButtonManager *buttonInstance = static_cast<ButtonManager *>(parameter);
+    ButtonState lastState = buttonInstance->getButtonState();
+    unsigned long lastChangeTime = millis();
     while (true) {
         buttonInstance->tick();
+        ButtonState currentState = buttonInstance->getButtonState();
+
+        if (currentState != lastState) {
+            lastState = currentState;
+            lastChangeTime = millis();
+        } else if (millis() - lastChangeTime >= 1000) {
+            buttonInstance->notChangedButtonState();
+        }
+
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }

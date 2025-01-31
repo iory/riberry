@@ -63,7 +63,7 @@ public:
      *
      * @return The current ButtonState.
      */
-    ButtonState getButtonState();
+    ButtonState getButtonState() const;
 
     /**
      * @brief Reset the button state to NOT_CHANGED.

@@ -9,7 +9,8 @@ PairingMode::PairingMode(ButtonManager &button_manager, Pairing &pairing)
 void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     prevStr = "";
     ButtonState buttonState;
-    uint8_t xCoreID = 0;
+    ButtonState previousButtonState = NOT_CHANGED;
+    uint8_t xCoreID = 1;
     preferences.begin("pairing_mode", false);
     preferences.getBytes("role", &com.role, sizeof(Role));
 
@@ -27,24 +28,26 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
 #endif
 
         buttonState = button_manager.getButtonState();
-        button_manager.notChangedButtonState();
-        String displayText = "";
-        if (buttonState == SINGLE_CLICK) {
-            if (!pairing.isPairingActive()) {
-                pairingStartTime = millis();
-                pairing.startPairing();
-            } else {
-                pairing.stopPairing();
+        String displayText = "Button State: " + String(buttonState) + "\n";
+        if (previousButtonState != buttonState) {
+            previousButtonState = buttonState;
+            if (buttonState == SINGLE_CLICK) {
+                if (!pairing.isPairingActive()) {
+                    pairingStartTime = millis();
+                    pairing.startPairing();
+                } else {
+                    pairing.stopPairing();
+                }
+            } else if (buttonState == DOUBLE_CLICK) {
+                if (com.role == Role::Main) {
+                    com.role = Role::Secondary;
+                    preferences.putBytes("role", &com.role, sizeof(Role));
+                } else {
+                    com.role = Role::Main;
+                    preferences.putBytes("role", &com.role, sizeof(Role));
+                }
+                pairing.reset();
             }
-        } else if (buttonState == DOUBLE_CLICK) {
-            if (com.role == Role::Main) {
-                com.role = Role::Secondary;
-                preferences.putBytes("role", &com.role, sizeof(Role));
-            } else {
-                com.role = Role::Main;
-                preferences.putBytes("role", &com.role, sizeof(Role));
-            }
-            pairing.reset();
         }
 
         pairedMACs = pairing.getPairedMACAddresses();
@@ -82,11 +85,12 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
 }
 
 void PairingMode::suspendTask() {
-    pairing.stopPairing();
+    pairing.stopBackgroundTask();
     Mode::suspendTask();
 }
 
 void PairingMode::resumeTask() {
     unsigned long pairingStartTime = 0;
+    pairing.resumeBackgroundTask();
     Mode::resumeTask();
 }

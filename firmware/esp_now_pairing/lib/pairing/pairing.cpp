@@ -5,6 +5,7 @@ String Pairing::statusStr = "";
 bool Pairing::_pairingActive = true;
 std::vector<String> Pairing::pairedMACAddresses = {};
 std::map<String, PairingData> Pairing::pairingDataMap = {};
+MutexHelper Pairing::mutex_;
 
 Pairing::Pairing() { esp_read_mac(myMACAddress, ESP_MAC_WIFI_STA); }
 
@@ -66,6 +67,7 @@ bool Pairing::addPeer(const String& macAddress) {
 }
 
 void Pairing::sendPairingData(const PairingData& data) {
+    mutex_.lock();
     for (const auto& macAddress : pairedMACAddresses) {
         uint8_t peerMACAddress[6];
 
@@ -79,6 +81,7 @@ void Pairing::sendPairingData(const PairingData& data) {
             continue;
         }
 
+        // To avoid EXCCAUSE: 0x0000001c (LoadStoreAlignmentCause), data must be cast to (uint8_t*)
         esp_err_t resultSend = esp_now_send(peerMACAddress, (uint8_t*)&data, sizeof(data));
         if (resultSend == ESP_OK) {
             statusStr = "Data sent successfully to: " + macAddress;
@@ -88,6 +91,7 @@ void Pairing::sendPairingData(const PairingData& data) {
                         " Error message: " + esp_err_to_name(resultSend);
         }
     }
+    mutex_.unlock();
     statusStr = "Data sent to all paired devices";
 }
 
@@ -96,14 +100,18 @@ bool Pairing::receivePairingData(String macString, PairingData& receivedData) {
         statusStr = "No data received yet";
         return false;
     }
+    mutex_.lock();
     pairingDataMap[macString] = receivedData;
+    mutex_.unlock();
     statusStr = "Data received successfully from: " + macString;
     return true;
 }
 
 void Pairing::broadcastMACAddress() {
     uint8_t pairingRequest = 0x01;
-    esp_err_t result = esp_now_send(broadcastAddress, &pairingRequest, sizeof(pairingRequest));
+    // To avoid EXCCAUSE: 0x0000001c (LoadStoreAlignmentCause), data must be cast to (uint8_t*)
+    esp_err_t result =
+            esp_now_send(broadcastAddress, (uint8_t*)&pairingRequest, sizeof(pairingRequest));
     if (result == ESP_OK) {
         statusStr = "Broadcasting MAC Address";
     } else {
@@ -125,6 +133,7 @@ void Pairing::onDataSent(const uint8_t* mac_addr, esp_now_send_status_t status) 
 
 void Pairing::checkPendingPeers() {
     unsigned long currentTime = millis();
+    mutex_.lock();
     for (auto it = pendingPeers.begin(); it != pendingPeers.end();) {
         if (currentTime - it->second > pairingTimeout) {
             statusStr = "Pairing request timed out for: " + it->first;
@@ -133,6 +142,7 @@ void Pairing::checkPendingPeers() {
             ++it;
         }
     }
+    mutex_.unlock();
 }
 
 void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_len) {
@@ -145,33 +155,38 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
 
     if (_pairingActive && data_len == 1 && data[0] == 0x01) {
         statusStr = "Pairing request received from: " + macString;
-        pendingPeers[macString] = millis();
-
         uint8_t pairingResponse = 0x02;
-        addPeer(macString);
-        while (esp_now_send(mac_addr, &pairingResponse, sizeof(pairingResponse)) != ESP_OK) {
-            statusStr = "Trying to send pairing response to: " + macString;
-            // Set minimum delay on interrupt callbacks not to affect other processes
-            delay(1);
+        if (addPeer(macString) == false) {
+            return;
         }
+        // To avoid EXCCAUSE: 0x0000001c (LoadStoreAlignmentCause), data must be cast to (uint8_t*)
+        if (esp_now_send(mac_addr, (uint8_t*)&pairingResponse, sizeof(pairingResponse)) != ESP_OK) {
+            return;
+        }
+        mutex_.lock();
+        pendingPeers[macString] = millis();
+        mutex_.unlock();
         statusStr = "Pairing response sent to: " + macString;
 
     } else if (_pairingActive && data_len == 1 && data[0] == 0x02) {
         statusStr = "Pairing response received from: " + macString;
         if (std::find(pairedMACAddresses.begin(), pairedMACAddresses.end(), macString) ==
             pairedMACAddresses.end()) {
-            pairedMACAddresses.push_back(macString);
-            statusStr = "Added to paired list: " + macString;
-            while (addPeer(macString) == false) {
-                // Set minimum delay on interrupt callbacks not to affect other processes
-                delay(1);
+            if (addPeer(macString) == false) {
+                return;
             }
+            mutex_.lock();
+            pairedMACAddresses.push_back(macString);
+            mutex_.unlock();
+            statusStr = "Added to paired list: " + macString;
         }
         statusStr = "Pairing complete with: " + macString;
 
-        if (pendingPeers.find(macString) == pendingPeers.end()) {
+        mutex_.lock();
+        if (pendingPeers.find(macString) != pendingPeers.end()) {
             pendingPeers.erase(macString);
         }
+        mutex_.unlock();
     } else if (pairedMACAddresses.size() > 0 && data_len == sizeof(PairingData)) {
         PairingData receivedData;
         memcpy(&receivedData, data, data_len);
@@ -180,8 +195,10 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
 }
 
 void Pairing::reset() {
+    mutex_.lock();
     pairedMACAddresses.clear();
     pairingDataMap.clear();
     pendingPeers.clear();
+    mutex_.unlock();
     setupBroadcastPeer();
 }
