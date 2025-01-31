@@ -144,28 +144,24 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
     statusStr = "Received data from: " + macString + " Data length: " + String(data_len);
 
     if (_pairingActive && data_len == 1 && data[0] == 0x01) {
+        uint8_t pairingResponse = 0x02;
+        if (esp_now_send(mac_addr, &pairingResponse, sizeof(pairingResponse)) != ESP_OK) {
+            return;
+        }
         statusStr = "Pairing request received from: " + macString;
         pendingPeers[macString] = millis();
-
-        uint8_t pairingResponse = 0x02;
         addPeer(macString);
-        while (esp_now_send(mac_addr, &pairingResponse, sizeof(pairingResponse)) != ESP_OK) {
-            statusStr = "Trying to send pairing response to: " + macString;
-            // Set minimum delay on interrupt callbacks not to affect other processes
-            delay(1);
-        }
         statusStr = "Pairing response sent to: " + macString;
 
     } else if (_pairingActive && data_len == 1 && data[0] == 0x02) {
         statusStr = "Pairing response received from: " + macString;
         if (std::find(pairedMACAddresses.begin(), pairedMACAddresses.end(), macString) ==
             pairedMACAddresses.end()) {
+            if (addPeer(macString) == false) {
+                return;
+            }
             pairedMACAddresses.push_back(macString);
             statusStr = "Added to paired list: " + macString;
-            while (addPeer(macString) == false) {
-                // Set minimum delay on interrupt callbacks not to affect other processes
-                delay(1);
-            }
         }
         statusStr = "Pairing complete with: " + macString;
 
