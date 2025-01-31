@@ -21,7 +21,7 @@ void ButtonManager::begin() {
 
 void ButtonManager::tick() { btn.tick(); }
 
-ButtonState ButtonManager::getButtonState() { return currentButtonState; }
+ButtonState ButtonManager::getButtonState() const { return currentButtonState; }
 
 ButtonState ButtonManager::notChangedButtonState() { return currentButtonState = NOT_CHANGED; }
 
