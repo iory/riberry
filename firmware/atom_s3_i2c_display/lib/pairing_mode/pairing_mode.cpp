@@ -28,7 +28,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
 #endif
 
         buttonState = button_manager.getButtonState();
-        String displayText = "";
+        String displayText = "Button State: " + String(buttonState) + "\n";
         if (previousButtonState != buttonState) {
             previousButtonState = buttonState;
             if (buttonState == SINGLE_CLICK) {
