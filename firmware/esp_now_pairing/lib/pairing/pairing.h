@@ -40,8 +40,13 @@ public:
 
     void stopBackgroundTask() {
         if (taskHandle != nullptr) {
-            vTaskDelete(taskHandle);
-            taskHandle = nullptr;
+            vTaskSuspend(taskHandle);
+        }
+    }
+
+    void resumeBackgroundTask() {
+        if (taskHandle != nullptr) {
+            vTaskResume(taskHandle);
         }
     }
 
