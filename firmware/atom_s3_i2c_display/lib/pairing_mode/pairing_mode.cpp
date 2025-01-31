@@ -91,7 +91,6 @@ void PairingMode::suspendTask() {
 
 void PairingMode::resumeTask() {
     unsigned long pairingStartTime = 0;
-    uint8_t xCoreID = 1;
-    pairing.startBackgroundTask(xCoreID);
+    pairing.resumeBackgroundTask();
     Mode::resumeTask();
 }
