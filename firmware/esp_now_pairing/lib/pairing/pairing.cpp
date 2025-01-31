@@ -170,7 +170,7 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
         }
         statusStr = "Pairing complete with: " + macString;
 
-        if (pendingPeers.find(macString) == pendingPeers.end()) {
+        if (pendingPeers.find(macString) != pendingPeers.end()) {
             pendingPeers.erase(macString);
         }
     } else if (pairedMACAddresses.size() > 0 && data_len == sizeof(PairingData)) {
