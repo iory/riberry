@@ -8,6 +8,8 @@
 #include <map>
 #include <vector>
 
+#include "mutex_helper.h"
+
 struct PairingData {
     uint8_t IPv4[4];
 };
@@ -24,8 +26,16 @@ public:
     String getStatus() const;
     void reset();
     static bool isPairingActive() { return _pairingActive; }
-    static void stopPairing() { _pairingActive = false; }
-    static void startPairing() { _pairingActive = true; }
+    static void stopPairing() {
+        mutex_.lock();
+        _pairingActive = false;
+        mutex_.unlock();
+    }
+    static void startPairing() {
+        mutex_.lock();
+        _pairingActive = true;
+        mutex_.unlock();
+    }
     bool isPaired() const { return pairedMACAddresses.size() > 0; }
     std::vector<String> getPairedMACAddresses() const { return pairedMACAddresses; }
     std::map<String, PairingData> getPairedData() const { return pairingDataMap; }
@@ -56,6 +66,7 @@ public:
     }
 
 private:
+    static MutexHelper mutex_;
     static void onDataSent(const uint8_t* mac_addr, esp_now_send_status_t status);
     static void onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_len);
     uint8_t myMACAddress[6];
