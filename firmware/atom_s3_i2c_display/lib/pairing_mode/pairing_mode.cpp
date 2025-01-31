@@ -85,11 +85,13 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
 }
 
 void PairingMode::suspendTask() {
-    pairing.stopPairing();
+    pairing.stopBackgroundTask();
     Mode::suspendTask();
 }
 
 void PairingMode::resumeTask() {
     unsigned long pairingStartTime = 0;
+    uint8_t xCoreID = 1;
+    pairing.startBackgroundTask(xCoreID);
     Mode::resumeTask();
 }
