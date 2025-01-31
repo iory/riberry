@@ -9,6 +9,7 @@ PairingMode::PairingMode(ButtonManager &button_manager, Pairing &pairing)
 void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     prevStr = "";
     ButtonState buttonState;
+    ButtonState previousButtonState = NOT_CHANGED;
     uint8_t xCoreID = 0;
     preferences.begin("pairing_mode", false);
     preferences.getBytes("role", &com.role, sizeof(Role));
@@ -27,24 +28,26 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
 #endif
 
         buttonState = button_manager.getButtonState();
-        button_manager.notChangedButtonState();
         String displayText = "";
-        if (buttonState == SINGLE_CLICK) {
-            if (!pairing.isPairingActive()) {
-                pairingStartTime = millis();
-                pairing.startPairing();
-            } else {
-                pairing.stopPairing();
+        if (previousButtonState != buttonState) {
+            previousButtonState = buttonState;
+            if (buttonState == SINGLE_CLICK) {
+                if (!pairing.isPairingActive()) {
+                    pairingStartTime = millis();
+                    pairing.startPairing();
+                } else {
+                    pairing.stopPairing();
+                }
+            } else if (buttonState == DOUBLE_CLICK) {
+                if (com.role == Role::Main) {
+                    com.role = Role::Secondary;
+                    preferences.putBytes("role", &com.role, sizeof(Role));
+                } else {
+                    com.role = Role::Main;
+                    preferences.putBytes("role", &com.role, sizeof(Role));
+                }
+                pairing.reset();
             }
-        } else if (buttonState == DOUBLE_CLICK) {
-            if (com.role == Role::Main) {
-                com.role = Role::Secondary;
-                preferences.putBytes("role", &com.role, sizeof(Role));
-            } else {
-                com.role = Role::Main;
-                preferences.putBytes("role", &com.role, sizeof(Role));
-            }
-            pairing.reset();
         }
 
         pairedMACs = pairing.getPairedMACAddresses();
