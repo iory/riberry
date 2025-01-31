@@ -116,9 +116,12 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
         !isValidIndex(selectedModes, resume_mode_index))
         return;
     // Suspend
+    instance->lcd.printColorText("Suspend task\n");
     selectedModes[suspend_mode_index]->suspendTask();
     // Transition
+    instance->lcd.printColorText("WaitForTaskSuspended suspend\n");
     selectedModes[suspend_mode_index]->waitForTaskSuspended();
+    instance->lcd.printColorText("Success fully delete task\n");
     instance->comm.stopReceiveEvent();
     instance->lcd.drawBlack();
     instance->lcd.printColorText("Wait for mode switch ...\n");
