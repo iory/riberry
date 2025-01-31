@@ -8,8 +8,6 @@
 #include <pairing.h>
 #include <primitive_lcd.h>
 
-enum class Role { Main, Secondary };
-
 class PairingMode : public Mode {
 public:
     PairingMode(ButtonManager &button_manager, Pairing &pairing);
@@ -22,7 +20,6 @@ private:
     ButtonManager &button_manager;
     Pairing &pairing;
     Preferences preferences;
-    Role currentRole = Role::Main;
 };
 
 #endif  // PAIRING_MODE_H
