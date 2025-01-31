@@ -10,7 +10,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     prevStr = "";
     ButtonState buttonState;
     ButtonState previousButtonState = NOT_CHANGED;
-    uint8_t xCoreID = 0;
+    uint8_t xCoreID = 1;
     preferences.begin("pairing_mode", false);
     preferences.getBytes("role", &com.role, sizeof(Role));
 
