@@ -79,6 +79,7 @@ void Pairing::sendPairingData(const PairingData& data) {
             continue;
         }
 
+        // To avoid EXCCAUSE: 0x0000001c (LoadStoreAlignmentCause), data must be cast to (uint8_t*)
         esp_err_t resultSend = esp_now_send(peerMACAddress, (uint8_t*)&data, sizeof(data));
         if (resultSend == ESP_OK) {
             statusStr = "Data sent successfully to: " + macAddress;
@@ -103,7 +104,8 @@ bool Pairing::receivePairingData(String macString, PairingData& receivedData) {
 
 void Pairing::broadcastMACAddress() {
     uint8_t pairingRequest = 0x01;
-    esp_err_t result = esp_now_send(broadcastAddress, &pairingRequest, sizeof(pairingRequest));
+    // To avoid EXCCAUSE: 0x0000001c (LoadStoreAlignmentCause), data must be cast to (uint8_t*)
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t*)&pairingRequest, sizeof(pairingRequest));
     if (result == ESP_OK) {
         statusStr = "Broadcasting MAC Address";
     } else {
@@ -149,7 +151,8 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
         if (addPeer(macString) == false) {
             return;
         }
-        if (esp_now_send(mac_addr, &pairingResponse, sizeof(pairingResponse)) != ESP_OK) {
+        // To avoid EXCCAUSE: 0x0000001c (LoadStoreAlignmentCause), data must be cast to (uint8_t*)
+        if (esp_now_send(mac_addr, (uint8_t*)&pairingResponse, sizeof(pairingResponse)) != ESP_OK) {
             return;
         }
         pendingPeers[macString] = millis();
