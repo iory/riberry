@@ -15,6 +15,9 @@ from riberry.com.base import ComBase
 from riberry.com.base import PacketType
 from riberry.com.i2c_base import I2CBase
 from riberry.com.uart_base import UARTBase
+from riberry.esp_now_pairing import ESPNowPairing
+from riberry.esp_now_pairing import get_role
+from riberry.esp_now_pairing import Role
 from riberry.network import get_ip_address
 from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
@@ -35,6 +38,7 @@ atom_s3_mode = "DisplayInformationMode"
 button_count = 0
 ros_display_image_flag = False
 ros_display_image = None
+pairing_info = None
 stop_event = threading.Event()
 
 
@@ -46,6 +50,7 @@ def try_init_ros():
     global battery_readers
     global atom_s3_mode
     global button_count
+    global pairing_info
     ros_display_image_param = None
     prev_ros_display_image_param = None
 
@@ -89,6 +94,8 @@ def try_init_ros():
             )
             mode_pub = rospy.Publisher("atom_s3_mode", String, queue_size=1)
             button_pub = rospy.Publisher("atom_s3_button_state", Int32, queue_size=1)
+            pairing_info_pub = rospy.Publisher(
+                "pairing_information", String, queue_size=1)
             for battery_reader in battery_readers:
                 if isinstance(battery_reader, MP2760BatteryMonitor):
                     battery_pub = rospy.Publisher(
@@ -142,6 +149,8 @@ def try_init_ros():
 
                 mode_pub.publish(String(data=atom_s3_mode))
                 button_pub.publish(Int32(data=button_count))
+                if pairing_info is not None:
+                    pairing_info_pub.publish(String(data=pairing_info))
                 button_count = 0
                 ros_display_image_param = rospy.get_param("display_image", None)
                 if battery_percentage is not None:
@@ -287,6 +296,7 @@ class DisplayInformation:
         global ros_display_image_flag
         global atom_s3_mode
         global button_count
+        global pairing_info
         ssid = f'{self.com.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
         qrcode_mode_is_forced = False
@@ -334,6 +344,20 @@ class DisplayInformation:
                     # Set ros_display_image to None
                     # after displaying the image to ensure it's not reused
                     ros_display_image = None
+            elif mode == 'PairingMode':
+                # Single tap to start communication with AtomS3
+                if button_count == 1:
+                    role = get_role(self.com)
+                    if role is not None:
+                        esp_now_pairing = ESPNowPairing(
+                            com=self.com, role=role)
+                        if role == Role.Main:
+                            esp_now_pairing.set_pairing_info(get_ip_address())
+                        esp_now_pairing.pairing()
+                        if esp_now_pairing.role == Role.Secondary:
+                            pairing_info = esp_now_pairing.get_pairing_info()
+                if button_count == 2:
+                    pairing_info = None
             else:
                 time.sleep(0.1)
 
