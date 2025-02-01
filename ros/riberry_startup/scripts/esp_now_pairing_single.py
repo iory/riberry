@@ -5,6 +5,8 @@ import time
 
 from riberry.com.uart_base import usb_devices
 from riberry.esp_now_pairing import ESPNowPairing
+from riberry.esp_now_pairing import find_USB_pairing_devices
+from riberry.esp_now_pairing import Role
 from riberry.network import get_ip_address
 
 """
@@ -12,8 +14,15 @@ This program is for testing esp_now_pairing firmware
 This program handles multiple esp_now_pairing devices by using threading.
 """
 
+
+def pairing_impl(com, role):
+    esp_now_pairing = ESPNowPairing(com=com, role=role)
+    if esp_now_pairing.role == Role.Main:
+        esp_now_pairing.set_pairing_info(get_ip_address())
+    esp_now_pairing.pairing()
+
+
 if __name__ == "__main__":
-    esp_now_pairing = ESPNowPairing()
     com_type = "USB"
     prev_ports = []
     while True:
@@ -31,22 +40,16 @@ if __name__ == "__main__":
                 # print('No new USB device found')
                 pass
             else:
-                pairing_devices = esp_now_pairing.find_USB_pairing_devices(new_ports)
-                esp_now_pairing.set_pairing_info(get_ip_address())
+                pairing_devices = find_USB_pairing_devices(new_ports)
                 for dev in pairing_devices:
                     if dev is not None:
                         # Use threading to test both Sender and Receiver device
                         # on single computer
                         thread = threading.Thread(
-                                        name=dev["device_type"],
-                                        target=esp_now_pairing.pairing,
-                                        args=(dev,),
-                                        daemon=True)
+                            name=dev["role"],
+                            target=pairing_impl,
+                            args=(dev["com"], dev["role"],),
+                            daemon=True)
                         thread.start()
             prev_ports = ports
-        # The bus number and address of the I2C communication partner are known
-        # so we can directly connect to the device
-        elif com_type == "I2C":
-            pairing_devices = esp_now_pairing.find_I2C_pairing_devices(0x42, 3)
-            esp_now_pairing.pairing(pairing_devices[0])
         time.sleep(0.1)
