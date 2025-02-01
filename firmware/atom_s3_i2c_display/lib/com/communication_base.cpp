@@ -6,6 +6,7 @@ String CommunicationBase::requestStr = "";
 String CommunicationBase::forcedMode = "";
 String CommunicationBase::selectedModesStr = "";
 Role CommunicationBase::role;
+bool CommunicationBase::pairingEnabled = false;
 
 CommunicationBase::CommunicationBase(
         PrimitiveLCD& lcd, ButtonManager& button, Pairing& pairing, Stream* stream, Role role)
@@ -110,26 +111,34 @@ void CommunicationBase::receiveEvent(int howMany) {
             break;
 
         case GET_PAIRING_TYPE:
-            _stream->write(getRoleStr(role).c_str(), getRoleStr(role).length());
+            if (pairingEnabled) {
+                _stream->flush();
+                _stream->write(getRoleStr(role).c_str(), getRoleStr(role).length());
+            }
             break;
 
         case PAIRING_IP_REQUEST: {
-            std::map<String, PairingData> pairedDataMap = instance->pairing.getPairedData();
-            if (!pairedDataMap.empty()) {
-                auto it = pairedDataMap.begin();
-                _stream->write(it->second.IPv4[0]);
-                _stream->write(it->second.IPv4[1]);
-                _stream->write(it->second.IPv4[2]);
-                _stream->write(it->second.IPv4[3]);
+            if (pairingEnabled) {
+                std::map<String, PairingData> pairedDataMap = instance->pairing.getPairedData();
+                if (!pairedDataMap.empty()) {
+                    _stream->flush();
+                    auto it = pairedDataMap.begin();
+                    _stream->write(it->second.IPv4[0]);
+                    _stream->write(it->second.IPv4[1]);
+                    _stream->write(it->second.IPv4[2]);
+                    _stream->write(it->second.IPv4[3]);
+                }
             }
             break;
         }
         case SET_IP_REQUEST: {
-            PairingData dataToSend;
-            for (int i = 0; i < 4; i++) {
-                dataToSend.IPv4[i] = str[i + 1];
+            if (pairingEnabled) {
+                PairingData dataToSend;
+                for (int i = 0; i < 4; i++) {
+                    dataToSend.IPv4[i] = str[i + 1];
+                }
+                instance->pairing.setDataToSend(dataToSend);
             }
-            instance->pairing.setDataToSend(dataToSend);
             break;
         }
         default:

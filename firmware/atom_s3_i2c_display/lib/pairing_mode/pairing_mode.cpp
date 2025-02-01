@@ -3,8 +3,8 @@
 #include <pairing_mode.h>
 #include <string_utils.h>
 
-PairingMode::PairingMode(ButtonManager &button_manager, Pairing &pairing)
-    : Mode("PairingMode"), button_manager(button_manager), pairing(pairing) {}
+PairingMode::PairingMode(ButtonManager &button_manager, Pairing &pairing, CommunicationBase &com)
+    : Mode("PairingMode"), button_manager(button_manager), pairing(pairing), com(com) {}
 
 void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     prevStr = "";
@@ -47,6 +47,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
                     preferences.putBytes("role", &com.role, sizeof(Role));
                 }
                 pairing.reset();
+                pairing.setupBroadcastPeer();
             }
         }
 
@@ -87,10 +88,12 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
 void PairingMode::suspendTask() {
     pairing.stopBackgroundTask();
     Mode::suspendTask();
+    com.stopPairing();
+    pairing.reset();
 }
 
 void PairingMode::resumeTask() {
-    unsigned long pairingStartTime = 0;
     pairing.resumeBackgroundTask();
     Mode::resumeTask();
+    com.startPairing();
 }
