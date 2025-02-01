@@ -15,6 +15,8 @@ from riberry.com.base import ComBase
 from riberry.com.base import PacketType
 from riberry.com.i2c_base import I2CBase
 from riberry.com.uart_base import UARTBase
+from riberry.esp_now_pairing import ESPNowPairing
+from riberry.esp_now_pairing import Role
 from riberry.network import get_ip_address
 from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
@@ -291,6 +293,7 @@ class DisplayInformation:
         ssid = ssid.replace(' ', '-')
         qrcode_mode_is_forced = False
         wifi_connected = True
+        esp_now_pairing = ESPNowPairing()
 
         while not stop_event.is_set():
             try:
@@ -337,6 +340,16 @@ class DisplayInformation:
                     # Set ros_display_image to None
                     # after displaying the image to ensure it's not reused
                     ros_display_image = None
+            elif mode == 'PairingMode':
+                # Single tap to start communicate with AtomS3
+                if button_count == 1:
+                    dev = esp_now_pairing.detect_device_type(self.com)
+                    esp_now_pairing.set_pairing_info(get_ip_address())
+                    if dev is not None:
+                        esp_now_pairing.pairing(dev)
+                        if esp_now_pairing.device_type == Role.Secondary:
+                            # TODO: publish pairing info
+                            print(esp_now_pairing.get_pairing_info())
             else:
                 time.sleep(0.1)
 
