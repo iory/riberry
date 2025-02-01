@@ -21,7 +21,7 @@ pio run -t upload -e secondary
 2. Start pairing program in each host computer
 
 ```
-rosrun riberry_startup esp_now_pairing.py
+rosrun riberry_startup esp_now_pairing_single.py
 ```
 
 3. Connect pairing devices
