@@ -26,6 +26,14 @@ class UARTBase(ComBase):
 
     def __init__(self, serial_port=None, baudrate=115200):
         super().__init__()
+        self.baudrate = baudrate
+        self.serial = None
+        self._connect_serial(serial_port)
+
+    def _connect_serial(self, serial_port=None):
+        """Reconnect if port disappear"""
+        if self.serial is not None:
+            self.serial.close()
         if serial_port is None:
             device = self.identify_device()
             if device == 'm5stack-LLM':
@@ -33,43 +41,62 @@ class UARTBase(ComBase):
             elif device in ['Linux', 'Darwin']:
                 usb_ports = usb_devices()
                 if len(usb_ports) == 0:
-                    raise ValueError('Cannot find USB devices')
+                    print('Cannot find USB devices')
+                    return False
                 serial_port = usb_ports[0]
                 print(serial_port)
             else:
                 raise NotImplementedError(f"Not supported device {device}")
         self.serial = serial.Serial(
             port=serial_port,
-            baudrate=baudrate,
+            baudrate=self.baudrate,
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             timeout=1
         )
+        return True
 
     def reset_input_buffer(self):
-        self.serial.reset_input_buffer()
+        try:
+            self.serial.reset_input_buffer()
+        except serial.serialutil.PortNotOpenError:
+            print("[uart_base] failed to reset input buffer")
 
     def write(self, data):
-        if isinstance(data, str):
-            self.serial.write(list(map(ord, data)))
-        elif isinstance(data, (bytes, bytearray)):
-            self.serial.write(data)
-        elif isinstance(data, list):
-            if all(isinstance(item, int) for item in data):
-                # If all elements are integers, treat as raw ASCII values
+        try:
+            if isinstance(data, str):
+                self.serial.write(list(map(ord, data)))
+            elif isinstance(data, (bytes, bytearray)):
                 self.serial.write(data)
-            elif all(isinstance(item, str) and len(item) == 1 for item in data):
-                # If all elements are single-character strings, convert to ASCII values
-                data_str = ''.join(data)  # Combine list into a single string
-                self.serial.write(list(map(ord, data_str)))
+            elif isinstance(data, list):
+                if all(isinstance(item, int) for item in data):
+                    # If all elements are integers, treat as raw ASCII values
+                    self.serial.write(data)
+                elif all(isinstance(item, str) and len(item) == 1 for item in data):
+                    # If all elements are single-character strings, convert to ASCII values
+                    data_str = ''.join(data)  # Combine list into a single string
+                    self.serial.write(list(map(ord, data_str)))
+                else:
+                    raise ValueError('List must contain either all integers or all single-character strings.')
             else:
-                raise ValueError('List must contain either all integers or all single-character strings.')
-        else:
-            raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
+                raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
+        except OSError:
+            print("[uart_base] Serial write failed. Restart serial.")
+            try:
+                self._connect_serial()
+            except serial.serialutil.SerialException:
+                print("[uart_base] Serial reconnection failed.")
 
     def read(self):
-        if self.serial.in_waiting:
-            return self.serial.read(self.serial.in_waiting or 1)
-        else:
-            return b''
+        try:
+            if self.serial.in_waiting:
+                return self.serial.read(self.serial.in_waiting or 1)
+            else:
+                return b''
+        except (OSError, TypeError):
+            print("[uart_base] Serial read failed. Restart serial.")
+            try:
+                self._connect_serial()
+            except serial.serialutil.SerialException:
+                print("[uart_base] Serial reconnection failed.")
