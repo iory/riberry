@@ -90,6 +90,7 @@ def try_init_ros():
 
             if rospy.rostime._rostime_initialized is False:
                 print("Waiting for roscore to be initialized...")
+                time.sleep(1)
                 continue
             rospy.init_node("display_information", anonymous=False)
             rospy.Subscriber(
