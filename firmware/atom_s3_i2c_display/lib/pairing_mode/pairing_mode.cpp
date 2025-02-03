@@ -90,7 +90,6 @@ void PairingMode::suspendTask() {
     pairing.stopBackgroundTask();
     Mode::suspendTask();
     com.stopPairing();
-    pairing.reset();
 }
 
 void PairingMode::resumeTask() {

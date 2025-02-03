@@ -154,7 +154,9 @@ def try_init_ros():
                 mode_pub.publish(String(data=atom_s3_mode))
                 button_pub.publish(Int32(data=button_count))
                 if pairing_info is not None:
+                    # This is dangerous operation, so publish once
                     pairing_info_pub.publish(String(data=pairing_info))
+                    pairing_info = None
                 button_count = 0
                 ros_display_image_param = rospy.get_param("display_image", None)
                 if battery_percentage is not None:
@@ -375,8 +377,10 @@ class DisplayInformation:
                                 print("pairing failed")
                             else:
                                 pairing_info = new_pairing_info
+               # Double tap to restore ROS_MASTER_URI
+               # to the IP address of this computer
                 if button_count == 2:
-                    pairing_info = None
+                    pairing_info = get_ip_address()
             else:
                 time.sleep(0.1)
 
