@@ -45,6 +45,7 @@ def get_role(com):
                 return role
             else:
                 print(f"Unknown device type: {role_string}")
+                return None
             break
         time.sleep(0.1)
     return None

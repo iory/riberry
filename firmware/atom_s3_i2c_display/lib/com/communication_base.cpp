@@ -111,37 +111,64 @@ void CommunicationBase::receiveEvent(int howMany) {
             break;
 
         case GET_PAIRING_TYPE:
+            _stream->flush();
             if (pairingEnabled) {
-                _stream->flush();
                 _stream->write(getRoleStr(role).c_str(), getRoleStr(role).length());
-                if (_stream == &WireSlave) {
-                    WireSlave.update();
-                }
+            }
+            // If packets arrive while pairing is not enabled, return dummy data
+            else {
+                String dummy = "dummy";
+                _stream->write(dummy.c_str(), dummy.length());
+            }
+            if (_stream == &WireSlave) {
+                WireSlave.update();
             }
             break;
 
         case PAIRING_IP_REQUEST: {
+            _stream->flush();
             if (pairingEnabled) {
                 std::map<String, PairingData> pairedDataMap = instance->pairing.getPairedData();
                 if (!pairedDataMap.empty()) {
-                    _stream->flush();
                     auto it = pairedDataMap.begin();
                     _stream->write(it->second.IPv4, 4);
                     if (_stream == &WireSlave) {
                         WireSlave.update();
                     }
                 }
+                // If No paired data, return dummy IP address
+                else {
+                    uint8_t dummy_ip[4] = {255, 255, 255, 255};
+                    _stream->write(dummy_ip, 4);
+                    if (_stream == &WireSlave) {
+                        WireSlave.update();
+                    }
+                }
+            }
+            // If packets arrive while pairing is not enabled, return dummy IP address
+            else {
+                uint8_t dummy_ip[4] = {255, 255, 255, 255};
+                _stream->write(dummy_ip, 4);
+                if (_stream == &WireSlave) {
+                    WireSlave.update();
+                }
             }
             break;
         }
         case SET_IP_REQUEST: {
+            PairingData dataToSend;
             if (pairingEnabled) {
-                PairingData dataToSend;
                 for (int i = 0; i < 4; i++) {
                     dataToSend.IPv4[i] = str[i + 1];
                 }
-                instance->pairing.setDataToSend(dataToSend);
             }
+            // If packets arrive while pairing is not enabled, return dummy data
+            else {
+                for (int i = 0; i < 4; i++) {
+                    dataToSend.IPv4[i] = 255;
+                }
+            }
+            instance->pairing.setDataToSend(dataToSend);
             break;
         }
         default:
