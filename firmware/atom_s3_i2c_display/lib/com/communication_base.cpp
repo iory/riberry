@@ -229,7 +229,6 @@ void CommunicationBase::task(void* parameter) {
     if (_stream == &WireSlave) {
         instance->lastReceiveTime = millis() - instance->receiveTimeout;
         WireSlave.onReceive(receiveEvent);
-        WireSlave.onRequest(requestEvent);
 
         while (true) {
             WireSlave.update();
