@@ -85,42 +85,42 @@ def try_init_ros():
 
             rospy.init_node("display_information", anonymous=False)
             rospy.Subscriber(
-                "/atom_s3_additional_info", String, ros_callback, queue_size=1
+                "atom_s3_additional_info", String, ros_callback, queue_size=1
             )
-            mode_pub = rospy.Publisher("/atom_s3_mode", String, queue_size=1)
-            button_pub = rospy.Publisher("/atom_s3_button_state", Int32, queue_size=1)
+            mode_pub = rospy.Publisher("atom_s3_mode", String, queue_size=1)
+            button_pub = rospy.Publisher("atom_s3_button_state", Int32, queue_size=1)
             for battery_reader in battery_readers:
                 if isinstance(battery_reader, MP2760BatteryMonitor):
                     battery_pub = rospy.Publisher(
-                        "/battery/remaining_battery", Float32, queue_size=1
+                        "battery/remaining_battery", Float32, queue_size=1
                     )
                     battery_temperature_pub = rospy.Publisher(
-                        "/battery/junction_temperature", Float32, queue_size=1
+                        "battery/junction_temperature", Float32, queue_size=1
                     )
                     input_voltage_pub = rospy.Publisher(
-                        "/battery/input_voltage", Float32, queue_size=1
+                        "battery/input_voltage", Float32, queue_size=1
                     )
                     system_voltage_pub = rospy.Publisher(
-                        "/battery/system_voltage", Float32, queue_size=1
+                        "battery/system_voltage", Float32, queue_size=1
                     )
                     battery_charge_current_pub = rospy.Publisher(
-                        "/battery/battery_charge_current", Float32, queue_size=1
+                        "battery/battery_charge_current", Float32, queue_size=1
                     )
                     charge_status_pub = rospy.Publisher(
-                        "/battery/charge_status", Int32, queue_size=1
+                        "battery/charge_status", Int32, queue_size=1
                     )
                     charge_status_string_pub = rospy.Publisher(
-                        "/battery/charge_status_string", String, queue_size=1
+                        "battery/charge_status_string", String, queue_size=1
                     )
                     status_and_fault_pub = rospy.Publisher(
-                        "/battery/status_and_fault", UInt32, queue_size=1
+                        "battery/status_and_fault", UInt32, queue_size=1
                     )
                     status_and_fault_string_pub = rospy.Publisher(
-                        "/battery/status_and_fault_string", String, queue_size=1
+                        "battery/status_and_fault_string", String, queue_size=1
                     )
                 elif isinstance(battery_reader, PisugarBatteryReader):
                     pisugar_battery_pub = rospy.Publisher(
-                        "/battery/pisugar/remaining_battery", Float32, queue_size=1
+                        "battery/pisugar/remaining_battery", Float32, queue_size=1
                     )
 
             ros_available = True
@@ -143,7 +143,7 @@ def try_init_ros():
                 mode_pub.publish(String(data=atom_s3_mode))
                 button_pub.publish(Int32(data=button_count))
                 button_count = 0
-                ros_display_image_param = rospy.get_param("/display_image", None)
+                ros_display_image_param = rospy.get_param("display_image", None)
                 if battery_percentage is not None:
                     battery_pub.publish(battery_percentage)
                 if input_voltage is not None:
