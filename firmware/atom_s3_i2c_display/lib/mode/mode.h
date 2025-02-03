@@ -65,7 +65,10 @@ public:
 
     void createTask(uint8_t xCoreID, PrimitiveLCD& lcd, CommunicationBase& com) {
         auto* params = new std::tuple<Mode*, PrimitiveLCD*, CommunicationBase*>(this, &lcd, &com);
-        xTaskCreatePinnedToCore(this->startTaskImpl, getModeName().c_str(), 2048, params, 1,
+        // Increasing the stack size (2048 -> 4096) prevents the following assertion:
+        // assert failed: heap_caps_free heap_caps.c:381 (heap != NULL && "free() target pointer is
+        // outside heap areas")
+        xTaskCreatePinnedToCore(this->startTaskImpl, getModeName().c_str(), 8192, params, 1,
                                 &taskHandle, xCoreID);
     }
 

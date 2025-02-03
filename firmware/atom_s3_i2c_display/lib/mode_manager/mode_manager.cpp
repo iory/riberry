@@ -139,9 +139,8 @@ void ModeManager::addSelectedMode(Mode &mode) { selectedModes.push_back(&mode); 
 void ModeManager::deleteSelectedModes() {
     // Before deleting modes, all modes must be suspended
     for (int i = 0; i < selectedModes.size(); i++) {
-        if (!selectedModes[i]->isTaskSuspended()) {
-            selectedModes[i]->suspendTask();
-        }
+        selectedModes[i]->suspendTask();
+        selectedModes[i]->waitForTaskSuspended();
     }
     selectedModes.clear();
 }
