@@ -114,6 +114,9 @@ void CommunicationBase::receiveEvent(int howMany) {
             if (pairingEnabled) {
                 _stream->flush();
                 _stream->write(getRoleStr(role).c_str(), getRoleStr(role).length());
+                if (_stream == &WireSlave) {
+                    WireSlave.update();
+                }
             }
             break;
 
@@ -127,6 +130,9 @@ void CommunicationBase::receiveEvent(int howMany) {
                     _stream->write(it->second.IPv4[1]);
                     _stream->write(it->second.IPv4[2]);
                     _stream->write(it->second.IPv4[3]);
+                    if (_stream == &WireSlave) {
+                        WireSlave.update();
+                    }
                 }
             }
             break;
