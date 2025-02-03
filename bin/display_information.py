@@ -291,6 +291,16 @@ class DisplayInformation:
         forceModebytes = list(map(ord, mode_name))
         self.com.write(header + forceModebytes)
 
+    def run_with_catch(self):
+        try:
+            self.run()
+        except KeyboardInterrupt:
+            print("Interrupted by user, shutting down...")
+            stop_event.set()
+        except Exception as e:
+            print(f"Error {e}, retrying...")
+            stop_event.set()
+
     def run(self):
         global ros_display_image
         global ros_display_image_flag
@@ -379,7 +389,7 @@ if __name__ == "__main__":
         battery_reader.daemon = True
         battery_reader.start()
 
-    display_thread = threading.Thread(target=DisplayInformation().run)
+    display_thread = threading.Thread(target=DisplayInformation().run_with_catch)
     display_thread.daemon = True
     display_thread.start()
 
