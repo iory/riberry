@@ -4,6 +4,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
+Environment="LOG_LEVEL=DEBUG"
 Type=simple
 ExecStart=/usr/local/bin/run_display_information.sh
 Restart=always
