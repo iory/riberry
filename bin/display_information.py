@@ -355,7 +355,12 @@ class DisplayInformation:
                             esp_now_pairing.set_pairing_info(get_ip_address())
                         esp_now_pairing.pairing()
                         if esp_now_pairing.role == Role.Secondary:
-                            pairing_info = esp_now_pairing.get_pairing_info()
+                            new_pairing_info = esp_now_pairing.get_pairing_info()
+                            if new_pairing_info == "255.255.255.255":
+                                pairing_info = None
+                                print("pairing failed")
+                            else:
+                                pairing_info = new_pairing_info
                 if button_count == 2:
                     pairing_info = None
             else:
