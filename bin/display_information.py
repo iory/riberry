@@ -88,6 +88,10 @@ def try_init_ros():
                 bridge = cv_bridge.CvBridge()
                 ros_display_image = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
+            if rospy.rostime._rostime_initialized is False:
+                print("Waiting for roscore to be initialized...")
+                time.sleep(1)
+                continue
             rospy.init_node("display_information", anonymous=False)
             rospy.Subscriber(
                 "atom_s3_additional_info", String, ros_callback, queue_size=1
@@ -291,6 +295,16 @@ class DisplayInformation:
         forceModebytes = list(map(ord, mode_name))
         self.com.write(header + forceModebytes)
 
+    def run_with_catch(self):
+        try:
+            self.run()
+        except KeyboardInterrupt:
+            print("Interrupted by user, shutting down...")
+            stop_event.set()
+        except Exception as e:
+            print(f"Error {e}, retrying...")
+            stop_event.set()
+
     def run(self):
         global ros_display_image
         global ros_display_image_flag
@@ -379,7 +393,7 @@ if __name__ == "__main__":
         battery_reader.daemon = True
         battery_reader.start()
 
-    display_thread = threading.Thread(target=DisplayInformation().run)
+    display_thread = threading.Thread(target=DisplayInformation().run_with_catch)
     display_thread.daemon = True
     display_thread.start()
 
