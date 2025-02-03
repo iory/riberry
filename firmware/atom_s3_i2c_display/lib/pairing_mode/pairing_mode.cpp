@@ -74,6 +74,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
                 displayText += fancyMacAddress(mac.c_str()) + "\n";
             }
         }
+        displayText += "\n" + pairing.getStatus();
 
         if (!compareIgnoringEscapeSequences(prevStr, displayText)) {
             prevStr = displayText;
