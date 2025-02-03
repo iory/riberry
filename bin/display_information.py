@@ -295,10 +295,7 @@ class DisplayInformation:
         while not stop_event.is_set():
             try:
                 self.com.read()
-                if isinstance(self.com, UARTBase):
-                    self.com.write([PacketType.BUTTON_STATE_REQUEST])
-                else:
-                    self.com.write([])
+                self.com.write([PacketType.BUTTON_STATE_REQUEST])
                 time.sleep(0.1)
                 mode_packet = self.com.read()
                 if len(mode_packet) > 1:
