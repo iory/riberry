@@ -11,6 +11,7 @@ from riberry.battery.common import majority_vote
 # Set up logging
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
 logging.basicConfig(level=LOG_LEVEL)
+logging.getLogger("filelock").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 class ChargeState(Enum):
