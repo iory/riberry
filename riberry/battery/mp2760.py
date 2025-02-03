@@ -115,13 +115,13 @@ class MP2760BatteryMonitor(threading.Thread):
             time.sleep(1.0)
         self.limit_charge_current(400)
         logger.info(
-            "[MP2760BatteryMonitor] Charge current limit: ",
-            f"{self.read_charge_current_limit()}[mA]",
+            "[MP2760BatteryMonitor] Charge current limit: " +
+            f"{self.read_charge_current_limit()}[mA]"
         )
         self.limit_input_current(500)
         logger.info(
-            "[MP2760BatteryMonitor] Input current limit: ",
-            f"{self.read_input_current_limit()}[mA]",
+            "[MP2760BatteryMonitor] Input current limit: " +
+            f"{self.read_input_current_limit()}[mA]"
         )
         self.lock = threading.Lock()
         self.running = True
