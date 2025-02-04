@@ -11,8 +11,6 @@ const char *main_or_secondary = "Main";
 const char *main_or_secondary = "Secondary";
 #endif
 
-constexpr byte BUTTON_PIN = 41;
-
 static LGFX lcd;
 Pairing pairing;
 String previousMessage = "";
@@ -38,7 +36,7 @@ void setup() {
     initLCD();
     printToLCD("Initializing...");
 
-    pairing.createTask(1);
+    pairing.startBackgroundTask(1);
     printToLCD(String(main_or_secondary) + "\nMy MAC:\n" + pairing.getMyMACAddress());
 
     USBSerial.begin(115200);
@@ -46,30 +44,43 @@ void setup() {
 }
 
 PairingData dataToSend = {{255, 255, 255, 255}};
-bool pairingActive = false;
-bool buttonReleased = true;
 
 void loop() {
-    String pairingStatus;
-    if (buttonReleased && digitalRead(BUTTON_PIN) == LOW) {
-        pairingActive = !pairingActive;
-        buttonReleased = false;
-    } else if (digitalRead(BUTTON_PIN) == HIGH) {
-        buttonReleased = true;
+    if (USBSerial.available() > 0) {
+        uint8_t header = USBSerial.read();
+        switch (header) {
+            case 0x11:
+                USBSerial.println(main_or_secondary);
+                break;
+            case 0x12: {
+                std::map<String, PairingData> pairedDataMap = pairing.getPairedData();
+                if (!pairedDataMap.empty()) {
+                    auto it = pairedDataMap.begin();
+                    USBSerial.write(it->second.IPv4[0]);
+                    USBSerial.write(it->second.IPv4[1]);
+                    USBSerial.write(it->second.IPv4[2]);
+                    USBSerial.write(it->second.IPv4[3]);
+                }
+                break;
+            }
+            case 0x13:
+                for (int i = 0; i < 4; i++) {
+                    dataToSend.IPv4[i] = USBSerial.read();
+                }
+                pairing.setDataToSend(dataToSend);
+                break;
+            default:
+                break;
+        }
     }
-    if (pairingActive) {
-        pairing.createTask(0);
-        pairingStatus = "pairing\n";
-    } else {
-        pairing.deleteTask();
-        esp_now_deinit();
-        WiFi.disconnect(true);
-        pairingStatus = "not pairing\n";
+
+    std::map<String, PairingData> pairedDataMap = pairing.getPairedData();
+    for (const auto &pair : pairedDataMap) {
+        String displayMessage = String(main_or_secondary) + "\nMAC:\n" + pair.first + "\nData:\n" +
+                                String(pair.second.IPv4[0]) + "." + String(pair.second.IPv4[1]) +
+                                "." + String(pair.second.IPv4[2]) + "." +
+                                String(pair.second.IPv4[3]);
+        printToLCD(displayMessage);
     }
-    std::vector<String> pairedMAC = pairing.getPairedMACAddresses();
-    for (const auto &mac : pairedMAC) {
-        pairingStatus += String(main_or_secondary) + "\nPaired MAC:\n" + mac;
-    }
-    printToLCD(pairingStatus);
     delay(100);
 }

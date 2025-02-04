@@ -58,23 +58,18 @@ void loop() {
         buttonReleased = true;
     }
     if (pairingActive) {
-        pairing.createTask(1);
+        pairing.createTask(0);
         pairingStatus = "pairing\n";
     } else {
-        pairing.stopBackgroundTask();
+        pairing.deleteTask();
         esp_now_deinit();
         WiFi.disconnect(true);
         pairingStatus = "not pairing\n";
     }
-
-    std::map<String, PairingData> pairedDataMap = pairing.getPairedData();
-    printToLCD(pairingStatus);
-    for (const auto &pair : pairedDataMap) {
-        String displayMessage = pairingStatus + String(main_or_secondary) + "\nMAC:\n" +
-                                pair.first + "\nData:\n" + String(pair.second.IPv4[0]) + "." +
-                                String(pair.second.IPv4[1]) + "." + String(pair.second.IPv4[2]) +
-                                "." + String(pair.second.IPv4[3]);
-        printToLCD(displayMessage);
+    std::vector<String> pairedMAC = pairing.getPairedMACAddresses();
+    for (const auto &mac : pairedMAC) {
+        pairingStatus += String(main_or_secondary) + "\nPaired MAC:\n" + mac;
     }
+    printToLCD(pairingStatus);
     delay(100);
 }
