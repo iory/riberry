@@ -58,7 +58,7 @@ void loop() {
         buttonReleased = true;
     }
     if (pairingActive) {
-        pairing.startBackgroundTask(1);
+        pairing.startBackgroundTask(0);
         pairingStatus = "pairing\n";
     } else {
         pairing.deleteTask();

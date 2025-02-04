@@ -44,7 +44,7 @@ public:
     void startBackgroundTask(uint8_t xCoreID) {
         if (taskHandle == nullptr) {
             xTaskCreatePinnedToCore([](void* _this) { static_cast<Pairing*>(_this)->task(); },
-                                    "Pairing Task", 2048, this, 1, &taskHandle, xCoreID);
+                                    "Pairing Task", 4096, this, 1, &taskHandle, xCoreID);
         }
     }
 
