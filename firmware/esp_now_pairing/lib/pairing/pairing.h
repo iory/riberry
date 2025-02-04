@@ -54,6 +54,12 @@ public:
         }
     }
 
+    void deleteTask() {
+        if (taskHandle != nullptr) {
+            vTaskDelete(taskHandle);
+            taskHandle = nullptr;
+        }
+    }
     void resumeBackgroundTask() {
         if (taskHandle != nullptr) {
             vTaskResume(taskHandle);
