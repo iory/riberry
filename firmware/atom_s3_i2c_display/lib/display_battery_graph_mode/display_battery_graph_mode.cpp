@@ -5,7 +5,7 @@ DisplayBatteryGraphMode::DisplayBatteryGraphMode() : Mode("DisplayBatteryGraphMo
 void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     graph_h = (lcd.height() - title_h - x_label_h - 2);
     graph_w = (lcd.width() - y_label_w - y_line_w);
-    while (true) {
+    while (running) {
         if (handleTimeout(lcd, com)) continue;
 
         unsigned long currentTime = millis();

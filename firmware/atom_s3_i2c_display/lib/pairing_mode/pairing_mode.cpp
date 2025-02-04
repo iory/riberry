@@ -18,7 +18,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     pairing.createTask(xCoreID);
     std::vector<String> pairedMACs = pairing.getPairedMACAddresses();
     unsigned long pairingStartTime = 0;
-    while (true) {
+    while (running) {
         // TODO: Create a function to return an appropriate text size for each
         // display
 #ifdef ATOM_S3

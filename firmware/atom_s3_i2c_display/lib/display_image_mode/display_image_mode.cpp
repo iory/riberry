@@ -3,7 +3,7 @@
 DisplayImageMode::DisplayImageMode() : Mode("DisplayImageMode") {}
 
 void DisplayImageMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
-    while (true) {
+    while (running) {
         if (handleTimeout(lcd, com)) continue;
 
         if (lcd.mode_changed) {
