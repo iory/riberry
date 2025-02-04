@@ -3,7 +3,7 @@
 DisplayQRcodeMode::DisplayQRcodeMode() : Mode("DisplayQRcodeMode") {}
 
 void DisplayQRcodeMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
-    while (true) {
+    while (running) {
         if (handleTimeout(lcd, com)) continue;
         if (lcd.qrCodeData.isEmpty()) {
             String waitStr = "Waiting for " + getModeName();

@@ -65,6 +65,7 @@ def try_init_ros():
     while not stop_event.is_set():
         try:
             import cv_bridge
+            import rosgraph
             import rospy
             import sensor_msgs.msg
             from std_msgs.msg import Float32
@@ -88,7 +89,9 @@ def try_init_ros():
                 bridge = cv_bridge.CvBridge()
                 ros_display_image = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
-            if rospy.rostime._rostime_initialized is False:
+            try:
+                rosgraph.Master('/rostopic').getPid()
+            except Exception:
                 print("Waiting for roscore to be initialized...")
                 time.sleep(1)
                 continue

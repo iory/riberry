@@ -15,10 +15,10 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     preferences.getBytes("role", &com.role, sizeof(Role));
 
     pairing.stopPairing();
-    pairing.startBackgroundTask(xCoreID);
+    pairing.createTask(xCoreID);
     std::vector<String> pairedMACs = pairing.getPairedMACAddresses();
     unsigned long pairingStartTime = 0;
-    while (true) {
+    while (running) {
         // TODO: Create a function to return an appropriate text size for each
         // display
 #ifdef ATOM_S3
@@ -86,14 +86,16 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     }
 }
 
-void PairingMode::suspendTask() {
-    pairing.stopBackgroundTask();
-    Mode::suspendTask();
+void PairingMode::deleteTask() {
+    pairing.deleteTask();
+    Mode::deleteTask();
     com.stopPairing();
+    WiFi.disconnect(true);
 }
 
 void PairingMode::resumeTask() {
-    pairing.resumeBackgroundTask();
+    WiFi.reconnect();
+    pairing.createTask(1);
     Mode::resumeTask();
     com.startPairing();
 }

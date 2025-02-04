@@ -10,7 +10,7 @@
 
 class Mode {
 public:
-    Mode(const String& name) : taskHandle(NULL), modeName(name) {}
+    Mode(const String& name) : taskHandle(NULL), modeName(name), running(false) {}
 
     virtual void suspendTask() {
         if (taskHandle != NULL) {
@@ -25,6 +25,19 @@ public:
         }
     }
 
+    virtual void deleteTask() {
+        prevStr = "";
+        stopTaskAndWaitForCompletion();
+        if (taskHandle != nullptr) {
+            TaskHandle_t taskToDelete = taskHandle;
+            vTaskDelete(taskToDelete);
+            while (eTaskGetState(taskToDelete) != eDeleted) {
+                vTaskDelay(1 / portTICK_PERIOD_MS);
+            }
+            taskHandle = nullptr;
+        }
+    }
+
     bool isTaskSuspended() const { return eTaskGetState(taskHandle) == eSuspended; }
 
     bool isTaskCreated() const { return taskHandle != NULL; }
@@ -35,8 +48,18 @@ public:
         }
     }
 
+    void stopTaskAndWaitForCompletion() {
+        if (taskHandle != NULL) {
+            running = false;
+            while (eTaskGetState(taskHandle) != eDeleted) {
+                vTaskDelay(pdMS_TO_TICKS(50));
+            }
+            taskHandle = NULL;
+        }
+    }
+
     virtual void task(PrimitiveLCD& lcd, CommunicationBase& com) {
-        while (true) {
+        while (running) {
             if (handleTimeout(lcd, com) || handleEmptyDisplay(lcd)) continue;
 
             // The reason for using this here is that the equals function
@@ -61,9 +84,11 @@ public:
         CommunicationBase* com = std::get<2>(*params);
         _this->task(*lcd, *com);
         delete params;
+        vTaskDelete(NULL);
     }
 
     void createTask(uint8_t xCoreID, PrimitiveLCD& lcd, CommunicationBase& com) {
+        running = true;
         auto* params = new std::tuple<Mode*, PrimitiveLCD*, CommunicationBase*>(this, &lcd, &com);
         // Increasing the stack size (2048 -> 4096) prevents the following assertion:
         // assert failed: heap_caps_free heap_caps.c:381 (heap != NULL && "free() target pointer is
@@ -103,6 +128,7 @@ protected:
     TaskHandle_t taskHandle;
     String modeName;
     String prevStr;
+    bool running;
 };
 
 #endif  // MODE_H

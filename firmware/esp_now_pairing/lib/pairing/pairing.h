@@ -41,10 +41,10 @@ public:
     std::map<String, PairingData> getPairedData() const { return pairingDataMap; }
     static bool addPeer(const String& macAddress);
     void checkPendingPeers();
-    void startBackgroundTask(uint8_t xCoreID) {
+    void createTask(uint8_t xCoreID) {
         if (taskHandle == nullptr) {
             xTaskCreatePinnedToCore([](void* _this) { static_cast<Pairing*>(_this)->task(); },
-                                    "Pairing Task", 2048, this, 1, &taskHandle, xCoreID);
+                                    "Pairing Task", 4096, this, 1, &taskHandle, xCoreID);
         }
     }
 
@@ -54,6 +54,16 @@ public:
         }
     }
 
+    void deleteTask() {
+        if (taskHandle != nullptr) {
+            TaskHandle_t taskToDelete = taskHandle;
+            vTaskDelete(taskToDelete);
+            while (eTaskGetState(taskToDelete) != eDeleted) {
+                vTaskDelay(1 / portTICK_PERIOD_MS);
+            }
+            taskHandle = nullptr;
+        }
+    }
     void resumeBackgroundTask() {
         if (taskHandle != nullptr) {
             vTaskResume(taskHandle);
