@@ -26,6 +26,7 @@ public:
     }
 
     virtual void deleteTask() {
+        prevStr = "";
         stopTaskAndWaitForCompletion();
         if (taskHandle != nullptr) {
             TaskHandle_t taskToDelete = taskHandle;
