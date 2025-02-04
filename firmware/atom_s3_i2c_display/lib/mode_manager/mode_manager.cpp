@@ -45,7 +45,6 @@ void ModeManager::task(void *parameter) {
             free(selectedModesStrList);
             // Start task
             current_mode_index = 0;
-            instance->initializeSelectedModes();
             instance->startCurrentMode();
         }
         // If no mode is added, do nothing
@@ -85,17 +84,6 @@ void ModeManager::createTask(uint8_t xCoreID) {
     xTaskCreatePinnedToCore(task, "Mode Manager Task", 2048, this, 24, NULL, xCoreID);
 }
 
-void ModeManager::initializeSelectedModes() {
-    // Start user-defined mode
-    uint8_t xCoreID = 1;
-    for (int i = 0; i < selectedModes.size(); i++) {
-        if (!selectedModes[i]->isTaskCreated()) {
-            selectedModes[i]->createTask(xCoreID, lcd, comm);
-        }
-        selectedModes[i]->deleteTask();
-    }
-}
-
 void ModeManager::startCurrentMode() {
     if (selectedModes.size() == 0) return;
     comm.setRequestStr(selectedModes[current_mode_index]->getModeName());
@@ -117,7 +105,7 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
         !isValidIndex(selectedModes, resume_mode_index))
         return;
     // Suspend
-    instance->lcd.printColorText("Suspend task\n");
+    instance->lcd.printColorText("Delete task\n");
     selectedModes[suspend_mode_index]->deleteTask();
     // Transition
     instance->lcd.printColorText("Success fully delete task\n");

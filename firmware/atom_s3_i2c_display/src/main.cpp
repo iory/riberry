@@ -86,7 +86,6 @@ void setup() {
     modemanager.addSelectedMode(display_information_mode);
     modemanager.addSelectedMode(display_qrcode_mode);
     modemanager.addSelectedMode(pairing_mode);
-    modemanager.initializeSelectedModes();
     modemanager.startCurrentMode();
 }
 

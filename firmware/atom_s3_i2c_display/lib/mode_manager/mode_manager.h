@@ -15,7 +15,6 @@ public:
                 CommunicationBase &i2c,
                 const std::vector<Mode *> &modes);
     void createTask(uint8_t xCoreID);
-    void initializeSelectedModes();
     void startCurrentMode();
     void addSelectedMode(Mode &mode);
 
