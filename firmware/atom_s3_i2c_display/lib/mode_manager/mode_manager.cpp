@@ -92,19 +92,20 @@ void ModeManager::initializeSelectedModes() {
         if (!selectedModes[i]->isTaskCreated()) {
             selectedModes[i]->createTask(xCoreID, lcd, comm);
         }
-        selectedModes[i]->suspendTask();
+        selectedModes[i]->deleteTask();
     }
 }
 
 void ModeManager::startCurrentMode() {
     if (selectedModes.size() == 0) return;
     comm.setRequestStr(selectedModes[current_mode_index]->getModeName());
-    selectedModes[current_mode_index]->resumeTask();
+    uint8_t xCoreID = 1;
+    selectedModes[current_mode_index]->createTask(xCoreID, lcd, comm);
 }
 
 void ModeManager::stopCurrentMode() {
     if (selectedModes.size() == 0) return;
-    selectedModes[current_mode_index]->suspendTask();
+    selectedModes[current_mode_index]->deleteTask();
 }
 
 bool ModeManager::isValidIndex(const std::vector<Mode *> &vec, int index) {
@@ -117,10 +118,8 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
         return;
     // Suspend
     instance->lcd.printColorText("Suspend task\n");
-    selectedModes[suspend_mode_index]->suspendTask();
+    selectedModes[suspend_mode_index]->deleteTask();
     // Transition
-    instance->lcd.printColorText("WaitForTaskSuspended suspend\n");
-    selectedModes[suspend_mode_index]->waitForTaskSuspended();
     instance->lcd.printColorText("Success fully delete task\n");
     instance->comm.stopReceiveEvent();
     instance->lcd.drawBlack();
@@ -130,7 +129,8 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     instance->lcd.resetLcdData();
     // Resume
     comm.setRequestStr(selectedModes[resume_mode_index]->getModeName());
-    selectedModes[resume_mode_index]->resumeTask();
+    uint8_t xCoreID = 1;
+    selectedModes[resume_mode_index]->createTask(xCoreID, lcd, comm);
     instance->comm.startReceiveEvent();
 }
 
@@ -139,8 +139,7 @@ void ModeManager::addSelectedMode(Mode &mode) { selectedModes.push_back(&mode); 
 void ModeManager::deleteSelectedModes() {
     // Before deleting modes, all modes must be suspended
     for (int i = 0; i < selectedModes.size(); i++) {
-        selectedModes[i]->suspendTask();
-        selectedModes[i]->waitForTaskSuspended();
+        selectedModes[i]->deleteTask();
     }
     selectedModes.clear();
 }

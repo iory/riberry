@@ -11,7 +11,7 @@
 class PairingMode : public Mode {
 public:
     PairingMode(ButtonManager &button_manager, Pairing &pairing, CommunicationBase &com);
-    void suspendTask() override;
+    void deleteTask() override;
     void resumeTask() override;
 
 private:

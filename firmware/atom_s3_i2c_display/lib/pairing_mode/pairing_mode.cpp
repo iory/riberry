@@ -86,9 +86,9 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     }
 }
 
-void PairingMode::suspendTask() {
+void PairingMode::deleteTask() {
     pairing.deleteTask();
-    Mode::suspendTask();
+    Mode::deleteTask();
     com.stopPairing();
     WiFi.disconnect(true);
 }
