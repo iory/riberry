@@ -56,7 +56,11 @@ public:
 
     void deleteTask() {
         if (taskHandle != nullptr) {
-            vTaskDelete(taskHandle);
+            TaskHandle_t taskToDelete = taskHandle;
+            vTaskDelete(taskToDelete);
+            while (eTaskGetState(taskToDelete) != eDeleted) {
+                vTaskDelay(1 / portTICK_PERIOD_MS);
+            }
             taskHandle = nullptr;
         }
     }
