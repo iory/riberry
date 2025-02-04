@@ -68,7 +68,7 @@ void loop() {
     }
     std::vector<String> pairedMAC = pairing.getPairedMACAddresses();
     for (const auto &mac : pairedMAC) {
-        pairingStatus += pairingStatus + String(main_or_secondary) + "\nPaired MAC:\n" + mac;
+        pairingStatus += String(main_or_secondary) + "\nPaired MAC:\n" + mac;
     }
     printToLCD(pairingStatus);
     delay(100);
