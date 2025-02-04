@@ -126,7 +126,6 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     instance->lcd.drawBlack();
     instance->lcd.printColorText("Wait for mode switch ...\n");
     instance->lcd.setTextSize(DEFAULT_TEXT_SIZE);
-    vTaskDelay(pdMS_TO_TICKS(1000));
     instance->lcd.resetLcdData();
     // Resume
     comm.setRequestStr(selectedModes[resume_mode_index]->getModeName());
