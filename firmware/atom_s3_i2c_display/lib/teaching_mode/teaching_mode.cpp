@@ -3,7 +3,7 @@
 TeachingMode::TeachingMode() : Mode("TeachingMode") {}
 
 void TeachingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
-    while (true) {
+    while (running) {
         if (handleTimeout(lcd, com) || handleEmptyDisplay(lcd)) continue;
         int listSize = 2;
         // Draw string
