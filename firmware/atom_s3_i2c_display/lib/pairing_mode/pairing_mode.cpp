@@ -15,7 +15,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     preferences.getBytes("role", &com.role, sizeof(Role));
 
     pairing.stopPairing();
-    pairing.startBackgroundTask(xCoreID);
+    pairing.createTask(xCoreID);
     std::vector<String> pairedMACs = pairing.getPairedMACAddresses();
     unsigned long pairingStartTime = 0;
     while (true) {
@@ -95,7 +95,7 @@ void PairingMode::suspendTask() {
 
 void PairingMode::resumeTask() {
     WiFi.reconnect();
-    pairing.startBackgroundTask(1);
+    pairing.createTask(1);
     Mode::resumeTask();
     com.startPairing();
 }

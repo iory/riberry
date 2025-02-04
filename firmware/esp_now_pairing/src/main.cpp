@@ -38,7 +38,7 @@ void setup() {
     initLCD();
     printToLCD("Initializing...");
 
-    pairing.startBackgroundTask(1);
+    pairing.createTask(1);
     printToLCD(String(main_or_secondary) + "\nMy MAC:\n" + pairing.getMyMACAddress());
 
     USBSerial.begin(115200);
@@ -58,7 +58,7 @@ void loop() {
         buttonReleased = true;
     }
     if (pairingActive) {
-        pairing.startBackgroundTask(0);
+        pairing.createTask(0);
         pairingStatus = "pairing\n";
     } else {
         pairing.deleteTask();

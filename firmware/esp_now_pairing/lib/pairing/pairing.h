@@ -41,7 +41,7 @@ public:
     std::map<String, PairingData> getPairedData() const { return pairingDataMap; }
     static bool addPeer(const String& macAddress);
     void checkPendingPeers();
-    void startBackgroundTask(uint8_t xCoreID) {
+    void createTask(uint8_t xCoreID) {
         if (taskHandle == nullptr) {
             xTaskCreatePinnedToCore([](void* _this) { static_cast<Pairing*>(_this)->task(); },
                                     "Pairing Task", 4096, this, 1, &taskHandle, xCoreID);
