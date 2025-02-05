@@ -65,6 +65,13 @@ class UARTBase(ComBase):
 
     def write(self, data):
         try:
+            if self.serial is None:
+                print("[uart_base] Serial is not initialized. Try to connect serial.")
+                try:
+                    self._connect_serial()
+                except serial.serialutil.SerialException:
+                    print("[uart_base] Serial reconnection failed.")
+                return
             if isinstance(data, str):
                 self.serial.write(list(map(ord, data)))
             elif isinstance(data, (bytes, bytearray)):
@@ -90,6 +97,13 @@ class UARTBase(ComBase):
 
     def read(self):
         try:
+            if self.serial is None:
+                print("[uart_base] Serial is not initialized. Try to connect serial.")
+                try:
+                    self._connect_serial()
+                except serial.serialutil.SerialException:
+                    print("[uart_base] Serial reconnection failed.")
+                return
             if self.serial.in_waiting:
                 return self.serial.read(self.serial.in_waiting or 1)
             else:
