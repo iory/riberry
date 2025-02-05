@@ -1,0 +1,18 @@
+[Unit]
+Description=Change ROS_MASTER_URI used by systemd services
+After=roscore.service
+Requires=roscore.service
+BindsTo=roscore.service
+
+[Service]
+EnvironmentFile=-/etc/opt/riberry/riberry.user
+Environment="ROSCONSOLE_FORMAT='[${severity}] [${time}] [${node}:${logger}]: ${message}'"
+ExecStart=/bin/bash -c '. $SETUP && export $(python3 $(rospack find riberry_startup)/scripts/get_roshost.py) && rosrun riberry_startup change_systemd_rosmaster.py'
+SyslogIdentifier=%n
+Restart=always
+RestartSec=10s
+Type=simple
+User=root
+
+[Install]
+WantedBy=multi-user.target
