@@ -12,7 +12,7 @@ class PairingMode : public Mode {
 public:
     PairingMode(ButtonManager &button_manager, Pairing &pairing, CommunicationBase &com);
     void deleteTask() override;
-    void resumeTask() override;
+    void createTask(uint8_t xCoreID, PrimitiveLCD &lcd, CommunicationBase &com) override;
 
 private:
     void task(PrimitiveLCD &lcd, CommunicationBase &com) override;
