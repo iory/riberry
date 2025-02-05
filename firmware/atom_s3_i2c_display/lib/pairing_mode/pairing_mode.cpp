@@ -93,9 +93,9 @@ void PairingMode::deleteTask() {
     WiFi.disconnect(true);
 }
 
-void PairingMode::resumeTask() {
+void PairingMode::createTask(uint8_t xCoreID, PrimitiveLCD &lcd, CommunicationBase &com) {
     WiFi.reconnect();
     pairing.createTask(1);
-    Mode::resumeTask();
+    Mode::createTask(1, lcd, com);
     com.startPairing();
 }

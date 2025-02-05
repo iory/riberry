@@ -87,7 +87,7 @@ public:
         vTaskDelete(NULL);
     }
 
-    void createTask(uint8_t xCoreID, PrimitiveLCD& lcd, CommunicationBase& com) {
+    virtual void createTask(uint8_t xCoreID, PrimitiveLCD& lcd, CommunicationBase& com) {
         running = true;
         auto* params = new std::tuple<Mode*, PrimitiveLCD*, CommunicationBase*>(this, &lcd, &com);
         // Increasing the stack size (2048 -> 4096) prevents the following assertion:
