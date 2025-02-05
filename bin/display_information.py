@@ -380,10 +380,9 @@ class DisplayInformation:
                                 print("pairing failed")
                             else:
                                 pairing_info = new_pairing_info
-               # Double tap to restore ROS_MASTER_URI
-               # to the IP address of this computer
+               # Double tap to reset ROS master
                 if button_count == 2:
-                    pairing_info = get_ip_address()
+                    pairing_info = "localhost"
             else:
                 time.sleep(0.1)
 
