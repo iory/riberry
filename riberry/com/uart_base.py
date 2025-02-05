@@ -32,30 +32,34 @@ class UARTBase(ComBase):
 
     def _connect_serial(self, serial_port=None):
         """Reconnect if port disappear"""
-        if self.serial is not None:
-            self.serial.close()
-        if serial_port is None:
-            device = self.identify_device()
-            if device == 'm5stack-LLM':
-                serial_port = '/dev/ttyS1'
-            elif device in ['Linux', 'Darwin']:
-                usb_ports = usb_devices()
-                if len(usb_ports) == 0:
-                    print('Cannot find USB devices')
-                    return False
-                serial_port = usb_ports[0]
-                print(serial_port)
-            else:
-                raise NotImplementedError(f"Not supported device {device}")
-        self.serial = serial.Serial(
-            port=serial_port,
-            baudrate=self.baudrate,
-            bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            timeout=1
-        )
-        return True
+        try:
+            if self.serial is not None:
+                self.serial.close()
+            if serial_port is None:
+                device = self.identify_device()
+                if device == 'm5stack-LLM':
+                    serial_port = '/dev/ttyS1'
+                elif device in ['Linux', 'Darwin']:
+                    usb_ports = usb_devices()
+                    if len(usb_ports) == 0:
+                        print('Cannot find USB devices')
+                        return False
+                    serial_port = usb_ports[0]
+                    print(serial_port)
+                else:
+                    raise NotImplementedError(f"Not supported device {device}")
+            self.serial = serial.Serial(
+                port=serial_port,
+                baudrate=self.baudrate,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                timeout=1
+            )
+            return True
+        except serial.serialutil.SerialException:
+            print("[uart_base] Serial connection failed.")
+            return False
 
     def reset_input_buffer(self):
         try:
@@ -65,6 +69,10 @@ class UARTBase(ComBase):
 
     def write(self, data):
         try:
+            if self.serial is None:
+                print("[uart_base] Serial is not initialized. Try to connect serial.")
+                self._connect_serial()
+                return
             if isinstance(data, str):
                 self.serial.write(list(map(ord, data)))
             elif isinstance(data, (bytes, bytearray)):
@@ -83,13 +91,14 @@ class UARTBase(ComBase):
                 raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
         except OSError:
             print("[uart_base] Serial write failed. Restart serial.")
-            try:
-                self._connect_serial()
-            except serial.serialutil.SerialException:
-                print("[uart_base] Serial reconnection failed.")
+            self._connect_serial()
 
     def read(self):
         try:
+            if self.serial is None:
+                print("[uart_base] Serial is not initialized. Try to connect serial.")
+                self._connect_serial()
+                return
             if self.serial.in_waiting:
                 return self.serial.read(self.serial.in_waiting or 1)
             else:
