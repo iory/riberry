@@ -399,7 +399,7 @@ if __name__ == "__main__":
         battery_reader.daemon = True
         battery_reader.start()
 
-    display_thread = threading.Thread(target=DisplayInformation().run)
+    display_thread = threading.Thread(target=DisplayInformation().run_with_catch)
     display_thread.daemon = True
     display_thread.start()
 
