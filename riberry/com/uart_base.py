@@ -54,7 +54,8 @@ class UARTBase(ComBase):
                 bytesize=serial.EIGHTBITS,
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
-                timeout=1
+                timeout=1,  # read timeout
+                write_timeout=1
             )
             return True
         except serial.serialutil.SerialException:
@@ -89,8 +90,8 @@ class UARTBase(ComBase):
                     raise ValueError('List must contain either all integers or all single-character strings.')
             else:
                 raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
-        except OSError:
-            print("[uart_base] Serial write failed. Restart serial.")
+        except OSError as e:
+            print(f"[uart_base] {e}. Restart serial.")
             self._connect_serial()
 
     def read(self):
