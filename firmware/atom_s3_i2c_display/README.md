@@ -53,6 +53,12 @@ If you want to use USB serial communication, set the `USE_USB_SERIAL` environmen
 USE_USB_SERIAL=1 pio run -t upload
 ```
 
+If you want to use M5Stack instead of AtomS3:
+
+```
+pio run -t upload -e m5stack-basic
+```
+
 `Main` and `Secondary` Option.
 
 ```
