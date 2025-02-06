@@ -32,7 +32,7 @@ class SpeechToKeyword:
             if any(self.contexts) is False:
                 rospy.logerr('Context data is empty or invalid')
                 return
-        rospy.Subscriber('/speech_to_text', SpeechRecognitionCandidates, self.speech_to_keyword_callback)
+        rospy.Subscriber('speech_to_text', SpeechRecognitionCandidates, self.speech_to_keyword_callback)
         self.keyword_pub = rospy.Publisher('~candidates', KeywordCandidates, queue_size=10)
 
     def speech_to_keyword_callback(self, msg):
