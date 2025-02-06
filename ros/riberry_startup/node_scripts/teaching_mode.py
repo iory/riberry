@@ -109,19 +109,19 @@ class TeachingMode(I2CBase):
         # ROS callbacks
         self.mode = None
         rospy.Subscriber(
-            "/atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
+            "atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
         self.prev_state = State.WAIT
         self.state = State.WAIT
         self.additional_str = ""
         rospy.Subscriber(
-            "/atom_s3_button_state",
+            "atom_s3_button_state",
             Int32, callback=self.state_transition_cb, queue_size=1)
         rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
 
         # Call action from rosservice
         rospy.Service('~play', SetBool, self.play_srv)
         self.virtual_button_pub = rospy.Publisher(
-            "/atom_s3_button_state", Int32, queue_size=1)
+            "atom_s3_button_state", Int32, queue_size=1)
 
         # Special actions
         self.special_actions = rospy.get_param(

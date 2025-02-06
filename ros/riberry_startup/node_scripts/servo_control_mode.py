@@ -28,14 +28,14 @@ class ServoControlMode(I2CBase):
         # Button and mode callback
         self.mode = None
         rospy.Subscriber(
-            "/atom_s3_button_state", Int32, callback=self.button_cb, queue_size=1
+            "atom_s3_button_state", Int32, callback=self.button_cb, queue_size=1
         )
-        rospy.Subscriber("/atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
+        rospy.Subscriber("atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
 
         # Servo on off
         self.servo_on_states = None
         rospy.Subscriber(
-            "/fullbody_controller/servo_on_off_real_interface/state",
+            "fullbody_controller/servo_on_off_real_interface/state",
             ServoOnOff,
             callback=self.servo_on_off_cb,
             queue_size=1,

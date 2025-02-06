@@ -1,8 +1,8 @@
 <!-- Mainly copied from ros_speech_recognition/launch/speech_recognition.launch -->
 
 <launch>
-  <arg name="audio_topic" default="/audio" />
-  <arg name="audio_info_topic" default="/audio_info" />
+  <arg name="audio_topic" default="audio" />
+  <arg name="audio_info_topic" default="audio_info" />
 
   <!-- audio capture from microphone -->
   <node name="audio_capture" pkg="audio_capture" type="audio_capture"
@@ -32,7 +32,7 @@
         pkg="riberry_startup" type="speech_to_text.py"
         respawn="true"
         output="screen">
-    <remap from="audio" to="/webrtcvad_ros/speech_audio"  />
+    <remap from="audio" to="webrtcvad_ros/speech_audio"  />
     <remap from="audio_info" to="$(arg audio_info_topic)" />
   </node>
 

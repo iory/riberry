@@ -21,13 +21,13 @@ class DisplayBatteryGraphMode(I2CBase):
         # Assume battery topic is 1Hz
         self.display_bins = 10
         self.battery_percentages = [0] * self.display_duration
-        rospy.Subscriber("/atom_s3_mode", String,
+        rospy.Subscriber("atom_s3_mode", String,
                          callback=self.mode_cb, queue_size=1)
-        rospy.Subscriber("/battery/remaining_battery", Float32,
+        rospy.Subscriber("battery/remaining_battery", Float32,
                          callback=self.battery_cb, queue_size=1)
-        rospy.Subscriber("/battery/charge_status_string", String,
+        rospy.Subscriber("battery/charge_status_string", String,
                          callback=self.status_cb, queue_size=1)
-        rospy.Subscriber("/battery/battery_charge_current", Float32,
+        rospy.Subscriber("battery/battery_charge_current", Float32,
                          callback=self.current_cb, queue_size=1)
         rospy.Timer(rospy.Duration(1), self.timer_callback)
 

@@ -30,14 +30,14 @@ class PressureControlMode(I2CBase):
         # Button and mode callback
         self.mode = None
         rospy.Subscriber(
-            "/atom_s3_button_state", Int32, callback=self.button_cb, queue_size=1
+            "atom_s3_button_state", Int32, callback=self.button_cb, queue_size=1
         )
-        rospy.Subscriber("/atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
+        rospy.Subscriber("atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
 
         # Pressure control
         self.pressure_control_state = {}
         rospy.Subscriber(
-            "/fullbody_controller/pressure_control_interface/state",
+            "fullbody_controller/pressure_control_interface/state",
             PressureControl,
             callback=self.pressure_control_cb,
             queue_size=1,
@@ -49,7 +49,7 @@ class PressureControlMode(I2CBase):
         self.pressures = {}
         for idx in range(38, 66):
             rospy.Subscriber(
-                f"/fullbody_controller/pressure/{idx}",
+                f"fullbody_controller/pressure/{idx}",
                 Float32,
                 self.read_pressure,
                 callback_args=idx,
