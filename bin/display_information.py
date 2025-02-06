@@ -380,9 +380,12 @@ class DisplayInformation:
                                 print("pairing failed")
                             else:
                                 pairing_info = new_pairing_info
-               # Double tap to reset ROS master
+                # Double tap to reset ROS master
                 if button_count == 2:
                     pairing_info = "localhost"
+                # Send string without header to display current ROS_MASTER_URI on monitor
+                ros_master_uri = os.environ['ROS_MASTER_URI']
+                self.com.write(ros_master_uri.replace("http://", "").replace(":11311", ""))
             else:
                 time.sleep(0.1)
 
