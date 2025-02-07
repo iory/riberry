@@ -35,6 +35,7 @@ battery_readers = []
 ros_available = False
 ros_additional_message = None
 atom_s3_mode = "DisplayInformationMode"
+atom_s3_forced_mode = None
 button_count = 0
 ros_display_image_flag = False
 ros_display_image = None
@@ -89,6 +90,10 @@ def try_init_ros():
                 bridge = cv_bridge.CvBridge()
                 ros_display_image = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
+            def force_mode_callback(msg):
+                global atom_s3_forced_mode
+                atom_s3_forced_mode = msg.data
+
             try:
                 rosgraph.Master('/rostopic').getPid()
             except Exception:
@@ -98,6 +103,9 @@ def try_init_ros():
             rospy.init_node("display_information", anonymous=False)
             rospy.Subscriber(
                 "atom_s3_additional_info", String, ros_callback, queue_size=1
+            )
+            rospy.Subscriber(
+                "atom_s3_force_mode", String, force_mode_callback, queue_size=1
             )
             mode_pub = rospy.Publisher("atom_s3_mode", String, queue_size=1)
             button_pub = rospy.Publisher("atom_s3_button_state", Int32, queue_size=1)
@@ -314,6 +322,7 @@ class DisplayInformation:
         global ros_display_image
         global ros_display_image_flag
         global atom_s3_mode
+        global atom_s3_forced_mode
         global button_count
         global pairing_info
         ssid = f'{self.com.identify_device()}-{get_mac_address()}'
@@ -388,6 +397,10 @@ class DisplayInformation:
                 self.com.write(ros_master_uri.replace("http://", "").replace(":11311", ""))
             else:
                 time.sleep(0.1)
+            # Force mode change once according to ~atom_s3_force_mode topic
+            if atom_s3_forced_mode is not None:
+                self.force_mode(atom_s3_forced_mode)
+                atom_s3_forced_mode = None
 
 
 if __name__ == "__main__":
