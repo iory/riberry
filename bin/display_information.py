@@ -399,7 +399,8 @@ class DisplayInformation:
                 time.sleep(0.1)
             # Force mode change once according to ~atom_s3_force_mode topic
             if atom_s3_forced_mode is not None:
-                self.force_mode(atom_s3_forced_mode)
+                if atom_s3_forced_mode != atom_s3_mode:
+                    self.force_mode(atom_s3_forced_mode)
                 atom_s3_forced_mode = None
 
 
