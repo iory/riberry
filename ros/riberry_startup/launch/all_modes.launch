@@ -13,6 +13,7 @@
       - DisplayInformationMode <!-- Enabled by display_information.service -->
       - DisplayQRcodeMode <!-- Enabled by display_information.service -->
       - DisplayImageMode <!-- Enabled by display_information.service -->
+      - PairingMode <!-- Enabled by display_information.service -->
       - DisplayBatteryGraphMode
       - ServoControlMode
       - PressureControlMode
