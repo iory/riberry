@@ -229,7 +229,11 @@ class MotionManager:
             speed = 1.0
         self.ri.servo_on()
         first_av = list(motion[0]['joint_states'].values())
-        self.ri.angle_vector(first_av, 3)
+        diff_av = first_av - self.ri.angle_vector()
+        max_diff_angle = max(map(abs, diff_av))
+        first_time = max_diff_angle / (np.pi/4)
+        print(f"Move to the initial position in {first_time} seconds")
+        self.ri.angle_vector(first_av, first_time)
         self.ri.wait_interpolation()
         # Play the actions from the second one onward
         prev_time = motion[0]['time']
