@@ -120,6 +120,8 @@ class TeachingMode(I2CBase):
 
         # Call action from rosservice
         rospy.Service('~play', SetBool, self.play_srv)
+        rospy.Service('~record', SetBool, self.record_srv)
+        rospy.Service('~special_action', SetBool, self.special_action_srv)
         self.virtual_button_pub = rospy.Publisher(
             "atom_s3_button_state", Int32, queue_size=1)
 
@@ -193,29 +195,79 @@ class TeachingMode(I2CBase):
             rospy.sleep(0.1)
         return True
 
+    def virtual_button_tap(self, tap_num):
+        self.virtual_button_pub.publish(Int32(data=tap_num))
+
+    def record_srv(self, req):
+        if self.mode != "TeachingMode":
+            return
+        if req.data is True:
+            # Start recording
+            if self.wait_for_state(State.WAIT, 1) is False:
+                return SetBoolResponse(success=False)
+            self.virtual_button_tap(1)
+            if self.wait_for_state(State.SPECIAL_ACTION_SELECT, 0.5) is True:
+                # Select the first special action and start recording
+                self.virtual_button_tap(2)
+                if self.wait_for_state(State.RECORD, 1) is True:
+                    return SetBoolResponse(success=True)
+            elif self.wait_for_state(State.RECORD, 1) is True:
+                # Start recording
+                return SetBoolResponse(success=True)
+            else:
+                return SetBoolResponse(success=False)
+        else:
+            # Stop recording
+            if self.wait_for_state(State.RECORD, 1) is False:
+                return SetBoolResponse(success=False)
+            self.virtual_button_tap(2)
+            if self.wait_for_state(State.WAIT, 1) is False:
+                return SetBoolResponse(success=False)
+            else:
+                return SetBoolResponse(success=True)
+
     def play_srv(self, req):
         """
         Execute start playing or stop playing from rosservice call.
         """
-        def virtual_button_tap(tap_num):
-            self.virtual_button_pub.publish(Int32(data=tap_num))
-        # Start playing
+        if self.mode != "TeachingMode":
+            return
         if req.data is True:
+            # Start playing
             if self.wait_for_state(State.WAIT, 1) is False:
                 return SetBoolResponse(success=False)
-            virtual_button_tap(2)
+            self.virtual_button_tap(2)
             if self.wait_for_state(State.PLAY_LIST_SELECT, 1) is False:
                 return SetBoolResponse(success=False)
-            virtual_button_tap(2)  # Play the latest motion
+            self.virtual_button_tap(2)  # Play the latest motion
             if self.wait_for_state(State.PLAY, 1) is False:
                 return SetBoolResponse(success=False)
-        # Stop playing
         else:
+            # Stop playing
             if self.wait_for_state(State.PLAY, 1) is False:
                 return SetBoolResponse(success=False)
-            virtual_button_tap(2)
+            self.virtual_button_tap(2)
             if self.wait_for_state(State.WAIT, 3) is False:
                 return SetBoolResponse(success=False)
+        return SetBoolResponse(success=True)
+
+    def special_action_srv(self, req):
+        """
+        Execute special action during record from rosservice call.
+        """
+        if self.mode != "TeachingMode":
+            return
+        if req.data is True:
+            action_state = "start"
+        else:
+            action_state = "stop"
+        if self.wait_for_state(State.RECORD, 1) is False:
+            return SetBoolResponse(success=False)
+        # self.virtual_button_tap(1) can only toggle.
+        # self.record_and_execute_special_action can do both start and stop
+        self.record_and_execute_special_action(action_state)
+        if self.wait_for_state(State.RECORD, 3) is False:
+            return SetBoolResponse(success=False)
         return SetBoolResponse(success=True)
 
     def handle_wait_state(self, msg: Int32) -> State:
@@ -253,23 +305,9 @@ class TeachingMode(I2CBase):
             if len(self.special_actions) == 0:
                 return State.RECORD
             if self.special_action_executed is True:
-                action_state = 'Stop'
-                command = self.special_action_selected["stop_command"]
+                self.record_and_execute_special_action("stop")
             else:
-                action_state = 'Start'
-                command = self.special_action_selected["start_command"]
-            # Record
-            self.teaching_manager.motion_manager.add_action(
-                self.teaching_manager.start_time,
-                f'{action_state} {self.special_action_selected["name"]}',
-                command)
-            # Execute
-            thread1 = threading.Thread(
-                target=self.teaching_manager.motion_manager.exec_with_error_handling,
-                args=(command,),
-                daemon=True)
-            thread1.start()
-            self.special_action_executed = not self.special_action_executed
+                self.record_and_execute_special_action("start")
             return State.RECORD
         # finish recording
         elif msg.data == 2:
@@ -312,6 +350,27 @@ class TeachingMode(I2CBase):
             return State.PLAY
         else:  # If no valid button press, do not change state
             return State.WAIT
+
+    def record_and_execute_special_action(self, action_state):
+        command = self.special_action_selected[f"{action_state}_command"]
+        if action_state == "stop":
+            self.special_action_executed = False
+        elif action_state == "start":
+            self.special_action_executed = True
+        else:
+            rospy.logerr(f"Invalid action_state: {action_state}. Use 'stop' or 'start'")
+            return
+        # Record
+        self.teaching_manager.motion_manager.add_action(
+            self.teaching_manager.start_time,
+            f'{action_state} {self.special_action_selected["name"]}',
+            command)
+        # Execute
+        thread1 = threading.Thread(
+            target=self.teaching_manager.motion_manager.exec_with_error_handling,
+            args=(command,),
+            daemon=True)
+        thread1.start()
 
     def update_atoms3(self, event):
         """Timer callback to update AtomS3 LCD with the current state and marker information.
