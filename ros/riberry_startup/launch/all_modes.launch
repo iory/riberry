@@ -42,7 +42,7 @@
   <node name="teaching_mode"
         pkg="riberry_startup" type="teaching_mode.py"
         output="screen"
-        respawn="true">
+        respawn="true" clear_params="true">
   </node>
 
 </launch>
