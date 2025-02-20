@@ -26,7 +26,10 @@ class SpeechToKeyword:
 
     def __init__(self, embedding_cache):
         self.embedding_cache = embedding_cache
-        json_file_path = rospy.get_param("~contexts_json", {})
+        json_file_path = rospy.get_param("~contexts_json", None)
+        if json_file_path is None:
+            rospy.logerr("~contexts_json param must be set.")
+            return
         with open(json_file_path) as f:
             self.contexts = json.load(f)
             if any(self.contexts) is False:
