@@ -1,8 +1,11 @@
 <launch>
 
   <arg name="contexts_json" />
+  <arg name="speech_to_text_topic_name" default="speech_to_text"
+       doc="Change topic name when speech_to_text topic is published from different namespace computer." />
 
   <node pkg="riberry_startup" name="keyword_extraction" type="keyword_extraction.py">
+    <remap from="speech_to_text" to="$(arg speech_to_text_topic_name)" />
     <rosparam subst_value="true">
       contexts_json: $(arg contexts_json)
     </rosparam>
