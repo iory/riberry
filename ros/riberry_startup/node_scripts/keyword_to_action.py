@@ -23,7 +23,7 @@ class KeywordToAction:
 
         # Keyword extraction
         rospy.Subscriber(
-            "keyword_extraction", KeywordCandidates, self.keyword_cb)
+            "keyword_extraction/candidates", KeywordCandidates, self.keyword_cb)
         self.threshold = 0.65
 
         # Control robot
@@ -45,8 +45,7 @@ class KeywordToAction:
             rospy.loginfo(f"Get keyword: {highest_similarity_keyword}")
         else:
             rospy.logwarn(
-                "Unreliable keyword is detected:",
-                f"'{highest_similarity_keyword}'")
+                f"Unreliable keyword is detected: '{highest_similarity_keyword}'")
 
     def mode_cb(self, msg):
         self.mode = msg.data
