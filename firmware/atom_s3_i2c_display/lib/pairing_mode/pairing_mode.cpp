@@ -15,7 +15,6 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     preferences.getBytes("role", &com.role, sizeof(Role));
 
     pairing.stopPairing();
-    pairing.createTask(xCoreID);
     std::vector<String> pairedMACs = pairing.getPairedMACAddresses();
     unsigned long pairingStartTime = 0;
     while (running) {
