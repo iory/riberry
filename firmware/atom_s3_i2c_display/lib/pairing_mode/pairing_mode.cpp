@@ -89,8 +89,8 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
 }
 
 void PairingMode::suspendTask() {
-    pairing.suspendTask();
     Mode::suspendTask();
+    pairing.suspendTask();
     com.stopPairing();
     WiFi.disconnect(true);
 }
@@ -98,6 +98,6 @@ void PairingMode::suspendTask() {
 void PairingMode::resumeTask(uint8_t xCoreID, PrimitiveLCD &lcd, CommunicationBase &com) {
     WiFi.reconnect();
     pairing.resumeTask(1);
-    Mode::resumeTask(1, lcd, com);
     com.startPairing();
+    Mode::resumeTask(1, lcd, com);
 }
