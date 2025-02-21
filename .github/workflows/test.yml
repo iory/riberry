@@ -16,7 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        project_dir: [firmware/atom_echo_i2c_audio, firmware/atom_s3_i2c_display]
+        project_dir: [firmware/atom_echo_i2c_audio,
+                      firmware/atom_s3_i2c_display,
+                      firmware/esp_now_pairing,
+                      ]
 
     steps:
       - uses: actions/checkout@v3

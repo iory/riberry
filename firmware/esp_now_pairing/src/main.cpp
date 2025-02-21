@@ -36,7 +36,8 @@ void setup() {
     initLCD();
     printToLCD("Initializing...");
 
-    pairing.startBackgroundTask(1);
+    int xCoreID = 1;
+    pairing.createTask(xCoreID);
     printToLCD(String(main_or_secondary) + "\nMy MAC:\n" + pairing.getMyMACAddress());
 
     USBSerial.begin(115200);

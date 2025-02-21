@@ -24,6 +24,7 @@ bool Pairing::setupESPNOW() {
 }
 
 void Pairing::setupBroadcastPeer() {
+    esp_now_peer_info_t peerInfo;
     memset(&peerInfo, 0, sizeof(esp_now_peer_info_t));
     memcpy(peerInfo.peer_addr, broadcastAddress, 6);
     peerInfo.channel = 0;
@@ -199,5 +200,92 @@ void Pairing::reset() {
     pairedMACAddresses.clear();
     pairingDataMap.clear();
     pendingPeers.clear();
+    mutex_.unlock();
+}
+
+void Pairing::createTask(uint8_t xCoreID) {
+    if (taskHandle == nullptr) {
+        xTaskCreatePinnedToCore([](void* _this) { static_cast<Pairing*>(_this)->task(); },
+                                "Pairing Task", 4096, this, 1, &taskHandle, xCoreID);
+    }
+}
+
+void Pairing::resumeTask(uint8_t xCoreID) {
+    if (taskHandle == nullptr) {
+        createTask(xCoreID);
+    } else if (taskHandle != nullptr) {
+        vTaskResume(taskHandle);
+    }
+    suspend = false;
+}
+
+void Pairing::suspendTask() {
+    if (taskHandle != nullptr) {
+        suspend = true;
+        delay(100);
+        vTaskSuspend(taskHandle);
+    }
+}
+
+void Pairing::deleteTask() {
+    if (taskHandle != nullptr) {
+        TaskHandle_t taskToDelete = taskHandle;
+        vTaskDelete(taskToDelete);
+        while (eTaskGetState(taskToDelete) != eDeleted) {
+            vTaskDelay(1 / portTICK_PERIOD_MS);
+        }
+        taskHandle = nullptr;
+    }
+}
+
+void Pairing::setDataToSend(const PairingData& data) {
+    dataToSend = data;
+    dataToSendInitialized = true;
+}
+
+void Pairing::waitForESPNOWSetup() {
+    while (!setupESPNOW()) {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+void Pairing::handleSuspend(bool* resumeAfterSuspend) {
+    if (suspend) {
+        *resumeAfterSuspend = true;
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    } else if (*resumeAfterSuspend) {
+        *resumeAfterSuspend = false;
+        waitForESPNOWSetup();
+    }
+}
+
+void Pairing::task() {
+    waitForESPNOWSetup();
+    bool resumeAfterSuspend = false;
+
+    for (;;) {
+        handleSuspend(&resumeAfterSuspend);
+        if (suspend) continue;
+
+        checkPendingPeers();
+        if (_pairingActive) {
+            broadcastMACAddress();
+        }
+        if (isPaired() && dataToSendInitialized) {
+            sendPairingData(dataToSend);
+        }
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+}
+
+void Pairing::startPairing() {
+    mutex_.lock();
+    _pairingActive = true;
+    mutex_.unlock();
+}
+
+void Pairing::stopPairing() {
+    mutex_.lock();
+    _pairingActive = false;
     mutex_.unlock();
 }
