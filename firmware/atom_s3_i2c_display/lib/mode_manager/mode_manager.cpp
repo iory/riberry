@@ -108,6 +108,8 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     // deleteTask may not release heap memory, so use suspendTask instead.
     instance->lcd.printColorText("Suspend task\n");
     selectedModes[suspend_mode_index]->suspendTask();
+    selectedModes[suspend_mode_index]->waitForTaskSuspended();
+
     // Transition
     instance->lcd.printColorText("Success fully suspend task\n");
     instance->comm.stopReceiveEvent();
