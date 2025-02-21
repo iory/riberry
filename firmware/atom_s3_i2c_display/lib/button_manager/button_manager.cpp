@@ -142,7 +142,7 @@ void ButtonManager::task(void *parameter) {
             buttonInstance->notChangedButtonState();
         }
 
-        vTaskDelay(pdMS_TO_TICKS(10));
+        buttonInstance->delayWithTimeTracking(pdMS_TO_TICKS(10));
     }
 }
 

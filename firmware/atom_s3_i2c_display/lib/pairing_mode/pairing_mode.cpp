@@ -84,7 +84,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             lcd.printColorText(displayText);
         }
         // short delay to catch button presses
-        vTaskDelay(pdMS_TO_TICKS(10));
+        delayWithTimeTracking(pdMS_TO_TICKS(10));
     }
 }
 

@@ -19,7 +19,7 @@ void TeachingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             int size = 64;
             drawARMarker(marker_id, width - size - 5, height - size - 5, size, lcd);
         }
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        delayWithTimeTracking(pdMS_TO_TICKS(1000));
     }
 }
 

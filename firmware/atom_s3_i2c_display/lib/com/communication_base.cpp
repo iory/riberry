@@ -67,6 +67,8 @@ void CommunicationBase::receiveEvent(int howMany) {
     if (str.length() < 1) {
         return;  // Invalid packet
     }
+    instance->lcd.drawBlack();
+    instance->lcd.printColorText(str);
 
     PacketType packetType = static_cast<PacketType>(str[0]);
     switch (packetType) {
@@ -256,7 +258,7 @@ void CommunicationBase::task(void* parameter) {
 
         while (true) {
             WireSlave.update();
-            vTaskDelay(pdMS_TO_TICKS(1));
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
         }
 #if ARDUINO_USB_MODE
     #if ARDUINO_USB_CDC_ON_BOOT  // Serial used for USB CDC
@@ -277,7 +279,7 @@ void CommunicationBase::task(void* parameter) {
             // Without this delay, the task could block other lower-priority
             // tasks or prevent the watchdog timer from resetting in time,
             // causing a "Task watchdog got triggered" error.
-            vTaskDelay(pdMS_TO_TICKS(1));
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
         }
     } else {
         instance->lcd.printColorText("Unsupported Stream type\n");

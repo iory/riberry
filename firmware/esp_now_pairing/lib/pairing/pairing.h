@@ -8,13 +8,14 @@
 #include <map>
 #include <vector>
 
+#include "execution_timer.h"
 #include "mutex_helper.h"
 
 struct PairingData {
     uint8_t IPv4[4];
 };
 
-class Pairing {
+class Pairing : public ExecutionTimer {
 public:
     Pairing();
 

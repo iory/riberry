@@ -9,16 +9,16 @@ void DisplayQRcodeMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             String waitStr = "Waiting for " + getModeName();
             lcd.drawBlack();
             lcd.printColorText(waitStr);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            delayWithTimeTracking(pdMS_TO_TICKS(500));
             continue;
         }
         if (prevStr.equals(lcd.qrCodeData)) {
-            vTaskDelay(pdMS_TO_TICKS(10));
+            delayWithTimeTracking(pdMS_TO_TICKS(10));
         } else {
             lcd.drawBlack();
             lcd.drawQRcode(lcd.qrCodeData);
             prevStr = lcd.qrCodeData;
         }
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        delayWithTimeTracking(pdMS_TO_TICKS(1000));
     }
 }

@@ -20,13 +20,13 @@ private:
             String str = "";
             str += checkMemoryLeak();
             if (prevStr.equals(str)) {
-                vTaskDelay(pdMS_TO_TICKS(10));
+                delayWithTimeTracking(pdMS_TO_TICKS(10));
             } else {
                 lcd.drawBlack();
                 lcd.printColorText(str);
                 prevStr = str;
             }
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            delayWithTimeTracking(pdMS_TO_TICKS(1000));
         }
     }
 

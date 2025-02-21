@@ -232,7 +232,7 @@ void Pairing::deleteTask() {
         TaskHandle_t taskToDelete = taskHandle;
         vTaskDelete(taskToDelete);
         while (eTaskGetState(taskToDelete) != eDeleted) {
-            vTaskDelay(1 / portTICK_PERIOD_MS);
+            delayWithTimeTracking(1 / portTICK_PERIOD_MS);
         }
         taskHandle = nullptr;
     }
@@ -245,14 +245,14 @@ void Pairing::setDataToSend(const PairingData& data) {
 
 void Pairing::waitForESPNOWSetup() {
     while (!setupESPNOW()) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        delayWithTimeTracking(1000 / portTICK_PERIOD_MS);
     }
 }
 
 void Pairing::handleSuspend(bool* resumeAfterSuspend) {
     if (suspend) {
         *resumeAfterSuspend = true;
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        delayWithTimeTracking(100 / portTICK_PERIOD_MS);
     } else if (*resumeAfterSuspend) {
         *resumeAfterSuspend = false;
         waitForESPNOWSetup();
@@ -274,7 +274,7 @@ void Pairing::task() {
         if (isPaired() && dataToSendInitialized) {
             sendPairingData(dataToSend);
         }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        delayWithTimeTracking(100 / portTICK_PERIOD_MS);
     }
 }
 

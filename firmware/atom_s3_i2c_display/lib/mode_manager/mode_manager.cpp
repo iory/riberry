@@ -51,7 +51,7 @@ void ModeManager::task(void *parameter) {
         if (selectedModes.size() == 0) {
             instance->lcd.drawBlack();
             instance->lcd.printColorText("Waiting for modes to be added...\n");
-            vTaskDelay(pdMS_TO_TICKS(500));
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(500));
             continue;
         }
         // Check if Mode is forced to change
@@ -76,7 +76,7 @@ void ModeManager::task(void *parameter) {
             instance->changeMode(current_mode_index, next_mode_index);
             current_mode_index = next_mode_index;
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+        instance->delayWithTimeTracking(pdMS_TO_TICKS(500));
     }
 }
 

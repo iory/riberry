@@ -35,7 +35,7 @@ void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             bool skipDrawing = (new_charge_status == charge_status) &&
                                (currentTime - lcd.getLastDrawTime() < 10000);
             if (skipDrawing) {
-                vTaskDelay(pdMS_TO_TICKS(1000));
+                delayWithTimeTracking(pdMS_TO_TICKS(1000));
                 continue;
             }
 
@@ -45,7 +45,7 @@ void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             }
             lcd.setLastDrawTime(currentTime);
         }
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        delayWithTimeTracking(pdMS_TO_TICKS(1000));
     }
 }
 

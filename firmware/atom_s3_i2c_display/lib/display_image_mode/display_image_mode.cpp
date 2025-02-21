@@ -17,6 +17,6 @@ void DisplayImageMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             lcd.drawImage(lcd.jpegBuf, lcd.jpegLength);
             lcd.readyJpeg = false;
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        delayWithTimeTracking(pdMS_TO_TICKS(100));
     }
 }

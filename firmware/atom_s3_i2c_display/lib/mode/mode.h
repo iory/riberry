@@ -8,7 +8,9 @@
 #include <primitive_lcd.h>
 #include <string_utils.h>
 
-class Mode {
+#include "execution_timer.h"
+
+class Mode : public ExecutionTimer {
 public:
     Mode(const String& name) : taskHandle(NULL), modeName(name), running(false) {}
 
@@ -36,9 +38,9 @@ public:
 
     bool isTaskCreated() const { return taskHandle != NULL; }
 
-    void waitForTaskSuspended() const {
+    void waitForTaskSuspended() {
         while (!isTaskSuspended()) {
-            vTaskDelay(pdMS_TO_TICKS(100));
+            delayWithTimeTracking(pdMS_TO_TICKS(100));
         }
     }
 
@@ -46,7 +48,7 @@ public:
         if (taskHandle != NULL) {
             running = false;
             while (eTaskGetState(taskHandle) != eDeleted) {
-                vTaskDelay(pdMS_TO_TICKS(50));
+                delayWithTimeTracking(pdMS_TO_TICKS(50));
             }
             taskHandle = NULL;
         }
@@ -70,13 +72,13 @@ public:
             // sequences. As a result, it may fail to compare strings
             // correctly.
             if (compareIgnoringEscapeSequences(prevStr, lcd.color_str)) {
-                vTaskDelay(pdMS_TO_TICKS(10));
+                delayWithTimeTracking(pdMS_TO_TICKS(10));
             } else {
                 lcd.drawBlack();
                 prevStr = lcd.color_str;
                 lcd.printColorText(lcd.color_str);
             }
-            vTaskDelay(pdMS_TO_TICKS(10));
+            delayWithTimeTracking(pdMS_TO_TICKS(10));
         }
     }
 
@@ -106,12 +108,12 @@ public:
         if (com.checkTimeout()) {
             lcd.drawNoDataReceived();
             lcd.printColorText(getModeName() + "\n");
-            vTaskDelay(pdMS_TO_TICKS(500));
+            delayWithTimeTracking(pdMS_TO_TICKS(500));
             prevStr = "";
             return true;
         } else {
             // Short delay to avoiding watch-dog timer reset
-            vTaskDelay(pdMS_TO_TICKS(1 / portTICK_PERIOD_MS));
+            delayWithTimeTracking(pdMS_TO_TICKS(1 / portTICK_PERIOD_MS));
         }
         return false;
     }
@@ -121,7 +123,7 @@ public:
             String waitStr = "Waiting for " + getModeName();
             lcd.drawBlack();
             lcd.printColorText(waitStr);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            delayWithTimeTracking(pdMS_TO_TICKS(500));
             return true;
         }
         return false;
