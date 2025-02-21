@@ -18,9 +18,11 @@ public:
         }
     }
 
-    virtual void resumeTask() {
+    virtual void resumeTask(uint8_t xCoreID, PrimitiveLCD& lcd, CommunicationBase& com) {
         prevStr = "";
-        if (taskHandle != NULL) {
+        if (taskHandle == NULL) {
+            createTask(xCoreID, lcd, com);
+        } else if (taskHandle != NULL) {
             vTaskResume(taskHandle);
         }
     }

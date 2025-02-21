@@ -93,7 +93,7 @@ void ModeManager::startCurrentMode() {
 
 void ModeManager::stopCurrentMode() {
     if (selectedModes.size() == 0) return;
-    selectedModes[current_mode_index]->deleteTask();
+    selectedModes[current_mode_index]->suspendTask();
 }
 
 bool ModeManager::isValidIndex(const std::vector<Mode *> &vec, int index) {
@@ -105,10 +105,11 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
         !isValidIndex(selectedModes, resume_mode_index))
         return;
     // Suspend
-    instance->lcd.printColorText("Delete task\n");
-    selectedModes[suspend_mode_index]->deleteTask();
+    // deleteTask may not release heap memory, so use suspendTask instead.
+    instance->lcd.printColorText("Suspend task\n");
+    selectedModes[suspend_mode_index]->suspendTask();
     // Transition
-    instance->lcd.printColorText("Success fully delete task\n");
+    instance->lcd.printColorText("Success fully suspend task\n");
     instance->comm.stopReceiveEvent();
     instance->lcd.drawBlack();
     instance->lcd.printColorText("Wait for mode switch ...\n");
@@ -117,7 +118,7 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     // Resume
     comm.setRequestStr(selectedModes[resume_mode_index]->getModeName());
     uint8_t xCoreID = 1;
-    selectedModes[resume_mode_index]->createTask(xCoreID, lcd, comm);
+    selectedModes[resume_mode_index]->resumeTask(xCoreID, lcd, comm);
     instance->comm.startReceiveEvent();
 }
 
