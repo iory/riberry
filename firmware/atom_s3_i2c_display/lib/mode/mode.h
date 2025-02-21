@@ -28,14 +28,6 @@ public:
     virtual void deleteTask() {
         prevStr = "";
         stopTaskAndWaitForCompletion();
-        if (taskHandle != nullptr) {
-            TaskHandle_t taskToDelete = taskHandle;
-            vTaskDelete(taskToDelete);
-            while (eTaskGetState(taskToDelete) != eDeleted) {
-                vTaskDelay(1 / portTICK_PERIOD_MS);
-            }
-            taskHandle = nullptr;
-        }
     }
 
     bool isTaskSuspended() const { return eTaskGetState(taskHandle) == eSuspended; }
