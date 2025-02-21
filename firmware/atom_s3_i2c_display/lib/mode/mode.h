@@ -50,6 +50,15 @@ public:
         }
     }
 
+    // Returns remaining stack size in [byte]
+    UBaseType_t remainingStackSize() const {
+        if (taskHandle != NULL) {
+            return uxTaskGetStackHighWaterMark(taskHandle);
+        } else {
+            return 0;  // Do not use this function when taskHandle == NULL
+        }
+    }
+
     virtual void task(PrimitiveLCD& lcd, CommunicationBase& com) {
         while (running) {
             if (handleTimeout(lcd, com) || handleEmptyDisplay(lcd)) continue;
@@ -79,14 +88,14 @@ public:
         vTaskDelete(NULL);
     }
 
-    virtual void createTask(uint8_t xCoreID, PrimitiveLCD& lcd, CommunicationBase& com) {
+    virtual BaseType_t createTask(uint8_t xCoreID, PrimitiveLCD& lcd, CommunicationBase& com) {
         running = true;
         auto* params = new std::tuple<Mode*, PrimitiveLCD*, CommunicationBase*>(this, &lcd, &com);
         // Increasing the stack size (2048 -> 4096) prevents the following assertion:
         // assert failed: heap_caps_free heap_caps.c:381 (heap != NULL && "free() target pointer is
         // outside heap areas")
-        xTaskCreatePinnedToCore(this->startTaskImpl, getModeName().c_str(), 8192, params, 1,
-                                &taskHandle, xCoreID);
+        return xTaskCreatePinnedToCore(this->startTaskImpl, getModeName().c_str(), 8192, params, 1,
+                                       &taskHandle, xCoreID);
     }
 
     String getModeName() const { return modeName; }
