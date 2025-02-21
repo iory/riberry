@@ -48,8 +48,25 @@ public:
         }
     }
 
+    virtual void resumeTask(uint8_t xCoreID) {
+        if (taskHandle == nullptr) {
+            createTask(xCoreID);
+        } else if (taskHandle != nullptr) {
+            vTaskResume(taskHandle);
+        }
+        suspend = false;
+    }
+
     void stopBackgroundTask() {
         if (taskHandle != nullptr) {
+            vTaskSuspend(taskHandle);
+        }
+    }
+
+    void suspendTask() {
+        if (taskHandle != nullptr) {
+            suspend = true;
+            delay(100);
             vTaskSuspend(taskHandle);
         }
     }
@@ -91,12 +108,24 @@ private:
     bool dataToSendInitialized = false;
     static bool _pairingActive;
     TaskHandle_t taskHandle = nullptr;
+    bool suspend = false;
 
     void task() {
         while (!setupESPNOW()) {
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
+        bool resumeAfterSuspend = false;
         for (;;) {
+            if (suspend) {
+                resumeAfterSuspend = true;
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+                continue;
+            } else if (resumeAfterSuspend) {
+                resumeAfterSuspend = false;
+                while (!setupESPNOW()) {
+                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                }
+            }
             checkPendingPeers();
             if (_pairingActive) {
                 broadcastMACAddress();

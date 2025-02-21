@@ -88,17 +88,16 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     }
 }
 
-void PairingMode::deleteTask() {
-    pairing.deleteTask();
-    Mode::deleteTask();
+void PairingMode::suspendTask() {
+    pairing.suspendTask();
+    Mode::suspendTask();
     com.stopPairing();
     WiFi.disconnect(true);
 }
 
-BaseType_t PairingMode::createTask(uint8_t xCoreID, PrimitiveLCD &lcd, CommunicationBase &com) {
+void PairingMode::resumeTask(uint8_t xCoreID, PrimitiveLCD &lcd, CommunicationBase &com) {
     WiFi.reconnect();
-    pairing.createTask(1);
-    BaseType_t taskCreated = Mode::createTask(1, lcd, com);
+    pairing.resumeTask(1);
+    Mode::resumeTask(1, lcd, com);
     com.startPairing();
-    return taskCreated;
 }
