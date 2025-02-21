@@ -18,6 +18,7 @@
       - ServoControlMode
       - PressureControlMode
       - TeachingMode
+      - SystemDebugMode
     </rosparam>
   </node>
 
