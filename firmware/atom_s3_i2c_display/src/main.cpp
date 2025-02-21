@@ -13,6 +13,7 @@
 #include <pressure_control_mode.h>
 #include <primitive_lcd.h>
 #include <servo_control_mode.h>
+#include <system_debug_mode.h>
 #include <teaching_mode.h>
 ButtonManager button_manager;
 PrimitiveLCD lcd;
@@ -53,11 +54,13 @@ DisplayOdomMode display_odom_mode;
 ServoControlMode servo_control_mode;
 PressureControlMode pressure_control_mode;
 TeachingMode teaching_mode;
+SystemDebugMode system_debug_mode;
 PairingMode pairing_mode(button_manager, pairing, comm);
 const std::vector<Mode *> allModes = {
         &display_information_mode,   &display_qrcode_mode, &display_image_mode,
         &display_battery_graph_mode, &display_odom_mode,   &servo_control_mode,
         &pressure_control_mode,      &teaching_mode,       &pairing_mode,
+        &system_debug_mode,
 };
 
 ModeManager modemanager(lcd, button_manager, comm, allModes);
@@ -86,6 +89,7 @@ void setup() {
     modemanager.addSelectedMode(display_information_mode);
     modemanager.addSelectedMode(display_qrcode_mode);
     modemanager.addSelectedMode(pairing_mode);
+    modemanager.addSelectedMode(system_debug_mode);
     modemanager.startCurrentMode();
 }
 
