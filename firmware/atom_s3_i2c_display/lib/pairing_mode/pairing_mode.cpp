@@ -89,6 +89,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
 }
 
 void PairingMode::suspendTask() {
+    // To avoid deadlock due to mutex, the order of suspendTask() must be Mode -> pairing.
     Mode::suspendTask();
     pairing.suspendTask();
     com.stopPairing();
