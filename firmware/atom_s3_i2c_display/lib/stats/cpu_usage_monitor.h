@@ -23,7 +23,7 @@ public:
 
         for (size_t i = 0; i < monitoredTimers.size(); i++) {
             uint64_t currentExecutionTime = monitoredTimers[i]->getExecutionTime();
-            monitoredTimers[i]->setCurrentTime();
+            monitoredTimers[i]->resetStats();
             executionDiffs[i] = currentExecutionTime - previousExecutionTimes[i];
             previousExecutionTimes[i] = currentExecutionTime;
             totalExecutionTime += executionDiffs[i];
