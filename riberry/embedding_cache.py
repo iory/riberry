@@ -32,6 +32,7 @@ class EmbeddingCache:
             for key in list(self.cache.keys()):
                 print(f"- {key}")
             print("")
+        self._load_credentials("/etc/opt/riberry/credentials.json")
         try:
             api_key = os.environ['AZURE_API_KEY']
             endpoint = os.environ['AZURE_ENDPOINT']
@@ -44,6 +45,23 @@ class EmbeddingCache:
             api_key=api_key,
             azure_endpoint=endpoint,
             api_version="2024-10-01-preview",)
+
+    def _load_credentials(self, filepath):
+        """Load credentials and export them as environment variable"""
+        if not os.path.exists(filepath):
+            return
+        print(f"Load credentials from {filepath}")
+        try:
+            with open(filepath) as f:
+                config = json.load(f)
+            api_key = config.get('AZURE_API_KEY')
+            endpoint = config.get('AZURE_ENDPOINT')
+            if api_key:
+                os.environ['AZURE_API_KEY'] = api_key
+            if endpoint:
+                os.environ['AZURE_ENDPOINT'] = endpoint
+        except Exception as e:
+            print(f"Error reading config file: {e}")
 
     def _load_cache(self):
         """
