@@ -57,6 +57,8 @@ public:
             monitoredTimers[i]->resetStats();
         }
 
+        // Clear the screen and move the cursor to the top (ANSI escape sequence)
+        USBSerial.printf("\033[2J\033[H");
         USBSerial.printf("===== CPU Usage Monitor =====\n");
         USBSerial.printf("Elapsed Time: %llu us\n\n", totalElapsedTime);
 
