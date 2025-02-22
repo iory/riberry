@@ -11,7 +11,7 @@ ModeManager::ModeManager(PrimitiveLCD &lcd,
                          ButtonManager &button,
                          CommunicationBase &i2c,
                          const std::vector<Mode *> &modes)
-    : lcd(lcd), button_manager(button), comm(i2c) {
+    : lcd(lcd), button_manager(button), comm(i2c), ExecutionTimer("Mode Manager") {
     instance = this;
     allModes = &modes;
 }
@@ -81,6 +81,7 @@ void ModeManager::task(void *parameter) {
 }
 
 void ModeManager::createTask(uint8_t xCoreID) {
+    this->xCoreID = xCoreID;
     xTaskCreatePinnedToCore(task, "Mode Manager Task", 2048, this, 24, NULL, xCoreID);
 }
 

@@ -66,7 +66,20 @@ const std::vector<Mode *> allModes = {
 };
 
 ModeManager modemanager(lcd, button_manager, comm, allModes);
-std::vector<ExecutionTimer *> executionTimers(allModes.begin(), allModes.end());
+std::vector<ExecutionTimer *> executionTimers = {&pairing,
+                                                 &comm,
+                                                 &button_manager,
+                                                 &modemanager,
+                                                 &display_information_mode,
+                                                 &display_qrcode_mode,
+                                                 &display_image_mode,
+                                                 &display_battery_graph_mode,
+                                                 &display_odom_mode,
+                                                 &servo_control_mode,
+                                                 &pressure_control_mode,
+                                                 &teaching_mode,
+                                                 &pairing_mode,
+                                                 &system_debug_mode};
 CPUUsageMonitor cpu_usage_monitor(executionTimers);
 
 void setup() {

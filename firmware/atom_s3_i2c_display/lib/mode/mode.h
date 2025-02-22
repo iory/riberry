@@ -12,7 +12,7 @@
 
 class Mode : public ExecutionTimer {
 public:
-    Mode(const String& name) : ExecutionTimer(name), taskHandle(NULL), running(false) {}
+    Mode(const String& name) : ExecutionTimer(name), running(false) {}
 
     virtual void suspendTask() {
         if (taskHandle != NULL) {
@@ -98,6 +98,7 @@ public:
         // Increasing the stack size (2048 -> 4096) prevents the following assertion:
         // assert failed: heap_caps_free heap_caps.c:381 (heap != NULL && "free() target pointer is
         // outside heap areas")
+        this->xCoreID = xCoreID;
         return xTaskCreatePinnedToCore(this->startTaskImpl, getName().c_str(), 8192, params, 1,
                                        &taskHandle, xCoreID);
     }
@@ -128,7 +129,6 @@ public:
     }
 
 protected:
-    TaskHandle_t taskHandle;
     String prevStr;
     bool running;
 };

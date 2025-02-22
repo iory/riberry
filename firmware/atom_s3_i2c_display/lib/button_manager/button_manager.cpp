@@ -5,7 +5,8 @@ ButtonManager::ButtonManager(int pin, bool activeLow, bool pullupActive)
       currentButtonState(RESET),
       clicked(false),
       doubleClicked(false),
-      longPressed(false) {
+      longPressed(false),
+      ExecutionTimer("ButtonManager") {
     begin();
 }
 
@@ -147,5 +148,6 @@ void ButtonManager::task(void *parameter) {
 }
 
 void ButtonManager::createTask(uint8_t xCoreID) {
+    this->xCoreID = xCoreID;
     xTaskCreatePinnedToCore(task, "Button Task", 2048, this, 24, NULL, xCoreID);
 }

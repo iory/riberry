@@ -7,7 +7,7 @@ std::vector<String> Pairing::pairedMACAddresses = {};
 std::map<String, PairingData> Pairing::pairingDataMap = {};
 MutexHelper Pairing::mutex_;
 
-Pairing::Pairing() { esp_read_mac(myMACAddress, ESP_MAC_WIFI_STA); }
+Pairing::Pairing() : ExecutionTimer("Pairing") { esp_read_mac(myMACAddress, ESP_MAC_WIFI_STA); }
 
 bool Pairing::setupESPNOW() {
     WiFi.disconnect(true);

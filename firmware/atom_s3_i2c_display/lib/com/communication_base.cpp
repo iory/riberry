@@ -10,7 +10,11 @@ bool CommunicationBase::pairingEnabled = false;
 
 CommunicationBase::CommunicationBase(
         PrimitiveLCD& lcd, ButtonManager& button, Pairing& pairing, Stream* stream, Role role)
-    : lcd(lcd), button_manager(button), pairing(pairing), receiveEventEnabled(true) {
+    : lcd(lcd),
+      button_manager(button),
+      pairing(pairing),
+      receiveEventEnabled(true),
+      ExecutionTimer("CommunicationBase") {
     instance = this;
     setStream(stream);
     this->role = role;
@@ -286,5 +290,6 @@ void CommunicationBase::task(void* parameter) {
 }
 
 void CommunicationBase::createTask(uint8_t xCoreID) {
+    this->xCoreID = xCoreID;
     xTaskCreatePinnedToCore(task, "I2C Task", 2048, this, 24, NULL, xCoreID);
 }

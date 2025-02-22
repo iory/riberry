@@ -1,6 +1,8 @@
 #ifndef CPU_USAGE_MONITOR_H
 #define CPU_USAGE_MONITOR_H
 
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "esp_timer.h"
@@ -16,32 +18,41 @@ public:
         const uint64_t totalElapsedTime = currentTime - lastTime;
         lastTime = currentTime;
 
-        uint64_t totalExecutionTime = 0;
-        std::vector<uint64_t> executionDiffs(monitoredTimers.size());
+        std::unordered_map<int, uint64_t> coreTotalExecTime;
+        std::unordered_map<int, std::vector<std::pair<ExecutionTimer*, uint64_t>>> coreTimers;
 
-        for (size_t i = 0; i < monitoredTimers.size(); i++) {
-            executionDiffs[i] = monitoredTimers[i]->getExecutionTime();
-            totalExecutionTime += executionDiffs[i];
+        for (size_t i = 0; i < monitoredTimers.size(); ++i) {
+            int coreID = monitoredTimers[i]->getCoreID();
+            uint64_t execTime = monitoredTimers[i]->getExecutionTime();
+            coreTotalExecTime[coreID] += execTime;
+            coreTimers[coreID].push_back({monitoredTimers[i], execTime});
         }
-        for (size_t i = 0; i < monitoredTimers.size(); i++) {
+
+        for (size_t i = 0; i < monitoredTimers.size(); ++i) {
             monitoredTimers[i]->resetStats();
         }
-        uint64_t idleTime = (totalElapsedTime >= totalExecutionTime)
-                                    ? (totalElapsedTime - totalExecutionTime)
-                                    : 0;
 
-        if (totalElapsedTime > 0) {
-            for (size_t i = 0; i < monitoredTimers.size(); i++) {
-                USBSerial.printf("Task %s: Execution Time = %llu, totalElapsedTime = %llu \n",
-                                 monitoredTimers[i]->getName().c_str(),
-                                 (unsigned long long)executionDiffs[i],
-                                 (unsigned long long)totalElapsedTime);
-                int cpuUsage = ((float)executionDiffs[i] / totalElapsedTime) * 100.0;
-                USBSerial.printf("Task %s: CPU Usage = %d\n", monitoredTimers[i]->getName().c_str(),
-                                 cpuUsage);
+        USBSerial.printf("========================================\n");
+        for (int coreID = 0; coreID <= 1; coreID++) {
+            auto it = coreTimers.find(coreID);
+            if (it == coreTimers.end()) continue;
+            const auto& timers = it->second;
+            uint64_t coreExecTime = coreTotalExecTime[coreID];
+            uint64_t idleTime =
+                    (totalElapsedTime >= coreExecTime) ? (totalElapsedTime - coreExecTime) : 0;
+
+            for (const auto& timerPair : timers) {
+                ExecutionTimer* timer = timerPair.first;
+                uint64_t execTime = timerPair.second;
+                float cpuUsage = (totalElapsedTime > 0)
+                                         ? ((float)execTime / totalElapsedTime) * 100.0f
+                                         : 0.0f;
+                USBSerial.printf("Core %d, Task %s: CPU Usage = %.2f%%\n", coreID,
+                                 timer->getName().c_str(), cpuUsage);
             }
-            int idleUsage = ((float)idleTime / totalElapsedTime) * 100.0;
-            USBSerial.printf("Idle CPU Usage = %d\n", idleUsage);
+            float idleUsage =
+                    (totalElapsedTime > 0) ? ((float)idleTime / totalElapsedTime) * 100.0f : 0.0f;
+            USBSerial.printf("Core %d, Idle CPU Usage = %.2f%%\n", coreID, idleUsage);
         }
     }
 
