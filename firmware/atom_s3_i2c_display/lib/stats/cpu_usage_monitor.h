@@ -14,8 +14,8 @@ public:
     }
 
     void calculateCPUUsage() {
-        uint64_t currentTime = esp_timer_get_time();
-        uint64_t totalElapsedTime = currentTime - lastTotalTime;
+        const uint64_t currentTime = esp_timer_get_time();
+        const uint64_t totalElapsedTime = currentTime - lastTotalTime;
         lastTotalTime = currentTime;
 
         uint64_t totalExecutionTime = 0;
@@ -23,6 +23,7 @@ public:
 
         for (size_t i = 0; i < monitoredTimers.size(); i++) {
             uint64_t currentExecutionTime = monitoredTimers[i]->getExecutionTime();
+            monitoredTimers[i]->setCurrentTime();
             executionDiffs[i] = currentExecutionTime - previousExecutionTimes[i];
             previousExecutionTimes[i] = currentExecutionTime;
             totalExecutionTime += executionDiffs[i];
@@ -34,6 +35,10 @@ public:
 
         if (totalElapsedTime > 0) {
             for (size_t i = 0; i < monitoredTimers.size(); i++) {
+                USBSerial.printf("Task %s: Execution Time = %llu, totalElapsedTime = %llu \n",
+                                 monitoredTimers[i]->getName().c_str(),
+                                 (unsigned long long)executionDiffs[i],
+                                 (unsigned long long)totalElapsedTime);
                 int cpuUsage = ((float)executionDiffs[i] / totalElapsedTime) * 100.0;
                 USBSerial.printf("Task %s: CPU Usage = %d\n", monitoredTimers[i]->getName().c_str(),
                                  cpuUsage);

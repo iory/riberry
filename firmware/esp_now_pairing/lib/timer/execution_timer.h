@@ -19,6 +19,8 @@ public:
 
     String getName() const { return name; }
 
+    void setCurrentTime() { startTime = micros(); }
+
 protected:
     uint64_t elapsedTime;
     uint64_t startTime;

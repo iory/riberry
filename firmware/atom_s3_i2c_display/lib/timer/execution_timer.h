@@ -12,12 +12,14 @@ public:
         uint64_t currentTime = micros();
         elapsedTime += (currentTime - startTime);
         startTime = currentTime;
-        delayWithTimeTracking(pdMS_TO_TICKS(ms));
+        vTaskDelay(pdMS_TO_TICKS(ms));
     }
 
     uint64_t getExecutionTime() const { return elapsedTime; }
 
     String getName() const { return name; }
+
+    void setCurrentTime() { startTime = micros(); }
 
 protected:
     uint64_t elapsedTime;
