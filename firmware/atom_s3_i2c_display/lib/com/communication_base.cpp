@@ -260,6 +260,9 @@ void CommunicationBase::task(void* parameter) {
 
         while (true) {
             WireSlave.update();
+            // After increasing the delay time after WireSlave.update() from 1ms to 10ms, the CPU
+            // usage dropped from around 60% to 16%. If the CPU usage on Core 0 becomes too high, we
+            // should consider reducing this value accordingly.
             instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
         }
 #if ARDUINO_USB_MODE
