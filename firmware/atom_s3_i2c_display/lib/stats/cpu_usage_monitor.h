@@ -80,10 +80,10 @@ public:
                 USBSerial.printf("  %-25s : ", timer->getName().c_str());
                 printCpuUsageBar(cpuUsage);
             }
-            float idleUsage =
-                    (totalElapsedTime > 0) ? ((float)idleTime / totalElapsedTime) * 100.0f : 0.0f;
-            USBSerial.printf("  %-25s : ", "Idle CPU Usage");
-            printCpuUsageBar(idleUsage);
+            // float idleUsage =
+            //        (totalElapsedTime > 0) ? ((float)idleTime / totalElapsedTime) * 100.0f : 0.0f;
+            // USBSerial.printf("  %-25s : ", "Idle CPU Usage");
+            // printCpuUsageBar(idleUsage);
             USBSerial.printf("\n");
         }
     }
