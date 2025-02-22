@@ -7,7 +7,7 @@ std::vector<String> Pairing::pairedMACAddresses = {};
 std::map<String, PairingData> Pairing::pairingDataMap = {};
 MutexHelper Pairing::mutex_;
 
-Pairing::Pairing() { esp_read_mac(myMACAddress, ESP_MAC_WIFI_STA); }
+Pairing::Pairing() : ExecutionTimer("Pairing") { esp_read_mac(myMACAddress, ESP_MAC_WIFI_STA); }
 
 bool Pairing::setupESPNOW() {
     WiFi.disconnect(true);
@@ -205,6 +205,7 @@ void Pairing::reset() {
 
 void Pairing::createTask(uint8_t xCoreID) {
     if (taskHandle == nullptr) {
+        this->xCoreID = xCoreID;
         xTaskCreatePinnedToCore([](void* _this) { static_cast<Pairing*>(_this)->task(); },
                                 "Pairing Task", 4096, this, 1, &taskHandle, xCoreID);
     }
@@ -232,7 +233,7 @@ void Pairing::deleteTask() {
         TaskHandle_t taskToDelete = taskHandle;
         vTaskDelete(taskToDelete);
         while (eTaskGetState(taskToDelete) != eDeleted) {
-            vTaskDelay(1 / portTICK_PERIOD_MS);
+            delayWithTimeTracking(1 / portTICK_PERIOD_MS);
         }
         taskHandle = nullptr;
     }
@@ -245,14 +246,14 @@ void Pairing::setDataToSend(const PairingData& data) {
 
 void Pairing::waitForESPNOWSetup() {
     while (!setupESPNOW()) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        delayWithTimeTracking(1000 / portTICK_PERIOD_MS);
     }
 }
 
 void Pairing::handleSuspend(bool* resumeAfterSuspend) {
     if (suspend) {
         *resumeAfterSuspend = true;
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        delayWithTimeTracking(100 / portTICK_PERIOD_MS);
     } else if (*resumeAfterSuspend) {
         *resumeAfterSuspend = false;
         waitForESPNOWSetup();
@@ -274,7 +275,7 @@ void Pairing::task() {
         if (isPaired() && dataToSendInitialized) {
             sendPairingData(dataToSend);
         }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        delayWithTimeTracking(100 / portTICK_PERIOD_MS);
     }
 }
 

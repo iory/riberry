@@ -8,7 +8,9 @@
 
 #include <vector>
 
-class ModeManager {
+#include "execution_timer.h"
+
+class ModeManager : public ExecutionTimer {
 public:
     ModeManager(PrimitiveLCD &lcd,
                 ButtonManager &button,

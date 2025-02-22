@@ -10,7 +10,11 @@ bool CommunicationBase::pairingEnabled = false;
 
 CommunicationBase::CommunicationBase(
         PrimitiveLCD& lcd, ButtonManager& button, Pairing& pairing, Stream* stream, Role role)
-    : lcd(lcd), button_manager(button), pairing(pairing), receiveEventEnabled(true) {
+    : lcd(lcd),
+      button_manager(button),
+      pairing(pairing),
+      receiveEventEnabled(true),
+      ExecutionTimer("CommunicationBase") {
     instance = this;
     setStream(stream);
     this->role = role;
@@ -256,7 +260,7 @@ void CommunicationBase::task(void* parameter) {
 
         while (true) {
             WireSlave.update();
-            vTaskDelay(pdMS_TO_TICKS(1));
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
         }
 #if ARDUINO_USB_MODE
     #if ARDUINO_USB_CDC_ON_BOOT  // Serial used for USB CDC
@@ -277,7 +281,7 @@ void CommunicationBase::task(void* parameter) {
             // Without this delay, the task could block other lower-priority
             // tasks or prevent the watchdog timer from resetting in time,
             // causing a "Task watchdog got triggered" error.
-            vTaskDelay(pdMS_TO_TICKS(1));
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
         }
     } else {
         instance->lcd.printColorText("Unsupported Stream type\n");
@@ -286,5 +290,6 @@ void CommunicationBase::task(void* parameter) {
 }
 
 void CommunicationBase::createTask(uint8_t xCoreID) {
+    this->xCoreID = xCoreID;
     xTaskCreatePinnedToCore(task, "I2C Task", 2048, this, 24, NULL, xCoreID);
 }

@@ -2,6 +2,7 @@
 #include <HardwareSerial.h>
 #include <button_manager.h>
 #include <communication_base.h>
+#include <cpu_usage_monitor.h>
 #include <display_battery_graph_mode.h>
 #include <display_image_mode.h>
 #include <display_information_mode.h>
@@ -15,6 +16,7 @@
 #include <servo_control_mode.h>
 #include <system_debug_mode.h>
 #include <teaching_mode.h>
+
 ButtonManager button_manager;
 PrimitiveLCD lcd;
 Pairing pairing;
@@ -64,6 +66,21 @@ const std::vector<Mode *> allModes = {
 };
 
 ModeManager modemanager(lcd, button_manager, comm, allModes);
+std::vector<ExecutionTimer *> executionTimers = {&pairing,
+                                                 &comm,
+                                                 &button_manager,
+                                                 &modemanager,
+                                                 &display_information_mode,
+                                                 &display_qrcode_mode,
+                                                 &display_image_mode,
+                                                 &display_battery_graph_mode,
+                                                 &display_odom_mode,
+                                                 &servo_control_mode,
+                                                 &pressure_control_mode,
+                                                 &teaching_mode,
+                                                 &pairing_mode,
+                                                 &system_debug_mode};
+CPUUsageMonitor cpu_usage_monitor(executionTimers);
 
 void setup() {
 #ifdef ATOM_S3
@@ -76,6 +93,10 @@ void setup() {
 #elif USE_M5STACK_BASIC
     bool success = true;
     Serial.begin(115200, SERIAL_8N1, 16, 17);
+#endif
+
+#ifdef PRINT_CPU_USAGE
+    USBSerial.begin(115200);
 #endif
     if (!success) {
         lcd.printColorText("I2C slave init failed\n");
@@ -93,4 +114,9 @@ void setup() {
     modemanager.startCurrentMode();
 }
 
-void loop() {}
+void loop() {
+#ifdef PRINT_CPU_USAGE
+    cpu_usage_monitor.calculateCPUUsage();
+#endif
+    delay(1000);
+}

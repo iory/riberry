@@ -11,7 +11,7 @@ ModeManager::ModeManager(PrimitiveLCD &lcd,
                          ButtonManager &button,
                          CommunicationBase &i2c,
                          const std::vector<Mode *> &modes)
-    : lcd(lcd), button_manager(button), comm(i2c) {
+    : lcd(lcd), button_manager(button), comm(i2c), ExecutionTimer("Mode Manager") {
     instance = this;
     allModes = &modes;
 }
@@ -37,7 +37,7 @@ void ModeManager::task(void *parameter) {
                                                        allModes->size());
             for (int i = 0; i < modeCount; i++) {
                 for (Mode *mode : *allModes) {
-                    if (mode->getModeName().equals(String(selectedModesStrList[i]))) {
+                    if (mode->getName().equals(String(selectedModesStrList[i]))) {
                         instance->addSelectedMode(*mode);
                     }
                 }
@@ -51,14 +51,14 @@ void ModeManager::task(void *parameter) {
         if (selectedModes.size() == 0) {
             instance->lcd.drawBlack();
             instance->lcd.printColorText("Waiting for modes to be added...\n");
-            vTaskDelay(pdMS_TO_TICKS(500));
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(500));
             continue;
         }
         // Check if Mode is forced to change
         bool isModeForced = false;
         int forced_mode_index;
         for (int i = 0; i < selectedModes.size(); i++) {
-            if (selectedModes[i]->getModeName().equals(instance->comm.forcedMode)) {
+            if (selectedModes[i]->getName().equals(instance->comm.forcedMode)) {
                 isModeForced = true;
                 forced_mode_index = i;
                 break;
@@ -76,17 +76,18 @@ void ModeManager::task(void *parameter) {
             instance->changeMode(current_mode_index, next_mode_index);
             current_mode_index = next_mode_index;
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+        instance->delayWithTimeTracking(pdMS_TO_TICKS(500));
     }
 }
 
 void ModeManager::createTask(uint8_t xCoreID) {
+    this->xCoreID = xCoreID;
     xTaskCreatePinnedToCore(task, "Mode Manager Task", 2048, this, 24, NULL, xCoreID);
 }
 
 void ModeManager::startCurrentMode() {
     if (selectedModes.size() == 0) return;
-    comm.setRequestStr(selectedModes[current_mode_index]->getModeName());
+    comm.setRequestStr(selectedModes[current_mode_index]->getName());
     uint8_t xCoreID = 1;
     selectedModes[current_mode_index]->createTask(xCoreID, lcd, comm);
 }
@@ -118,7 +119,7 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     instance->lcd.setTextSize(DEFAULT_TEXT_SIZE);
     instance->lcd.resetLcdData();
     // Resume
-    comm.setRequestStr(selectedModes[resume_mode_index]->getModeName());
+    comm.setRequestStr(selectedModes[resume_mode_index]->getName());
     uint8_t xCoreID = 1;
     selectedModes[resume_mode_index]->resumeTask(xCoreID, lcd, comm);
     instance->comm.startReceiveEvent();

@@ -8,7 +8,7 @@ void DisplayImageMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
 
         if (lcd.mode_changed) {
             lcd.drawBlack();
-            lcd.printColorText("Waiting for " + getModeName() +
+            lcd.printColorText("Waiting for " + getName() +
                                ". \x1b[31mrosparam set \x1b[32m/display_image <Your "
                                "Image Topic>\x1b[39m");
             lcd.mode_changed = false;
@@ -17,6 +17,6 @@ void DisplayImageMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             lcd.drawImage(lcd.jpegBuf, lcd.jpegLength);
             lcd.readyJpeg = false;
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        delayWithTimeTracking(pdMS_TO_TICKS(100));
     }
 }

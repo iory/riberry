@@ -5,11 +5,12 @@
 #include <button_manager.h>
 #include <primitive_lcd.h>
 
+#include "execution_timer.h"
 #include "packet.h"
 #include "pairing.h"
 #include "role.h"
 
-class CommunicationBase {
+class CommunicationBase : public ExecutionTimer {
 public:
     virtual ~CommunicationBase() = default;
 

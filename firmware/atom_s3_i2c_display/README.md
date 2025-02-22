@@ -35,6 +35,31 @@ If you are using Grove cables, set the `USE_GROVE` environment variable to `1` b
 USE_GROVE=1 pio run -t upload
 ```
 
+Setting `PRINT_CPU_USAGE=1` will display the CPU usage via USB Serial.
+
+```
+PRINT_CPU_USAGE=1 pio run -t upload
+```
+
+After that,
+
+```
+pio device monitor
+Core 0:
+  CommunicationBase         : 66.92%
+  ButtonManager             : 0.04%
+  Mode Manager              : 0.01%
+  Idle CPU Usage            : 33.03%
+
+Core 1:
+  Pairing                   : 0.00%
+  DisplayInformationMode    : 0.00%
+  DisplayQRcodeMode         : 0.00%
+  PairingMode               : 0.00%
+  SystemDebugMode           : 0.02%
+  Idle CPU Usage            : 99.98%
+```
+
 If you want to set the LCD rotation, set the `LCD_ROTATION` environment variable to `0`, `1`, `2`, or `3` before running the command:
 
 ```
@@ -52,6 +77,8 @@ If you want to use USB serial communication, set the `USE_USB_SERIAL` environmen
 ```
 USE_USB_SERIAL=1 pio run -t upload
 ```
+
+
 
 If you want to use M5Stack instead of AtomS3:
 

@@ -11,7 +11,7 @@ void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
         unsigned long currentTime = millis();
         if (lcd.color_str.isEmpty()) {
             lcd.drawBlack();
-            lcd.printColorText("Waiting for " + getModeName());
+            lcd.printColorText("Waiting for " + getName());
         } else {
             // Split by comma
             char *parts[max_buffer_length + 3];
@@ -35,7 +35,7 @@ void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             bool skipDrawing = (new_charge_status == charge_status) &&
                                (currentTime - lcd.getLastDrawTime() < 10000);
             if (skipDrawing) {
-                vTaskDelay(pdMS_TO_TICKS(1000));
+                delayWithTimeTracking(pdMS_TO_TICKS(1000));
                 continue;
             }
 
@@ -45,7 +45,7 @@ void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             }
             lcd.setLastDrawTime(currentTime);
         }
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        delayWithTimeTracking(pdMS_TO_TICKS(1000));
     }
 }
 
