@@ -205,6 +205,7 @@ void Pairing::reset() {
 
 void Pairing::createTask(uint8_t xCoreID) {
     if (taskHandle == nullptr) {
+        this->xCoreID = xCoreID;
         xTaskCreatePinnedToCore([](void* _this) { static_cast<Pairing*>(_this)->task(); },
                                 "Pairing Task", 4096, this, 1, &taskHandle, xCoreID);
     }
