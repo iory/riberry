@@ -9,26 +9,23 @@
 class CPUUsageMonitor {
 public:
     CPUUsageMonitor(std::vector<ExecutionTimer*>& timers)
-        : monitoredTimers(timers), lastTotalTime(esp_timer_get_time()) {
-        previousExecutionTimes.resize(timers.size(), 0);
-    }
+        : monitoredTimers(timers), lastTime(esp_timer_get_time()) {}
 
     void calculateCPUUsage() {
         const uint64_t currentTime = esp_timer_get_time();
-        const uint64_t totalElapsedTime = currentTime - lastTotalTime;
-        lastTotalTime = currentTime;
+        const uint64_t totalElapsedTime = currentTime - lastTime;
+        lastTime = currentTime;
 
         uint64_t totalExecutionTime = 0;
         std::vector<uint64_t> executionDiffs(monitoredTimers.size());
 
         for (size_t i = 0; i < monitoredTimers.size(); i++) {
-            uint64_t currentExecutionTime = monitoredTimers[i]->getExecutionTime();
-            monitoredTimers[i]->resetStats();
-            executionDiffs[i] = currentExecutionTime - previousExecutionTimes[i];
-            previousExecutionTimes[i] = currentExecutionTime;
+            executionDiffs[i] = monitoredTimers[i]->getExecutionTime();
             totalExecutionTime += executionDiffs[i];
         }
-
+        for (size_t i = 0; i < monitoredTimers.size(); i++) {
+            monitoredTimers[i]->resetStats();
+        }
         uint64_t idleTime = (totalElapsedTime >= totalExecutionTime)
                                     ? (totalElapsedTime - totalExecutionTime)
                                     : 0;
@@ -50,8 +47,7 @@ public:
 
 private:
     std::vector<ExecutionTimer*>& monitoredTimers;
-    std::vector<uint64_t> previousExecutionTimes;
-    uint64_t lastTotalTime;
+    uint64_t lastTime;
 };
 
 #endif  // CPU_USAGE_MONITOR_H

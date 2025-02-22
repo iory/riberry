@@ -5,14 +5,15 @@
 
 class ExecutionTimer {
 public:
-    ExecutionTimer() : elapsedTime(0), startTime(0), name("Unnamed") {}
-    ExecutionTimer(const String &name) : elapsedTime(0), startTime(0), name(name) {}
+    ExecutionTimer() : elapsedTime(0), startTime(esp_timer_get_time()), name("Unnamed") {}
+    ExecutionTimer(const String &name)
+        : elapsedTime(0), startTime(esp_timer_get_time()), name(name) {}
 
     void delayWithTimeTracking(uint32_t ms) {
-        uint64_t currentTime = micros();
+        uint64_t currentTime = esp_timer_get_time();
         elapsedTime += (currentTime - startTime);
-        startTime = currentTime;
         vTaskDelay(ms);
+        startTime = esp_timer_get_time();
     }
 
     uint64_t getExecutionTime() const { return elapsedTime; }
@@ -20,8 +21,7 @@ public:
     String getName() const { return name; }
 
     void resetStats() {
-        uint64_t currentTime = micros();
-        startTime = currentTime;
+        startTime = esp_timer_get_time();
         elapsedTime = 0LL;
     }
 
