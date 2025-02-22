@@ -67,8 +67,6 @@ void CommunicationBase::receiveEvent(int howMany) {
     if (str.length() < 1) {
         return;  // Invalid packet
     }
-    instance->lcd.drawBlack();
-    instance->lcd.printColorText(str);
 
     PacketType packetType = static_cast<PacketType>(str[0]);
     switch (packetType) {
