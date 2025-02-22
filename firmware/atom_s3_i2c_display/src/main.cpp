@@ -94,7 +94,10 @@ void setup() {
     bool success = true;
     Serial.begin(115200, SERIAL_8N1, 16, 17);
 #endif
+
+#ifdef PRINT_CPU_USAGE
     USBSerial.begin(115200);
+#endif
     if (!success) {
         lcd.printColorText("I2C slave init failed\n");
         while (1) vTaskDelay(pdMS_TO_TICKS(100));
@@ -112,6 +115,8 @@ void setup() {
 }
 
 void loop() {
+#ifdef PRINT_CPU_USAGE
     cpu_usage_monitor.calculateCPUUsage();
+#endif
     delay(1000);
 }
