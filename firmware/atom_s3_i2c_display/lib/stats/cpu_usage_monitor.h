@@ -32,27 +32,32 @@ public:
             monitoredTimers[i]->resetStats();
         }
 
-        USBSerial.printf("========================================\n");
+        USBSerial.printf("===== CPU Usage Monitor =====\n");
+        USBSerial.printf("Elapsed Time: %llu us\n\n", totalElapsedTime);
+
         for (int coreID = 0; coreID <= 1; coreID++) {
             auto it = coreTimers.find(coreID);
-            if (it == coreTimers.end()) continue;
+            if (it == coreTimers.end()) {
+                USBSerial.printf("Core %d: No tasks.\n\n", coreID);
+                continue;
+            }
             const auto& timers = it->second;
             uint64_t coreExecTime = coreTotalExecTime[coreID];
             uint64_t idleTime =
                     (totalElapsedTime >= coreExecTime) ? (totalElapsedTime - coreExecTime) : 0;
-
+            USBSerial.printf("Core %d:\n", coreID);
             for (const auto& timerPair : timers) {
                 ExecutionTimer* timer = timerPair.first;
                 uint64_t execTime = timerPair.second;
                 float cpuUsage = (totalElapsedTime > 0)
                                          ? ((float)execTime / totalElapsedTime) * 100.0f
                                          : 0.0f;
-                USBSerial.printf("Core %d, Task %s: CPU Usage = %.2f%%\n", coreID,
-                                 timer->getName().c_str(), cpuUsage);
+                USBSerial.printf("  %-25s : %.2f%%\n", timer->getName().c_str(), cpuUsage);
             }
             float idleUsage =
                     (totalElapsedTime > 0) ? ((float)idleTime / totalElapsedTime) * 100.0f : 0.0f;
-            USBSerial.printf("Core %d, Idle CPU Usage = %.2f%%\n", coreID, idleUsage);
+            USBSerial.printf("  %-25s : %.2f%%\n", "Idle CPU Usage", idleUsage);
+            USBSerial.printf("\n");
         }
     }
 

@@ -45,15 +45,19 @@ After that,
 
 ```
 pio device monitor
-Core 0, Task CommunicationBase: CPU Usage = 66.84%
-Core 0, Task ButtonManager: CPU Usage = 0.04%
-Core 0, Task Mode Manager: CPU Usage = 0.01%
-Core 0, Idle CPU Usage = 33.10%
-Core 1, Task DisplayInformationMode: CPU Usage = 0.00%
-Core 1, Task DisplayQRcodeMode: CPU Usage = 2.88%
-Core 1, Task PairingMode: CPU Usage = 0.00%
-Core 1, Task SystemDebugMode: CPU Usage = 0.00%
-Core 1, Idle CPU Usage = 97.12%
+Core 0:
+  CommunicationBase         : 66.92%
+  ButtonManager             : 0.04%
+  Mode Manager              : 0.01%
+  Idle CPU Usage            : 33.03%
+
+Core 1:
+  Pairing                   : 0.00%
+  DisplayInformationMode    : 0.00%
+  DisplayQRcodeMode         : 0.00%
+  PairingMode               : 0.00%
+  SystemDebugMode           : 0.02%
+  Idle CPU Usage            : 99.98%
 ```
 
 If you want to set the LCD rotation, set the `LCD_ROTATION` environment variable to `0`, `1`, `2`, or `3` before running the command:
