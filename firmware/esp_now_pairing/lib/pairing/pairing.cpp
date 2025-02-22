@@ -236,6 +236,7 @@ void Pairing::deleteTask() {
             delayWithTimeTracking(1 / portTICK_PERIOD_MS);
         }
         taskHandle = nullptr;
+        this->xCoreID = -1;
     }
 }
 

@@ -51,6 +51,7 @@ public:
                 delayWithTimeTracking(pdMS_TO_TICKS(50));
             }
             taskHandle = NULL;
+            this->xCoreID = -1;
         }
     }
 
