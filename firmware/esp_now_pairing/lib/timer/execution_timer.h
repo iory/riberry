@@ -5,7 +5,8 @@
 
 class ExecutionTimer {
 public:
-    ExecutionTimer() : elapsedTime(0), startTime(0) {}
+    ExecutionTimer() : elapsedTime(0), startTime(0), name("Unnamed") {}
+    ExecutionTimer(const String &name) : elapsedTime(0), startTime(0), name(name) {}
 
     void delayWithTimeTracking(uint32_t ms) {
         uint64_t currentTime = micros();
@@ -16,9 +17,12 @@ public:
 
     uint64_t getExecutionTime() const { return elapsedTime; }
 
+    String getName() const { return name; }
+
 protected:
     uint64_t elapsedTime;
     uint64_t startTime;
+    String name;
 };
 
 #endif  // EXECUTION_TIMER_H

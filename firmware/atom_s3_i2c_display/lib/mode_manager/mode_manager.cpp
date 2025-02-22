@@ -37,7 +37,7 @@ void ModeManager::task(void *parameter) {
                                                        allModes->size());
             for (int i = 0; i < modeCount; i++) {
                 for (Mode *mode : *allModes) {
-                    if (mode->getModeName().equals(String(selectedModesStrList[i]))) {
+                    if (mode->getName().equals(String(selectedModesStrList[i]))) {
                         instance->addSelectedMode(*mode);
                     }
                 }
@@ -58,7 +58,7 @@ void ModeManager::task(void *parameter) {
         bool isModeForced = false;
         int forced_mode_index;
         for (int i = 0; i < selectedModes.size(); i++) {
-            if (selectedModes[i]->getModeName().equals(instance->comm.forcedMode)) {
+            if (selectedModes[i]->getName().equals(instance->comm.forcedMode)) {
                 isModeForced = true;
                 forced_mode_index = i;
                 break;
@@ -86,7 +86,7 @@ void ModeManager::createTask(uint8_t xCoreID) {
 
 void ModeManager::startCurrentMode() {
     if (selectedModes.size() == 0) return;
-    comm.setRequestStr(selectedModes[current_mode_index]->getModeName());
+    comm.setRequestStr(selectedModes[current_mode_index]->getName());
     uint8_t xCoreID = 1;
     selectedModes[current_mode_index]->createTask(xCoreID, lcd, comm);
 }
@@ -118,7 +118,7 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     instance->lcd.setTextSize(DEFAULT_TEXT_SIZE);
     instance->lcd.resetLcdData();
     // Resume
-    comm.setRequestStr(selectedModes[resume_mode_index]->getModeName());
+    comm.setRequestStr(selectedModes[resume_mode_index]->getName());
     uint8_t xCoreID = 1;
     selectedModes[resume_mode_index]->resumeTask(xCoreID, lcd, comm);
     instance->comm.startReceiveEvent();

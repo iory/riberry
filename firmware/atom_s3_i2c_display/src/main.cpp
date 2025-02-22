@@ -2,6 +2,7 @@
 #include <HardwareSerial.h>
 #include <button_manager.h>
 #include <communication_base.h>
+#include <cpu_usage_monitor.h>
 #include <display_battery_graph_mode.h>
 #include <display_image_mode.h>
 #include <display_information_mode.h>
@@ -15,6 +16,7 @@
 #include <servo_control_mode.h>
 #include <system_debug_mode.h>
 #include <teaching_mode.h>
+
 ButtonManager button_manager;
 PrimitiveLCD lcd;
 Pairing pairing;
@@ -64,6 +66,8 @@ const std::vector<Mode *> allModes = {
 };
 
 ModeManager modemanager(lcd, button_manager, comm, allModes);
+std::vector<ExecutionTimer *> executionTimers(allModes.begin(), allModes.end());
+CPUUsageMonitor cpu_usage_monitor(executionTimers);
 
 void setup() {
 #ifdef ATOM_S3

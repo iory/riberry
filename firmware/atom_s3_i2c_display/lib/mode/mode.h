@@ -12,7 +12,7 @@
 
 class Mode : public ExecutionTimer {
 public:
-    Mode(const String& name) : taskHandle(NULL), modeName(name), running(false) {}
+    Mode(const String& name) : ExecutionTimer(name), taskHandle(NULL), running(false) {}
 
     virtual void suspendTask() {
         if (taskHandle != NULL) {
@@ -98,16 +98,14 @@ public:
         // Increasing the stack size (2048 -> 4096) prevents the following assertion:
         // assert failed: heap_caps_free heap_caps.c:381 (heap != NULL && "free() target pointer is
         // outside heap areas")
-        return xTaskCreatePinnedToCore(this->startTaskImpl, getModeName().c_str(), 8192, params, 1,
+        return xTaskCreatePinnedToCore(this->startTaskImpl, getName().c_str(), 8192, params, 1,
                                        &taskHandle, xCoreID);
     }
-
-    String getModeName() const { return modeName; }
 
     bool handleTimeout(PrimitiveLCD& lcd, CommunicationBase& com) {
         if (com.checkTimeout()) {
             lcd.drawNoDataReceived();
-            lcd.printColorText(getModeName() + "\n");
+            lcd.printColorText(getName() + "\n");
             delayWithTimeTracking(pdMS_TO_TICKS(500));
             prevStr = "";
             return true;
@@ -120,7 +118,7 @@ public:
 
     bool handleEmptyDisplay(PrimitiveLCD& lcd) {
         if (lcd.color_str.isEmpty()) {
-            String waitStr = "Waiting for " + getModeName();
+            String waitStr = "Waiting for " + getName();
             lcd.drawBlack();
             lcd.printColorText(waitStr);
             delayWithTimeTracking(pdMS_TO_TICKS(500));
@@ -131,7 +129,6 @@ public:
 
 protected:
     TaskHandle_t taskHandle;
-    String modeName;
     String prevStr;
     bool running;
 };

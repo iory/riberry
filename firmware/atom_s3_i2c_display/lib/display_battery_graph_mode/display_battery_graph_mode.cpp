@@ -11,7 +11,7 @@ void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
         unsigned long currentTime = millis();
         if (lcd.color_str.isEmpty()) {
             lcd.drawBlack();
-            lcd.printColorText("Waiting for " + getModeName());
+            lcd.printColorText("Waiting for " + getName());
         } else {
             // Split by comma
             char *parts[max_buffer_length + 3];

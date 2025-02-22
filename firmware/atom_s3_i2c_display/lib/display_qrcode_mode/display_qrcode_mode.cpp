@@ -6,7 +6,7 @@ void DisplayQRcodeMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     while (running) {
         if (handleTimeout(lcd, com)) continue;
         if (lcd.qrCodeData.isEmpty()) {
-            String waitStr = "Waiting for " + getModeName();
+            String waitStr = "Waiting for " + getName();
             lcd.drawBlack();
             lcd.printColorText(waitStr);
             delayWithTimeTracking(pdMS_TO_TICKS(500));
