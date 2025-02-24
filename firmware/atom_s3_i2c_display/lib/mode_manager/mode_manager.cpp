@@ -107,9 +107,15 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
         return;
     // Suspend
     // deleteTask may not release heap memory, so use suspendTask instead.
+    instance->lcd.lockLcd();
+    instance->lcd.drawBlack();
     instance->lcd.printColorText("Suspend task\n");
+    // When switching modes, ModeManager may suspend the mode before the mode releases lcd
+    // mutex. This deadlock causes lcd freeze. To avoid deadlock, mutex must be taken by
+    // ModeManager before suspending the mode task.
     selectedModes[suspend_mode_index]->suspendTask();
     selectedModes[suspend_mode_index]->waitForTaskSuspended();
+    instance->lcd.unlockLcd();
 
     // Transition
     instance->lcd.printColorText("Success fully suspend task\n");
