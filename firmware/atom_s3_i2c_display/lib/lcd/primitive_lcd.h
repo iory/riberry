@@ -90,6 +90,9 @@ public:
     unsigned long getLastDrawTime();
     void setLastDrawTime(unsigned long time);
 
+    bool lockLcd();
+    void unlockLcd();
+
     bool mode_changed = false;
 
     // for color string
@@ -115,8 +118,6 @@ public:
 private:
     SemaphoreHandle_t lcdMutex;
     float textSize = 0;
-    bool lockLcd();
-    void unlockLcd();
 
 #ifdef LCD_ROTATION
     static constexpr int lcd_rotation = LCD_ROTATION; /**< Current rotation of the LCD. */
