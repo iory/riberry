@@ -40,47 +40,11 @@ public:
     void setTextSize(float text_size);
     float getTextSize();
     void setTextDatum(textdatum_t datum);
-    /**
-     * @brief Convert ANSI color codes to RGB565 values for foreground or
-     * background.
-     *
-     * @param code The ANSI color code.
-     * @param isBackground Whether the color is for the background (true) or
-     * foreground (false).
-     * @return The RGB565 color value.
-     */
     uint16_t colorMap(int code, bool isBackground);
-
-    /**
-     * @brief Draw a JPEG image on the LCD screen.
-     *
-     * @param jpegBuf A buffer containing the JPEG image data.
-     * @param jpegLength The length of the JPEG data.
-     */
     void drawImage(uint8_t* jpegBuf, uint32_t jpegLength);
-
-    /**
-     * @brief Draw a QR code on the LCD screen.
-     *
-     * @param qrCodeData The data to encode in the QR code.
-     */
     void drawQRcode(const String& qrCodeData);
-
-    /**
-     * @brief Display a wait message and show whether GROVE mode is active.
-     *
-     * @param i2cAddress The I2C address to display on the screen.
-     */
     void printWaitMessage(int i2cAddress);
-
-    /**
-     * @brief Display a "No data received" error message on the screen.
-     */
     void drawNoDataReceived();
-
-    /**
-     * @brief Fill the screen with black color.
-     */
     void drawBlack();
 
     void resetColorStr();

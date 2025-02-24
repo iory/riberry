@@ -204,15 +204,9 @@ uint16_t PrimitiveLCD::colorMap(int code, bool isBackground) {
     }
 }
 
-bool PrimitiveLCD::lockLcd() {
-    // ミューテックスのロックを試みる（最大100ms待機）
-    return xSemaphoreTake(lcdMutex, pdMS_TO_TICKS(100)) == pdTRUE;
-}
+bool PrimitiveLCD::lockLcd() { return xSemaphoreTake(lcdMutex, pdMS_TO_TICKS(100)) == pdTRUE; }
 
-void PrimitiveLCD::unlockLcd() {
-    // ミューテックスを解放
-    xSemaphoreGive(lcdMutex);
-}
+void PrimitiveLCD::unlockLcd() { xSemaphoreGive(lcdMutex); }
 
 // e.g. lcd.drawImage(lcd.jpegBuf, lcd.jpegLength);
 void PrimitiveLCD::drawImage(uint8_t* jpegBuf, uint32_t jpegLength) {
