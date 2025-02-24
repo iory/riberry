@@ -68,7 +68,7 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
         displayText += getRoleStr(com.role);
         displayText += "\n\nMy name:\n" + fancyMacAddress(pairing.getMyMACAddress().c_str()) + "\n";
         if (!pairedMACs.empty()) {
-            displayText += "\nPaired devices:\n";
+            displayText += "\nPairing history:\n";
             for (const auto &mac : pairedMACs) {
                 displayText += fancyMacAddress(mac.c_str()) + "\n";
             }
