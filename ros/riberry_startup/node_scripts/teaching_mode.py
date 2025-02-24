@@ -68,6 +68,8 @@ class State(Enum):
     RECORD = 2
     PLAY_LIST_SELECT = 3
     PLAY = 4
+    MOTION_LIST_SELECT = 5
+    CHANGE_MOTION_NAME = 6
 
 
 class TeachingMode(I2CBase):
@@ -97,14 +99,9 @@ class TeachingMode(I2CBase):
         super().__init__(i2c_addr)
         self.teaching_manager = TeachingManager()
         self.playing = False
+        self.new_motion_name = None
         self.speed = rospy.get_param('~speed', 1.0)
-
-        # Load teaching files
-        self.play_list = SelectList()
-        self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
-        self.json_dir = get_cache_dir()
-        for file in get_teaching_files(self.json_dir):
-            self.play_list.add_option(file)
+        self.load_play_list()
 
         # ROS callbacks
         self.mode = None
@@ -181,6 +178,10 @@ class TeachingMode(I2CBase):
             self.state = self.handle_play_list_select_state(msg)
         elif self.state == State.PLAY:
             self.state = self.handle_play_state(msg)
+        elif self.state == State.MOTION_LIST_SELECT:
+            self.state = self.handle_motion_list_select_state(msg)
+        elif self.state == State.CHANGE_MOTION_NAME:
+            self.state = self.handle_change_motion_name_state(msg)
         # Print state transition
         if self.prev_state != self.state:
             rospy.loginfo(f'State: {self.state.name}')
@@ -200,6 +201,13 @@ class TeachingMode(I2CBase):
 
     def virtual_button_tap(self, tap_num):
         self.virtual_button_pub.publish(Int32(data=tap_num))
+
+    def load_play_list(self):
+        self.play_list = SelectList()
+        self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
+        self.json_dir = get_cache_dir()
+        for file in get_teaching_files(self.json_dir):
+            self.play_list.add_option(file)
 
     def record_srv(self, req):
         if self.mode != "TeachingMode":
@@ -287,6 +295,8 @@ class TeachingMode(I2CBase):
         elif msg.data == 3:
             self.teaching_manager.servo_off()
             return State.WAIT
+        elif msg.data == 4:
+            return State.MOTION_LIST_SELECT
         else:  # If no valid button press, do not change state
             return State.WAIT
 
@@ -353,6 +363,36 @@ class TeachingMode(I2CBase):
             return State.PLAY
         else:  # If no valid button press, do not change state
             return State.WAIT
+
+    def handle_motion_list_select_state(self, msg: Int32) -> State:
+        if msg.data != 0 and len(self.play_list.options) <= 0:
+            return State.WAIT
+        # select motion file
+        elif msg.data == 1:
+            self.play_list.increment_index()
+            return State.MOTION_LIST_SELECT
+        # confirm motion file
+        elif msg.data == 2:
+            return State.CHANGE_MOTION_NAME
+        else:  # If no valid button press, do not change state
+            return State.MOTION_LIST_SELECT
+
+    def handle_change_motion_name_state(self, msg: Int32) -> State:
+        if self.new_motion_name is None:
+            input_string = rospy.wait_for_message('~motion_name', String, timeout=None)
+            self.new_motion_name = input_string.data
+        if msg.data == 1:
+            # retry input
+            self.new_motion_name = None
+            return State.CHANGE_MOTION_NAME
+        if msg.data == 2:
+            # confirm renaming
+            self.rename_motion(self.play_list.selected_option(), self.new_motion_name)
+            self.load_play_list()
+            self.new_motion_name = None
+            return State.WAIT
+        else:  # If no valid button press, do not change state
+            return State.CHANGE_MOTION_NAME
 
     def record_and_execute_special_action(self, action_state):
         command = self.special_action_selected[f"{action_state}_command"]
@@ -442,6 +482,22 @@ class TeachingMode(I2CBase):
                 + f'{self.play_list.selected_option(True)}\n\n'\
                 + '2tap:\n stop playing'
             sent_str += f'\n\nSpeed x{self.speed}'
+        elif self.state == State.MOTION_LIST_SELECT:
+            sent_str += "Motion file\n"
+            if len(self.play_list.options) <= 0:
+                sent_str += '\nNo motion\n'\
+                    + ' 1 tap: return'
+            else:
+                sent_str += ' 1tap: select\n'\
+                    + ' 2tap: rename\n\n'
+                sent_str += self.play_list.string_options(5)
+        elif self.state == State.CHANGE_MOTION_NAME:
+            sent_str += 'Old name\n'\
+                + f' {self.play_list.selected_option(True)}\n\n'\
+                + 'New name\n'\
+                + f' {self.new_motion_name}\n\n'\
+                + '1tap:\n retry input\n'\
+                + '2tap:\n confirm'
         delimiter_num = 1
         if len([char for char in sent_str if char == delimiter]) != delimiter_num:
             rospy.logerr(f"sent string: {sent_str}")
@@ -489,6 +545,12 @@ class TeachingMode(I2CBase):
     def stop_playing(self):
         self.teaching_manager.stop()
         self.playing = False
+
+    def rename_motion(self, filepath, new_name):
+        dir_path = os.path.dirname(filepath)
+        new_filename = f"teaching_{new_name}.json"
+        new_filepath = os.path.join(dir_path, new_filename)
+        os.rename(filepath, new_filepath)
 
 
 if __name__ == '__main__':
