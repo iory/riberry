@@ -2,7 +2,7 @@
 
 PrimitiveLCD::PrimitiveLCD() : LGFX(), qrCodeData("") {
     init();
-    lcdMutex = xSemaphoreCreateMutex();
+    lcdMutex = xSemaphoreCreateRecursiveMutex();
     setRotation(lcd_rotation);
     clear();
     setTextSize(DEFAULT_TEXT_SIZE);
@@ -204,9 +204,9 @@ uint16_t PrimitiveLCD::colorMap(int code, bool isBackground) {
     }
 }
 
-bool PrimitiveLCD::lockLcd() { return xSemaphoreTake(lcdMutex, pdMS_TO_TICKS(100)) == pdTRUE; }
+bool PrimitiveLCD::lockLcd() { return xSemaphoreTakeRecursive(lcdMutex, portMAX_DELAY) == pdTRUE; }
 
-void PrimitiveLCD::unlockLcd() { xSemaphoreGive(lcdMutex); }
+void PrimitiveLCD::unlockLcd() { xSemaphoreGiveRecursive(lcdMutex); }
 
 // e.g. lcd.drawImage(lcd.jpegBuf, lcd.jpegLength);
 void PrimitiveLCD::drawImage(uint8_t* jpegBuf, uint32_t jpegLength) {
