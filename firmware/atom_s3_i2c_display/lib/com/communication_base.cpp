@@ -74,6 +74,10 @@ void CommunicationBase::receiveEvent(int howMany) {
 
     PacketType packetType = static_cast<PacketType>(str[0]);
     switch (packetType) {
+        case TEXT:
+            instance->lcd.color_str = str.substring(1);
+            break;
+
         case JPEG:
             handleJpegPacket(str.substring(1));
             break;
@@ -176,7 +180,7 @@ void CommunicationBase::receiveEvent(int howMany) {
             break;
         }
         default:
-            // Handle TEXT or unknown packets
+            // unknown packets
             instance->lcd.color_str = str;
             break;
     }
