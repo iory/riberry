@@ -287,7 +287,6 @@ class DisplayInformation:
 
         if ros_available and ros_additional_message:
             sent_str += f"{ros_additional_message}\n"
-            ros_additional_message = None
 
         self.com.write(sent_str)
 
@@ -397,6 +396,9 @@ class DisplayInformation:
                 self.com.write(ros_master_uri.replace("http://", "").replace(":11311", ""))
             else:
                 time.sleep(0.1)
+            if mode != "DisplayInformationMode":
+                global ros_additional_message
+                ros_additional_message = None
             # Force mode change once according to ~atom_s3_force_mode topic
             if atom_s3_forced_mode is not None:
                 if atom_s3_forced_mode != atom_s3_mode:
