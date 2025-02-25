@@ -401,8 +401,7 @@ class DisplayInformation:
                 ros_additional_message = None
             # Force mode change once according to ~atom_s3_force_mode topic
             if atom_s3_forced_mode is not None:
-                if atom_s3_forced_mode != atom_s3_mode:
-                    self.force_mode(atom_s3_forced_mode)
+                self.force_mode(atom_s3_forced_mode)
                 atom_s3_forced_mode = None
 
 

@@ -116,6 +116,9 @@ class TeachingMode(I2CBase):
         rospy.Subscriber(
             "atom_s3_button_state",
             Int32, callback=self.state_transition_cb, queue_size=1)
+        rospy.Subscriber(
+            "teaching_mode_additional_info",
+            String, callback=self.additional_info_cb, queue_size=1)
         rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
 
         # Call action from rosservice
@@ -444,6 +447,9 @@ class TeachingMode(I2CBase):
             rospy.logerr(f"sent string: {sent_str}")
             rospy.logerr(f"The number of delimiter '{delimiter}' must be {delimiter_num}")
         self.write(sent_str)
+
+    def additional_info_cb(self, msg):
+        self.additional_str = msg.data
 
     def start_recording(self):
         """
