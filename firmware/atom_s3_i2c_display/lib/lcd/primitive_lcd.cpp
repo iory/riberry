@@ -53,8 +53,25 @@ void PrimitiveLCD::printColorText(const String& input) {
                 }
             }
             LGFX::setTextColor(textColor, bgColor);
-            LGFX::print(text.charAt(index));
-            index++;
+            uint8_t firstByte = text.charAt(index);
+            int charLen;
+            if ((firstByte & 0x80) == 0) {  // 0xxxxxxx - ASCII
+                charLen = 1;
+            } else if ((firstByte & 0xE0) == 0xC0) {  // 110xxxxx - 2 byte charactor
+                charLen = 2;
+                setFont(&fonts::lgfxJapanGothic_8);
+            } else if ((firstByte & 0xF0) == 0xE0) {  // 1110xxxx - 3 byte charactor
+                charLen = 3;
+                setFont(&fonts::lgfxJapanGothic_8);
+            } else if ((firstByte & 0xF8) == 0xF0) {  // 11110xxx - 4 byte charactor
+                charLen = 4;
+                setFont(&fonts::lgfxJapanGothic_8);
+            } else {  // Invalid UTF-8 byte
+                charLen = 1;
+            }
+            LGFX::print(text.substring(index, index + charLen));
+            setFont(&fonts::Font0);
+            index += charLen;
         }
         unlockLcd();
     }

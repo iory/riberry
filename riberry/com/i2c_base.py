@@ -84,7 +84,9 @@ class I2CBase(ComBase):
                 print(e)
 
     def write(self, data):
-        buffer_size = len(data) + 8
+        # Allocate a buffer size of 4 times the length of the string
+        # to allow Unicode (4-byte characters) as well as ASCII charactors
+        buffer_size = len(data) * 4 + 2
         packer = WirePacker(buffer_size=buffer_size)
 
         if isinstance(data, str):
@@ -104,7 +106,9 @@ class I2CBase(ComBase):
             elif all(isinstance(item, str) and len(item) == 1 for item in data):
                 # If all elements are single-character strings, convert to ASCII values
                 data_str = ''.join(data)  # Combine list into a single string
-                for r in list(map(ord, data_str)):
+                nested_byte_list = [list(x.encode('utf-8')) for x in data_str]
+                byte_list = [item for sublist in nested_byte_list for item in sublist]
+                for r in byte_list:
                     packer.write(r)
             else:
                 raise ValueError('List must contain either all integers or all single-character strings.')
