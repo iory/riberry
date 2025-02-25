@@ -32,6 +32,10 @@ class KeywordToAction:
         self.req_special_action = rospy.ServiceProxy("teaching_mode/special_action", SetBool)
         self.pub_mode = rospy.Publisher(
             "atom_s3_force_mode", String, queue_size=1)
+        self.pub_atoms3_info = rospy.Publisher(
+            "atom_s3_additional_info", String, queue_size=1)
+        self.pub_teaching_info = rospy.Publisher(
+            "teaching_mode_additional_info", String, queue_size=1)
         rospy.Subscriber("atom_s3_mode", String, self.mode_cb)
         self.mode = None
 
@@ -44,8 +48,9 @@ class KeywordToAction:
             self.trigger_action(highest_similarity_keyword)
             rospy.loginfo(f"Get keyword: {highest_similarity_keyword}")
         else:
-            rospy.logwarn(
-                f"Unreliable keyword is detected: '{highest_similarity_keyword}'")
+            info = f"Unreliable keyword: {highest_similarity_keyword}"
+            self.info_on_atoms3(info)
+            rospy.logwarn(info)
 
     def mode_cb(self, msg):
         self.mode = msg.data
@@ -61,6 +66,14 @@ class KeywordToAction:
             if elapsed_time > timeout:
                 rospy.logwarn(f"Mode change to {mode_name} timed out after {timeout} seconds")
                 return False
+
+    def info_on_atoms3(self, info):
+        if self.mode == "TeachingMode":
+            self.force_mode("TeachingMode")
+            self.pub_teaching_info.publish(info)
+        else:
+            self.force_mode("DisplayInformationMode")
+            self.pub_atoms3_info.publish(info)
 
     # User specific function
     def trigger_action(self, keyword):
@@ -121,7 +134,9 @@ class KeywordToAction:
         elif keyword == "DisplayInformationモード":
             self.force_mode("DisplayInformationMode")
         else:
-            rospy.logerr(f"Unknown keyword is detected: {keyword}")
+            info = f"Unknown keyword: {keyword}"
+            self.info_on_atoms3(info)
+            rospy.logwarn(info)
 
 
 if __name__ == "__main__":
