@@ -89,10 +89,21 @@ class I2CBase(ComBase):
         buffer_size = len(data) * 4 + 2
         packer = WirePacker(buffer_size=buffer_size)
 
+        def str_to_byte_list(str):
+            """Convert String into byte list because packer.write() requires 0~255 value.
+
+            Example
+            Input: 'aあ' ('a' is [97] and 'あ' is [227, 129, 130] in unicode)
+            Output: [97, 227, 129, 130]
+            """
+            nested_byte_list = [list(x.encode('utf-8')) for x in str]
+            byte_list = [item for sublist in nested_byte_list for item in sublist]
+            return byte_list
+
         if isinstance(data, str):
-            for s in data:
+            for s in str_to_byte_list(data):
                 try:
-                    packer.write(ord(s))
+                    packer.write(s)
                 except ValueError as e:
                     print(f'[ERROR] {e} Invalid character {s}')
         elif isinstance(data, (bytes, bytearray)):
@@ -104,11 +115,10 @@ class I2CBase(ComBase):
                 for r in data:
                     packer.write(r)
             elif all(isinstance(item, str) and len(item) == 1 for item in data):
+
                 # If all elements are single-character strings, convert to ASCII values
-                data_str = ''.join(data)  # Combine list into a single string
-                nested_byte_list = [list(x.encode('utf-8')) for x in data_str]
-                byte_list = [item for sublist in nested_byte_list for item in sublist]
-                for r in byte_list:
+                data_str = ''.join(data)
+                for r in str_to_byte_list(data_str):
                     packer.write(r)
             else:
                 raise ValueError('List must contain either all integers or all single-character strings.')
