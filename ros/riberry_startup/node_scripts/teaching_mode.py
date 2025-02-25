@@ -473,8 +473,8 @@ class TeachingMode(I2CBase):
                 sent_str += '\nNo motion\n'\
                     + ' 1 tap: return'
             else:
-                sent_str += ' 1tap: select\n'\
-                    + ' 2tap: start\n'\
+                sent_str += ' 1tap: next\n'\
+                    + ' 2tap: select\n'\
                     + ' 3tap: delete\n\n'
                 sent_str += self.play_list.string_options(5)
         elif self.state == State.PLAY:
@@ -488,8 +488,8 @@ class TeachingMode(I2CBase):
                 sent_str += '\nNo motion\n'\
                     + ' 1 tap: return'
             else:
-                sent_str += ' 1tap: select\n'\
-                    + ' 2tap: rename\n\n'
+                sent_str += ' 1tap: next\n'\
+                    + ' 2tap: select\n\n'
                 sent_str += self.play_list.string_options(5)
         elif self.state == State.CHANGE_MOTION_NAME:
             sent_str += 'Old name\n'\
