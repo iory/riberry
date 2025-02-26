@@ -93,6 +93,9 @@ class SpeechToKeyword:
         rospy.loginfo("New contexts are registered.")
         rospy.loginfo(contexts)
         self.contexts = contexts
+        # When dict is set to rosparam, each key is recognized as a namespace
+        # To avoid this, make the dict a list and then set it to param
+        rospy.set_param('~contexts', [self.contexts])
 
 
 if __name__ == '__main__':
