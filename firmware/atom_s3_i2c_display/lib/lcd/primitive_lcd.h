@@ -25,6 +25,7 @@ public:
                  uint16_t offY = 0,
                  jpeg_div_t scale = JPEG_DIV_NONE);
     void qrcode(const char* string, uint16_t x, uint16_t y, uint8_t width, uint8_t version);
+    void setJapaneseFont();
     void printColorText(const String& input);
     void fillScreen(uint16_t color);
     void fillRect(int x1, int y1, int w, int h, uint16_t color);
