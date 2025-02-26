@@ -55,3 +55,15 @@ class ComBase:
             return "Unknown Device"
         except FileNotFoundError:
             return "Unknown Device"
+
+
+def str_to_byte_list(str):
+    """Convert String into byte list because packer.write() and serial.write() requires 0~255 value.
+
+    Example
+    Input: 'aあ' ('a' is [97] and 'あ' is [227, 129, 130] in unicode)
+    Output: [97, 227, 129, 130]
+    """
+    nested_byte_list = [list(x.encode('utf-8')) for x in str]
+    byte_list = [item for sublist in nested_byte_list for item in sublist]
+    return byte_list

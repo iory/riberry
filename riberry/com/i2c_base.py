@@ -7,6 +7,7 @@ from i2c_for_esp32 import WirePacker
 from i2c_for_esp32 import WireUnpacker
 
 from riberry.com.base import ComBase
+from riberry.com.base import str_to_byte_list
 
 if sys.hexversion < 0x03000000:
 
@@ -88,17 +89,6 @@ class I2CBase(ComBase):
         # to allow Unicode (4-byte characters) as well as ASCII characters
         buffer_size = len(data) * 4 + 2
         packer = WirePacker(buffer_size=buffer_size)
-
-        def str_to_byte_list(str):
-            """Convert String into byte list because packer.write() requires 0~255 value.
-
-            Example
-            Input: 'aあ' ('a' is [97] and 'あ' is [227, 129, 130] in unicode)
-            Output: [97, 227, 129, 130]
-            """
-            nested_byte_list = [list(x.encode('utf-8')) for x in str]
-            byte_list = [item for sublist in nested_byte_list for item in sublist]
-            return byte_list
 
         if isinstance(data, str):
             for s in str_to_byte_list(data):
