@@ -43,7 +43,7 @@ class PressureControlMode(I2CBase):
             queue_size=1,
         )
         self.air_work_list = SelectList()
-        self.delimiter = ":"
+        self.delimiter = "|"
 
         # Read pressure
         self.pressures = {}
