@@ -80,7 +80,12 @@ std::vector<ExecutionTimer *> executionTimers = {&pairing,
                                                  &teaching_mode,
                                                  &pairing_mode,
                                                  &system_debug_mode};
-CPUUsageMonitor cpu_usage_monitor(executionTimers);
+
+#ifdef ATOM_S3
+CPUUsageMonitor cpu_usage_monitor(executionTimers, &USBSerial);
+#elif USE_M5STACK_BASIC
+CPUUsageMonitor cpu_usage_monitor(executionTimers, &Serial);
+#endif
 
 void setup() {
 #ifdef ATOM_S3
