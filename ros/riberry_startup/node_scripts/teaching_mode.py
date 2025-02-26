@@ -449,7 +449,7 @@ class TeachingMode(I2CBase):
         if self.teaching_manager.marker_manager.is_marker_recognized():
             marker_ids = self.teaching_manager.marker_manager.current_marker_ids()
             sent_str += str(marker_ids[0])
-        delimiter = ','
+        delimiter = '|'
         sent_str += delimiter
         if self.state != State.WAIT:
             self.additional_str = ""

@@ -8,7 +8,7 @@ void TeachingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
         int listSize = 2;
         // Draw string
         char **StrList = (char **)malloc(listSize * sizeof(char *));
-        int modeCount = com.splitString(lcd.color_str, ',', StrList, listSize);
+        int modeCount = com.splitString(lcd.color_str, '|', StrList, listSize);
         lcd.drawBlack();
         lcd.printColorText(String(StrList[1]));
         // Draw AR Marker if found
