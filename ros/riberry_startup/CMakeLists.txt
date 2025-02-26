@@ -41,6 +41,7 @@ add_message_files(
 add_service_files(
   FILES
   RegisterContexts.srv
+  SelectMotion.srv  
 )
 
 generate_messages(

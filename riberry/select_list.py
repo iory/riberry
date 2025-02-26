@@ -46,6 +46,16 @@ class SelectList:
             self.idx = idx
         return self.idx
 
+    def set_index_by_keyword(self, key):
+        for i, option in enumerate(self.options):
+            if self.pattern:
+                match = self.pattern.search(option)
+                option = match.group(1) if match else option
+            if option == key:
+                self.idx = i
+                return True
+        return False
+
     def selected_option(self, extract=False):
         if len(self.options) <= self.idx:
             return None
