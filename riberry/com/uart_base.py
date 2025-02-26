@@ -2,6 +2,7 @@ import serial
 import serial.tools.list_ports
 
 from riberry.com.base import ComBase
+from riberry.com.base import str_to_byte_list
 
 
 def usb_devices():
@@ -75,7 +76,7 @@ class UARTBase(ComBase):
                 self._connect_serial()
                 return
             if isinstance(data, str):
-                self.serial.write(list(map(ord, data)))
+                self.serial.write(str_to_byte_list(data))
             elif isinstance(data, (bytes, bytearray)):
                 self.serial.write(data)
             elif isinstance(data, list):
@@ -85,7 +86,7 @@ class UARTBase(ComBase):
                 elif all(isinstance(item, str) and len(item) == 1 for item in data):
                     # If all elements are single-character strings, convert to ASCII values
                     data_str = ''.join(data)  # Combine list into a single string
-                    self.serial.write(list(map(ord, data_str)))
+                    self.serial.write(str_to_byte_list(data_str))
                 else:
                     raise ValueError('List must contain either all integers or all single-character strings.')
             else:
