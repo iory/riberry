@@ -24,8 +24,8 @@ def calculate_similarity(embedding_cache, prompt, context):
     similarities = []
     for keyword in candidates.keys():
         similarity_dict = candidates[keyword]
-        # Use most similar sentense score
-        best_sentense, max_similarity = max(
+        # Use most similar sentence score
+        best_sentence, max_similarity = max(
             similarity_dict.items(), key=lambda x: x[1])
         keywords += [keyword]
         similarities.append(max_similarity)

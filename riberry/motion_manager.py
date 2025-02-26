@@ -324,7 +324,7 @@ class MotionManager:
             link_list_has_joint = [x for x in link_list if x.joint is not None]
             ret = robot.inverse_kinematics(
                 ik_coords, link_list=link_list_has_joint, move_target=end_coords,
-                # thre=[0.001 * 5], rthre=[np.deg2rad(1*5)],  # 5x times loose IK
+                # thre=[0.001 * 5], rthre=[np.deg2rad(1*5)],  # 5x times loose IK  # spellchecker:disable-line
                 stop=10,  # faster IK
             )
             if isinstance(ret, np.ndarray) is False:
