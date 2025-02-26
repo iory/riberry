@@ -3,6 +3,8 @@
 import json
 
 from riberry_startup.msg import KeywordCandidates
+from riberry_startup.srv import RegisterContexts
+from riberry_startup.srv import RegisterContextsResponse
 import rospy
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 
@@ -26,17 +28,23 @@ class SpeechToKeyword:
 
     def __init__(self, embedding_cache):
         self.embedding_cache = embedding_cache
-        json_file_path = rospy.get_param("~contexts_json", None)
-        if json_file_path is None:
-            rospy.logerr("~contexts_json param must be set.")
-            return
-        with open(json_file_path) as f:
-            self.contexts = json.load(f)
-            if any(self.contexts) is False:
-                rospy.logerr('Context data is empty or invalid')
-                return
         rospy.Subscriber('speech_to_text', SpeechRecognitionCandidates, self.speech_to_keyword_callback)
         self.keyword_pub = rospy.Publisher('~candidates', KeywordCandidates, queue_size=10)
+
+        # Register keywords and corresponding contexts
+        rospy.Service('~register_contexts', RegisterContexts, self.register_contexts_cb)
+        rospy.wait_for_service('~register_contexts')
+        # Load contexts json at first time. After that, contexts are changed by service call.
+        json_file_path = rospy.get_param("~contexts_json", None)
+        if json_file_path is None:
+            rospy.logwarn("~contexts_json param is not set.")
+            return
+        with open(json_file_path) as f:
+            contexts = json.load(f)
+            if any(contexts) is False:
+                rospy.logwarn('Context data is empty or invalid')
+                return
+            self.register_contexts(contexts)
 
     def speech_to_keyword_callback(self, msg):
         """
@@ -73,6 +81,18 @@ class SpeechToKeyword:
         candidates_msg.keywords = keywords
         candidates_msg.similarities = similarities
         self.keyword_pub.publish(candidates_msg)
+
+    def register_contexts_cb(self, req):
+        contexts = {}
+        for context_msg in req.contexts:
+            contexts[context_msg.keyword] = context_msg.context
+        self.register_contexts(contexts)
+        return RegisterContextsResponse(success=True, message="")
+
+    def register_contexts(self, contexts):
+        rospy.loginfo("New contexts are registered.")
+        rospy.loginfo(contexts)
+        self.contexts = contexts
 
 
 if __name__ == '__main__':
