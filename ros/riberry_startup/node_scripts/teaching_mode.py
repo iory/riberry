@@ -5,6 +5,8 @@ from enum import Enum
 import os
 import threading
 
+from riberry_startup.srv import SelectMotion
+from riberry_startup.srv import SelectMotionResponse
 import rospy
 from std_msgs.msg import Int32
 from std_msgs.msg import String
@@ -119,7 +121,7 @@ class TeachingMode(I2CBase):
         rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
 
         # Call action from rosservice
-        rospy.Service('~play', SetBool, self.play_srv)
+        rospy.Service('~play', SelectMotion, self.play_srv)
         rospy.Service('~record', SetBool, self.record_srv)
         rospy.Service('~special_action', SetBool, self.special_action_srv)
         rospy.Service('~change_name', SetBool, self.change_name_srv)
@@ -131,7 +133,7 @@ class TeachingMode(I2CBase):
             '~special_actions', [])
         self.special_action_list = SelectList()
         for action in self.special_actions:
-            keys = ("name","start_command", "stop_command")
+            keys = ("name", "start_command", "stop_command")
             if not all(k in action for k in keys):
                 rospy.logerr(f"special action must have key: {keys}.")
                 return
@@ -247,21 +249,25 @@ class TeachingMode(I2CBase):
         if req.data is True:
             # Start playing
             if self.wait_for_state(State.WAIT, 1) is False:
-                return SetBoolResponse(success=False)
+                return SelectMotionResponse(success=False)
             self.virtual_button_tap(2)
             if self.wait_for_state(State.PLAY_LIST_SELECT, 1) is False:
-                return SetBoolResponse(success=False)
+                return SelectMotionResponse(success=False)
+            if req.name:
+                ret = self.play_list.set_index_by_keyword(req.name)
+                if ret is False:
+                    return SelectMotionResponse(success=False)
             self.virtual_button_tap(2)  # Play the latest motion
             if self.wait_for_state(State.PLAY, 1) is False:
-                return SetBoolResponse(success=False)
+                return SelectMotionResponse(success=False)
         else:
             # Stop playing
             if self.wait_for_state(State.PLAY, 1) is False:
-                return SetBoolResponse(success=False)
+                return SelectMotionResponse(success=False)
             self.virtual_button_tap(2)
             if self.wait_for_state(State.WAIT, 3) is False:
-                return SetBoolResponse(success=False)
-        return SetBoolResponse(success=True)
+                return SelectMotionResponse(success=False)
+        return SelectMotionResponse(success=True)
 
     def special_action_srv(self, req):
         """
@@ -353,8 +359,7 @@ class TeachingMode(I2CBase):
             return State.PLAY_LIST_SELECT
         # confirm play file
         elif msg.data == 2:
-            self.start_playing(
-                self.play_list.selected_option())
+            self.start_playing(self.play_list.selected_option())
             return State.PLAY
         # delete play file
         elif msg.data == 3:

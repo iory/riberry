@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 
+import os
+
 from kxr_controller.kxr_interface import KXRROSRobotInterface
+from riberry_startup.msg import Context
 from riberry_startup.msg import KeywordCandidates
+from riberry_startup.srv import RegisterContexts
+from riberry_startup.srv import RegisterContextsRequest
+from riberry_startup.srv import SelectMotion
 import rospy
 from skrobot.model import RobotModel
 from skrobot.utils.urdf import no_mesh_load_mode
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 from std_msgs.msg import String
 from std_srvs.srv import SetBool
+
+from riberry.filecheck_utils import get_cache_dir
 
 
 class KeywordToAction:
@@ -26,18 +34,21 @@ class KeywordToAction:
         rospy.Subscriber(
             "keyword_extraction/candidates", KeywordCandidates, self.keyword_cb)
         self.threshold = 0.65
+        rospy.wait_for_service('keyword_extraction/register_contexts')
+        self.register_contexts= rospy.ServiceProxy(
+        'keyword_extraction/register_contexts', RegisterContexts)
 
         # Control robot
-        self.req_play = rospy.ServiceProxy("teaching_mode/play", SetBool)
+        self.req_play = rospy.ServiceProxy("teaching_mode/play", SelectMotion)
         self.req_record = rospy.ServiceProxy("teaching_mode/record", SetBool)
         self.req_special_action = rospy.ServiceProxy("teaching_mode/special_action", SetBool)
         self.req_change_name = rospy.ServiceProxy("teaching_mode/change_name", SetBool)
 
         # Send motion name
         self.motion_name_pub = rospy.Publisher(
-            'teaching_mode/motion_name', String, queue_size=10)
+            'teaching_mode/motion_name', String, queue_size=1)
         rospy.Subscriber('speech_to_text',
-                         SpeechRecognitionCandidates, self.speech_callback)
+                         SpeechRecognitionCandidates, self.speech_callback, queue_size=1)
 
         self.pub_mode = rospy.Publisher(
             "atom_s3_force_mode", String, queue_size=1)
@@ -47,6 +58,8 @@ class KeywordToAction:
             "teaching_mode_additional_info", String, queue_size=1)
         rospy.Subscriber("atom_s3_mode", String, self.mode_cb)
         self.mode = None
+        self.named_motions = []
+        self.wait_play_motion = False
 
     def keyword_cb(self, msg):
         max_index = msg.similarities.index(max(msg.similarities))
@@ -54,8 +67,8 @@ class KeywordToAction:
         highest_similarity_value = msg.similarities[max_index]
 
         if highest_similarity_value > self.threshold:
-            self.trigger_action(highest_similarity_keyword)
             rospy.loginfo(f"Get keyword: {highest_similarity_keyword}")
+            self.trigger_action(highest_similarity_keyword)
         else:
             info = f"Unreliable keyword: {highest_similarity_keyword}"
             self.info_on_atoms3(info)
@@ -79,11 +92,12 @@ class KeywordToAction:
         while True:
             if self.mode == mode_name:
                 return True
-        if timeout > 0:
-            elapsed_time = (rospy.Time.now() - start_time).to_sec()
-            if elapsed_time > timeout:
-                rospy.logwarn(f"Mode change to {mode_name} timed out after {timeout} seconds")
-                return False
+            if timeout > 0:
+                elapsed_time = (rospy.Time.now() - start_time).to_sec()
+                if elapsed_time > timeout:
+                    rospy.logwarn(f"Mode change to {mode_name} timed out after {timeout} seconds")
+                    return False
+            rospy.sleep(0.01)
 
     def info_on_atoms3(self, info):
         if self.mode == "TeachingMode":
@@ -92,6 +106,26 @@ class KeywordToAction:
         else:
             self.force_mode("DisplayInformationMode")
             self.pub_atoms3_info.publish(info)
+
+    def load_named_motions(self):
+        json_dir = get_cache_dir()
+        motions = [
+            file[len("teaching_"): -len(".json")]
+            for file in os.listdir(json_dir)
+            if file.startswith("teaching_") and file.endswith(".json")
+        ]
+        self.named_motions = [
+            name for name in motions if not all(c.isdigit() or c == "_" for c in name)
+        ]
+
+    def dict_to_context_request(self, dic):
+        req = RegisterContextsRequest(contexts=[])
+        for keyword in dic.keys():
+            context = Context()
+            context.keyword = keyword
+            context.context = dic[keyword]
+            req.contexts.append(context)
+        return req
 
     # User specific function
     def trigger_action(self, keyword):
@@ -105,8 +139,21 @@ class KeywordToAction:
             self.req_change_name(True)
         elif keyword == "動作再生開始":
             self.force_mode("TeachingMode")
+            self.load_named_motions()
+            self.contexts = rospy.get_param("keyword_extraction/contexts", [{}])[0]
+            named_motions_dict = {item: [item] for item in self.named_motions}
+            merged_dict = {**self.contexts, **named_motions_dict}
+            req = self.dict_to_context_request(merged_dict)
+            self.register_contexts(req)
+            self.wait_play_motion = True
+            info = f"motions: {self.named_motions}"
+            self.info_on_atoms3(info)
+        elif keyword in self.named_motions and self.wait_play_motion:
+            self.wait_play_motion = False
+            req = self.dict_to_context_request(self.contexts)
+            self.register_contexts(req)
             rospy.wait_for_service("teaching_mode/play")
-            self.req_play(True)
+            self.req_play(data=True, name=keyword)
         elif keyword == "動作再生終了":
             self.force_mode("TeachingMode")
             rospy.wait_for_service("teaching_mode/play")
