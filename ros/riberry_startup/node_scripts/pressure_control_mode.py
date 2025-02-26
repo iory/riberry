@@ -139,7 +139,7 @@ class PressureControlMode(I2CBase):
                     elif release_duration > 0:
                         air_work_str += "\x1b[31m OFF\x1b[39m"
                 if air_work_str.count(self.delimiter) != 1:
-                    rospy.logerr(f"The number of delimiter {self.deilmiter} must be 1")
+                    rospy.logerr(f"The number of delimiter {self.delimiter} must be 1")
                 self.air_work_list.add_option(air_work_str)
         self.air_work_list.set_index(air_work_index)
         sent_str += self.air_work_list.string_options(3)
