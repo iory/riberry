@@ -59,6 +59,7 @@ class KeywordToAction:
         rospy.Subscriber("atom_s3_mode", String, self.mode_cb)
         self.mode = None
         self.named_motions = []
+        self.wait_play_motion = False
 
     def keyword_cb(self, msg):
         max_index = msg.similarities.index(max(msg.similarities))
@@ -143,9 +144,11 @@ class KeywordToAction:
             merged_dict = {**self.contexts, **named_motions_dict}
             req = self.dict_to_context_request(merged_dict)
             self.register_contexts(req)
+            self.wait_play_motion = True
             info = f"motions: {self.named_motions}"
             self.info_on_atoms3(info)
-        elif keyword in self.named_motions:
+        elif keyword in self.named_motions and self.wait_play_motion:
+            self.wait_play_motion = False
             req = self.dict_to_context_request(self.contexts)
             self.register_contexts(req)
             rospy.wait_for_service("teaching_mode/play")
