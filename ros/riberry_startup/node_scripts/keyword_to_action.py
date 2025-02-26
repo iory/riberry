@@ -46,9 +46,9 @@ class KeywordToAction:
 
         # Send motion name
         self.motion_name_pub = rospy.Publisher(
-            'teaching_mode/motion_name', String, queue_size=10)
+            'teaching_mode/motion_name', String, queue_size=1)
         rospy.Subscriber('speech_to_text',
-                         SpeechRecognitionCandidates, self.speech_callback)
+                         SpeechRecognitionCandidates, self.speech_callback, queue_size=1)
 
         self.pub_mode = rospy.Publisher(
             "atom_s3_force_mode", String, queue_size=1)
@@ -143,6 +143,8 @@ class KeywordToAction:
             merged_dict = {**self.contexts, **named_motions_dict}
             req = self.dict_to_context_request(merged_dict)
             self.register_contexts(req)
+            info = f"motions: {self.named_motions}"
+            self.info_on_atoms3(info)
         elif keyword in self.named_motions:
             req = self.dict_to_context_request(self.contexts)
             self.register_contexts(req)
