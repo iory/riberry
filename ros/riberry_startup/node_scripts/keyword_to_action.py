@@ -5,6 +5,7 @@ from riberry_startup.msg import KeywordCandidates
 import rospy
 from skrobot.model import RobotModel
 from skrobot.utils.urdf import no_mesh_load_mode
+from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 from std_msgs.msg import String
 from std_srvs.srv import SetBool
 
@@ -30,6 +31,14 @@ class KeywordToAction:
         self.req_play = rospy.ServiceProxy("teaching_mode/play", SetBool)
         self.req_record = rospy.ServiceProxy("teaching_mode/record", SetBool)
         self.req_special_action = rospy.ServiceProxy("teaching_mode/special_action", SetBool)
+        self.req_change_name = rospy.ServiceProxy("teaching_mode/change_name", SetBool)
+
+        # Send motion name
+        self.motion_name_pub = rospy.Publisher(
+            'teaching_mode/motion_name', String, queue_size=10)
+        rospy.Subscriber('speech_to_text',
+                         SpeechRecognitionCandidates, self.speech_callback)
+
         self.pub_mode = rospy.Publisher(
             "atom_s3_force_mode", String, queue_size=1)
         self.pub_atoms3_info = rospy.Publisher(
@@ -51,6 +60,15 @@ class KeywordToAction:
             info = f"Unreliable keyword: {highest_similarity_keyword}"
             self.info_on_atoms3(info)
             rospy.logwarn(info)
+
+    def speech_callback(self, msg):
+        if not msg.transcript:
+            rospy.logwarn("Received empty transcript.")
+            return
+        num_subscribers = self.motion_name_pub.get_num_connections()
+        if num_subscribers > 0:
+            motion_msg = String(data=msg.transcript[0])
+            self.motion_name_pub.publish(motion_msg)
 
     def mode_cb(self, msg):
         self.mode = msg.data
@@ -81,6 +99,10 @@ class KeywordToAction:
             self.ri.servo_on()
         elif keyword == "サーボオフ":
             self.ri.servo_off()
+        elif keyword == "動作名変更":
+            self.force_mode("TeachingMode")
+            rospy.wait_for_service("teaching_mode/change_name")
+            self.req_change_name(True)
         elif keyword == "動作再生開始":
             self.force_mode("TeachingMode")
             rospy.wait_for_service("teaching_mode/play")
