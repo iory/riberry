@@ -33,8 +33,14 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
+  Context.msg
   ImuFace.msg
   KeywordCandidates.msg
+)
+
+add_service_files(
+  FILES
+  RegisterContexts.srv
 )
 
 generate_messages(
