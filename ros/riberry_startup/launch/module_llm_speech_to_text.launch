@@ -36,4 +36,9 @@
     <remap from="audio_info" to="$(arg audio_info_topic)" />
   </node>
 
+  <node name="display_speech_to_text"
+        pkg="riberry_startup" type="display_speech_to_text.py"
+        respawn="true">
+  </node>
+
 </launch>
