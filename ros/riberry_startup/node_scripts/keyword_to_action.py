@@ -67,8 +67,8 @@ class KeywordToAction:
         highest_similarity_value = msg.similarities[max_index]
 
         if highest_similarity_value > self.threshold:
-            self.trigger_action(highest_similarity_keyword)
             rospy.loginfo(f"Get keyword: {highest_similarity_keyword}")
+            self.trigger_action(highest_similarity_keyword)
         else:
             info = f"Unreliable keyword: {highest_similarity_keyword}"
             self.info_on_atoms3(info)
@@ -92,11 +92,12 @@ class KeywordToAction:
         while True:
             if self.mode == mode_name:
                 return True
-        if timeout > 0:
-            elapsed_time = (rospy.Time.now() - start_time).to_sec()
-            if elapsed_time > timeout:
-                rospy.logwarn(f"Mode change to {mode_name} timed out after {timeout} seconds")
-                return False
+            if timeout > 0:
+                elapsed_time = (rospy.Time.now() - start_time).to_sec()
+                if elapsed_time > timeout:
+                    rospy.logwarn(f"Mode change to {mode_name} timed out after {timeout} seconds")
+                    return False
+            rospy.sleep(0.01)
 
     def info_on_atoms3(self, info):
         if self.mode == "TeachingMode":
