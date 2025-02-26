@@ -122,6 +122,7 @@ class TeachingMode(I2CBase):
         rospy.Service('~play', SetBool, self.play_srv)
         rospy.Service('~record', SetBool, self.record_srv)
         rospy.Service('~special_action', SetBool, self.special_action_srv)
+        rospy.Service('~change_name', SetBool, self.change_name_srv)
         self.virtual_button_pub = rospy.Publisher(
             "atom_s3_button_state", Int32, queue_size=1)
 
@@ -278,6 +279,17 @@ class TeachingMode(I2CBase):
         # self.record_and_execute_special_action can do both start and stop
         self.record_and_execute_special_action(action_state)
         if self.wait_for_state(State.RECORD, 3) is False:
+            return SetBoolResponse(success=False)
+        return SetBoolResponse(success=True)
+
+    def change_name_srv(self, req):
+        if self.mode != "TeachingMode":
+            return
+        if req.data is True:
+            if self.wait_for_state(State.WAIT, 1) is False:
+                return SetBoolResponse(success=False)
+            self.virtual_button_tap(4)
+        if self.wait_for_state(State.MOTION_LIST_SELECT, 1) is False:
             return SetBoolResponse(success=False)
         return SetBoolResponse(success=True)
 
