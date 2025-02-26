@@ -66,7 +66,7 @@ public:
             -1 == set_init_value(&last1_outputs_) || -1 == set_init_value(&last2_outputs_))
             return current_input;
 
-        // Calculate filterd IMU signal
+        // Calculate filtered IMU signal
         float current_output = (b0_ / a0_) * current_input + (b1_ / a0_) * last1_inputs_[key] +
                                (b2_ / a0_) * last2_inputs_[key] -
                                (a1_ / a0_) * last1_outputs_[key] -

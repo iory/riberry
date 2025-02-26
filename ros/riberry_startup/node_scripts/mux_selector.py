@@ -80,7 +80,7 @@ def add_trigger(topic, expr, select, index, wait=False):
             raise ValueError("wait should be bool")
 
     if topic_class is None:
-        rospy.loginfo("%s is not builded yet", topic_type)
+        rospy.loginfo("%s is not built yet", topic_type)
         return None
 
     try:

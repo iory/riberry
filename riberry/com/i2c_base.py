@@ -85,7 +85,7 @@ class I2CBase(ComBase):
 
     def write(self, data):
         # Allocate a buffer size of 4 times the length of the string
-        # to allow Unicode (4-byte characters) as well as ASCII charactors
+        # to allow Unicode (4-byte characters) as well as ASCII characters
         buffer_size = len(data) * 4 + 2
         packer = WirePacker(buffer_size=buffer_size)
 

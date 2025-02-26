@@ -57,13 +57,13 @@ void PrimitiveLCD::printColorText(const String& input) {
             int charLen;
             if ((firstByte & 0x80) == 0) {  // 0xxxxxxx - ASCII
                 charLen = 1;
-            } else if ((firstByte & 0xE0) == 0xC0) {  // 110xxxxx - 2 byte charactor
+            } else if ((firstByte & 0xE0) == 0xC0) {  // 110xxxxx - 2 byte character
                 charLen = 2;
                 setFont(&fonts::lgfxJapanGothic_8);
-            } else if ((firstByte & 0xF0) == 0xE0) {  // 1110xxxx - 3 byte charactor
+            } else if ((firstByte & 0xF0) == 0xE0) {  // 1110xxxx - 3 byte character
                 charLen = 3;
                 setFont(&fonts::lgfxJapanGothic_8);
-            } else if ((firstByte & 0xF8) == 0xF0) {  // 11110xxx - 4 byte charactor
+            } else if ((firstByte & 0xF8) == 0xF0) {  // 11110xxx - 4 byte character
                 charLen = 4;
                 setFont(&fonts::lgfxJapanGothic_8);
             } else {  // Invalid UTF-8 byte

@@ -10,7 +10,7 @@ class VacuumControl:
     def __init__(self, vacuum_threshold=80):
         # Use Radxa's ADC value as vacuum pressure value
         self.vacuum_threshold = vacuum_threshold
-        rospy.loginfo(f"Differental pressure threshold: {self.vacuum_threshold}")
+        rospy.loginfo(f"Differential pressure threshold: {self.vacuum_threshold}")
         # Use pump and pressure sensor
         self.pub_on = rospy.Publisher("pump_on", Empty, queue_size=1)
         self.pub_off = rospy.Publisher("pump_off", Empty, queue_size=1)

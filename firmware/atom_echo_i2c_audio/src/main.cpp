@@ -8,7 +8,7 @@ constexpr int SDA_PIN = 26;
 constexpr int SCL_PIN = 32;
 constexpr int I2C_SLAVE_ADDR = 0x41;
 
-constexpr int CONFIG_I2S_BCK_PIN = 19;
+constexpr int CONFIG_I2S_BCK_PIN = 19;  // spellchecker:disable-line
 constexpr int CONFIG_I2S_LRCK_PIN = 33;
 constexpr int CONFIG_I2S_DATA_PIN = 22;
 constexpr int CONFIG_I2S_DATA_IN_PIN = 23;
@@ -90,7 +90,7 @@ bool InitI2SSpeakOrMic(int mode) {
     tx_pin_config.mck_io_num = I2S_PIN_NO_CHANGE;
 #endif
 
-    tx_pin_config.bck_io_num = CONFIG_I2S_BCK_PIN;
+    tx_pin_config.bck_io_num = CONFIG_I2S_BCK_PIN;  // spellchecker:disable-line
     tx_pin_config.ws_io_num = CONFIG_I2S_LRCK_PIN;
     tx_pin_config.data_out_num = CONFIG_I2S_DATA_PIN;
     tx_pin_config.data_in_num = CONFIG_I2S_DATA_IN_PIN;
