@@ -43,7 +43,7 @@ class PressureControlMode(I2CBase):
             queue_size=1,
         )
         self.air_work_list = SelectList()
-        self.delimiter = "|"
+        self.delimiter = ":"
 
         # Read pressure
         self.pressures = {}
@@ -131,7 +131,7 @@ class PressureControlMode(I2CBase):
             if value is None:
                 continue
             else:
-                air_work_str = f"{idx}: {value:.1f}"
+                air_work_str = f"{idx}{self.delimiter} {value:.1f}"
                 if f"{idx}" in self.pressure_control_state:
                     release_duration = self.pressure_control_state[f"{idx}"].release_duration
                     if release_duration == 0:
