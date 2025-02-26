@@ -82,8 +82,11 @@ class EmbeddingCache:
 
         The cache is saved with UTF-8 encoding and proper indentation for readability.
         """
-        with open(self.cache_file, "w", encoding="utf-8") as f:
+        temp_filename = self.cache_file + '.tmp'
+        with open(temp_filename, "w", encoding="utf-8") as f:
             json.dump(self.cache, f, ensure_ascii=False, indent=4)
+        # If the save is succeeded, rename the temporary file to the original filename.
+        os.replace(temp_filename, self.cache_file)
 
     def get_embeddings(self, inputs):
         """
