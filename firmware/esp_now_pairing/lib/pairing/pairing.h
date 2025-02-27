@@ -17,7 +17,7 @@ struct PairingData {
 
 class Pairing : public ExecutionTimer {
 public:
-    Pairing();
+    Pairing(const int channel = 1);
 
     bool setupESPNOW();
     void waitForESPNOWSetup();
@@ -51,6 +51,8 @@ public:
 
 private:
     static MutexHelper mutex_;
+
+    static int _channel;
 
     // EspNow callbacks
     static void onDataSent(const uint8_t* mac_addr, esp_now_send_status_t status);
