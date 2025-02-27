@@ -52,13 +52,14 @@ Mode display_odom_mode("DisplayOdomMode");
 Mode servo_control_mode("ServoControlMode");
 Mode pressure_control_mode("PressureControlMode");
 TeachingMode teaching_mode;
+Mode speech_to_text_mode("SpeechToTextMode");
 SystemDebugMode system_debug_mode;
 PairingMode pairing_mode(button_manager, pairing, comm);
 const std::vector<Mode *> allModes = {
         &display_information_mode,   &display_qrcode_mode, &display_image_mode,
         &display_battery_graph_mode, &display_odom_mode,   &servo_control_mode,
         &pressure_control_mode,      &teaching_mode,       &pairing_mode,
-        &system_debug_mode,
+        &system_debug_mode,          &speech_to_text_mode,
 };
 
 ModeManager modemanager(lcd, button_manager, comm, allModes);
@@ -75,7 +76,8 @@ std::vector<ExecutionTimer *> executionTimers = {&pairing,
                                                  &pressure_control_mode,
                                                  &teaching_mode,
                                                  &pairing_mode,
-                                                 &system_debug_mode};
+                                                 &system_debug_mode,
+                                                 &speech_to_text_mode};
 
 #ifdef ATOM_S3
 CPUUsageMonitor cpu_usage_monitor(executionTimers, &USBSerial);

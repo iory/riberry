@@ -34,11 +34,12 @@
         output="screen">
     <remap from="audio" to="webrtcvad_ros/speech_audio"  />
     <remap from="audio_info" to="$(arg audio_info_topic)" />
+    <remap from="speech_to_text" to="speech_to_text_raw"  />
   </node>
 
-  <node name="display_speech_to_text"
-        pkg="riberry_startup" type="display_speech_to_text.py"
-        respawn="true">
+  <node name="speech_to_text_mode"
+        pkg="riberry_startup" type="speech_to_text_mode.py"
+        respawn="true" output="screen">
   </node>
 
 </launch>
