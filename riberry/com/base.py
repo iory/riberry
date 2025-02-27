@@ -18,7 +18,7 @@ class PacketType(IntEnum):
     GET_PAIRING_TYPE = 0x11
     PAIRING_IP_REQUEST = 0x12
     SET_IP_REQUEST = 0x13
-
+    SPEECH_TO_TEXT_MODE = 0x14
 
 class ComBase:
 

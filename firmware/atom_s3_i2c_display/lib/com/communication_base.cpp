@@ -114,6 +114,10 @@ void CommunicationBase::receiveEvent(int howMany) {
             instance->lcd.color_str = str.substring(1);  // remove PacketType Header
             break;
 
+        case SPEECH_TO_TEXT_MODE:
+            instance->lcd.color_str = str.substring(1);  // remove PacketType Header
+            break;
+
         case BUTTON_STATE_REQUEST:
             requestEvent();
             break;
