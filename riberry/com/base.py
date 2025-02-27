@@ -57,7 +57,23 @@ class ComBase:
             return "Unknown Device"
 
 
-def str_to_byte_list(str):
+def truncate_byte_list(byte_list, limit):
+    truncated_list = byte_list[:limit]
+    try:
+        byte_data = bytes(truncated_list)
+        byte_data.decode('utf-8')
+        return truncated_list
+    except UnicodeDecodeError:
+        for i in range(len(truncated_list) - 1, 0, -1):
+            try:
+                bytes(truncated_list[:i]).decode('utf-8')
+                return truncated_list[:i]
+            except UnicodeDecodeError:
+                continue
+        return []
+
+
+def str_to_byte_list(str, limit):
     """Convert String into byte list because packer.write() and serial.write() requires 0~255 value.
 
     Example
@@ -66,4 +82,9 @@ def str_to_byte_list(str):
     """
     nested_byte_list = [list(x.encode('utf-8')) for x in str]
     byte_list = [item for sublist in nested_byte_list for item in sublist]
+    if len(byte_list) > limit:
+        print(
+            f"Truncate string because input size {len(byte_list)} is over {limit} bytes")
+        byte_list = truncate_byte_list(byte_list, limit)
+        print(len(byte_list))
     return byte_list
