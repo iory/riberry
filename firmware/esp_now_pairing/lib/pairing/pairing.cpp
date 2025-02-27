@@ -1,13 +1,19 @@
 #include "pairing.h"
 
+#include "esp_wifi.h"
+
 std::map<String, unsigned long> Pairing::pendingPeers = {};
 String Pairing::statusStr = "";
+int Pairing::_channel = 1;
 bool Pairing::_pairingActive = true;
 std::vector<String> Pairing::pairedMACAddresses = {};
 std::map<String, PairingData> Pairing::pairingDataMap = {};
 MutexHelper Pairing::mutex_;
 
-Pairing::Pairing() : ExecutionTimer("Pairing") { esp_read_mac(myMACAddress, ESP_MAC_WIFI_STA); }
+Pairing::Pairing(int channel) : ExecutionTimer("Pairing") {
+    _channel = channel;
+    esp_read_mac(myMACAddress, ESP_MAC_WIFI_STA);
+}
 
 bool Pairing::setupESPNOW() {
     WiFi.disconnect(true);
@@ -16,6 +22,7 @@ bool Pairing::setupESPNOW() {
         statusStr = "Error initializing ESP-NOW";
         return false;
     }
+    esp_wifi_set_channel(_channel, WIFI_SECOND_CHAN_NONE);
     setupBroadcastPeer();
     esp_now_register_recv_cb(onDataRecv);
     esp_now_register_send_cb(onDataSent);
@@ -27,7 +34,7 @@ void Pairing::setupBroadcastPeer() {
     esp_now_peer_info_t peerInfo;
     memset(&peerInfo, 0, sizeof(esp_now_peer_info_t));
     memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-    peerInfo.channel = 0;
+    peerInfo.channel = _channel;
     peerInfo.encrypt = false;
 
     if (esp_now_add_peer(&peerInfo) != ESP_OK) {
@@ -49,7 +56,7 @@ bool Pairing::addPeer(const String& macAddress) {
 
     esp_now_peer_info_t peerInfo = {};
     memcpy(peerInfo.peer_addr, peerMACAddress, 6);
-    peerInfo.channel = 0;
+    peerInfo.channel = _channel;
     peerInfo.encrypt = false;
 
     if (esp_now_is_peer_exist(peerMACAddress)) {
