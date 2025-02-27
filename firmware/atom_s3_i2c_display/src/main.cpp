@@ -5,15 +5,11 @@
 #include <cpu_usage_monitor.h>
 #include <display_battery_graph_mode.h>
 #include <display_image_mode.h>
-#include <display_information_mode.h>
-#include <display_odom_mode.h>
 #include <display_qrcode_mode.h>
 #include <mode_manager.h>
 #include <pairing.h>
 #include <pairing_mode.h>
-#include <pressure_control_mode.h>
 #include <primitive_lcd.h>
-#include <servo_control_mode.h>
 #include <system_debug_mode.h>
 #include <teaching_mode.h>
 
@@ -48,13 +44,13 @@ CommunicationBase comm(lcd, button_manager, pairing, &Serial);
 #endif
 
 // Define all available modes
-DisplayInformationMode display_information_mode;
+Mode display_information_mode("DisplayInformationMode");
 DisplayQRcodeMode display_qrcode_mode;
 DisplayImageMode display_image_mode;
 DisplayBatteryGraphMode display_battery_graph_mode;
-DisplayOdomMode display_odom_mode;
-ServoControlMode servo_control_mode;
-PressureControlMode pressure_control_mode;
+Mode display_odom_mode("DisplayOdomMode");
+Mode servo_control_mode("ServoControlMode");
+Mode pressure_control_mode("PressureControlMode");
 TeachingMode teaching_mode;
 SystemDebugMode system_debug_mode;
 PairingMode pairing_mode(button_manager, pairing, comm);
