@@ -23,7 +23,6 @@
           respawn="true"
           output="screen">
       <param name="/i2c_device" value="$(arg i2c_device)" />
-      <remap from="/i2c_mode" to="/atom_s3_mode" />
     </node>
     <node name="display_odom_mode"
           pkg="riberry_startup" type="display_odom_mode.py"

@@ -7,16 +7,15 @@ from skrobot.model import RobotModel
 from skrobot.utils.urdf import no_mesh_load_mode
 from std_msgs.msg import Float32
 from std_msgs.msg import Int32
-from std_msgs.msg import String
 
 from riberry.com.base import PacketType
-from riberry.com.i2c_base import I2CBase
+from riberry.mode import Mode
 from riberry.select_list import SelectList
 
 
-class PressureControlMode(I2CBase):
-    def __init__(self, i2c_addr):
-        super().__init__(i2c_addr)
+class PressureControlMode(Mode):
+    def __init__(self):
+        super().__init__()
         # Create robot model to control pressure
         robot_model = RobotModel()
         namespace = ""
@@ -28,11 +27,9 @@ class PressureControlMode(I2CBase):
         )
 
         # Button and mode callback
-        self.mode = None
         rospy.Subscriber(
             "atom_s3_button_state", Int32, callback=self.button_cb, queue_size=1
         )
-        rospy.Subscriber("atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
 
         # Pressure control
         self.pressure_control_state = {}
@@ -76,12 +73,6 @@ class PressureControlMode(I2CBase):
             )
             self.toggle_pressure_control(idx)
             self.send_string()
-
-    def mode_cb(self, msg):
-        """
-        Check AtomS3 mode.
-        """
-        self.mode = msg.data
 
     def pressure_control_cb(self, msg):
         self.pressure_control_state[f"{msg.board_idx}"] = msg
@@ -151,5 +142,5 @@ class PressureControlMode(I2CBase):
 
 if __name__ == "__main__":
     rospy.init_node("pressure_control_mode")
-    pcm = PressureControlMode(0x42)
+    pcm = PressureControlMode()
     rospy.spin()

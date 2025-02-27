@@ -5,24 +5,21 @@ from std_msgs.msg import String
 
 from riberry.battery import ChargeState
 from riberry.com.base import PacketType
-from riberry.com.i2c_base import I2CBase
+from riberry.mode import Mode
 
 
-class DisplayBatteryGraphMode(I2CBase):
-    def __init__(self, i2c_addr):
-        super().__init__(i2c_addr)
+class DisplayBatteryGraphMode(Mode):
+    def __init__(self):
+        super().__init__()
 
         self.charge_str_to_num = {str(state): state.value
                                     for state in ChargeState}
-        self.mode = None
         self.charge_status = None
         self.charge_current = 0
         self.display_duration = rospy.get_param("~display_duration", 3600)
         # Assume battery topic is 1Hz
         self.display_bins = 10
         self.battery_percentages = [0] * self.display_duration
-        rospy.Subscriber("atom_s3_mode", String,
-                         callback=self.mode_cb, queue_size=1)
         rospy.Subscriber("battery/remaining_battery", Float32,
                          callback=self.battery_cb, queue_size=1)
         rospy.Subscriber("battery/charge_status_string", String,
@@ -36,7 +33,7 @@ class DisplayBatteryGraphMode(I2CBase):
         Check AtomS3 mode.
         """
         previous_mode = self.mode
-        self.mode = msg.data
+        super().mode_cb(msg)
         if self.mode == "DisplayBatteryGraphMode":
             if previous_mode != self.mode:
                 rospy.loginfo('start display battery graph mode')
@@ -76,5 +73,5 @@ class DisplayBatteryGraphMode(I2CBase):
 
 if __name__ == "__main__":
     rospy.init_node("display_battery_graph_mode")
-    dbgm = DisplayBatteryGraphMode(0x42)
+    dbgm = DisplayBatteryGraphMode()
     rospy.spin()
