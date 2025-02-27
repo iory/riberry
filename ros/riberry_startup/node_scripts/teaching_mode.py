@@ -14,8 +14,8 @@ from std_srvs.srv import SetBool
 from std_srvs.srv import SetBoolResponse
 
 from riberry.com.base import PacketType
-from riberry.com.i2c_base import I2CBase
 from riberry.filecheck_utils import get_cache_dir
+from riberry.mode import Mode
 from riberry.select_list import SelectList
 from riberry.teaching_manager import TeachingManager
 
@@ -74,7 +74,7 @@ class State(Enum):
     CHANGE_MOTION_NAME = 6
 
 
-class TeachingMode(I2CBase):
+class TeachingMode(Mode):
     """
     TeachingMode is a class that manages robot motion teaching and playback through AtomS3 communication.
 
@@ -97,8 +97,8 @@ class TeachingMode(I2CBase):
         additional_str (str): Additional message string for display during operations.
     """
 
-    def __init__(self, i2c_addr):
-        super().__init__(i2c_addr)
+    def __init__(self):
+        super().__init__()
         self.teaching_manager = TeachingManager()
         self.playing = False
         self.new_motion_name = None
@@ -106,9 +106,6 @@ class TeachingMode(I2CBase):
         self.load_play_list()
 
         # ROS callbacks
-        self.mode = None
-        rospy.Subscriber(
-            "atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
         self.prev_state = State.WAIT
         self.state = State.WAIT
         self.additional_str = ""
@@ -153,7 +150,7 @@ class TeachingMode(I2CBase):
         """
         if self.mode != "TeachingMode" and msg.data == "TeachingMode":
             rospy.loginfo("Start teaching mode")
-        self.mode = msg.data
+        super().mode_cb(msg)
 
     def state_transition_cb(self, msg):
         """Handles button state transitions for recording and playback.
@@ -573,5 +570,5 @@ class TeachingMode(I2CBase):
 if __name__ == '__main__':
     # Main
     rospy.init_node('teaching_mode', anonymous=True)
-    TeachingMode(0x42)
+    TeachingMode()
     rospy.spin()

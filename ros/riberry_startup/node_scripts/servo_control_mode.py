@@ -6,15 +6,14 @@ import rospy
 from skrobot.model import RobotModel
 from skrobot.utils.urdf import no_mesh_load_mode
 from std_msgs.msg import Int32
-from std_msgs.msg import String
 
 from riberry.com.base import PacketType
-from riberry.com.i2c_base import I2CBase
+from riberry.mode import Mode
 
 
-class ServoControlMode(I2CBase):
-    def __init__(self, i2c_addr):
-        super().__init__(i2c_addr)
+class ServoControlMode(Mode):
+    def __init__(self):
+        super().__init__()
         # Create robot model to control servo
         robot_model = RobotModel()
         namespace = ""
@@ -26,11 +25,9 @@ class ServoControlMode(I2CBase):
         )
 
         # Button and mode callback
-        self.mode = None
         rospy.Subscriber(
             "atom_s3_button_state", Int32, callback=self.button_cb, queue_size=1
         )
-        rospy.Subscriber("atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
 
         # Servo on off
         self.servo_on_states = None
@@ -54,12 +51,6 @@ class ServoControlMode(I2CBase):
                 + " Toggle servo control."
             )
             self.toggle_servo_on_off()
-
-    def mode_cb(self, msg):
-        """
-        Check AtomS3 mode.
-        """
-        self.mode = msg.data
 
     def servo_on_off_cb(self, msg):
         self.servo_on_states = msg
@@ -91,5 +82,5 @@ class ServoControlMode(I2CBase):
 
 if __name__ == "__main__":
     rospy.init_node("servo_control_mode")
-    scm = ServoControlMode(0x42)
+    scm = ServoControlMode()
     rospy.spin()

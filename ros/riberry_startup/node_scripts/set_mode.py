@@ -3,12 +3,12 @@
 import rospy
 
 from riberry.com.base import PacketType
-from riberry.com.i2c_base import I2CBase
+from riberry.mode import Mode
 
 
-class SetMode(I2CBase):
-    def __init__(self, i2c_addr):
-        super().__init__(i2c_addr)
+class SetMode(Mode):
+    def __init__(self):
+        super().__init__()
         self.mode_names = self.get_mode_names_from_rosparam()
         rospy.Timer(rospy.Duration(1), self.timer_callback)
 
@@ -29,5 +29,5 @@ class SetMode(I2CBase):
 
 if __name__ == "__main__":
     rospy.init_node("set_mode")
-    SetMode(0x42)
+    SetMode()
     rospy.spin()
