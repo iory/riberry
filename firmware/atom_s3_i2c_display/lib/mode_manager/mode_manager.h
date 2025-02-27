@@ -36,6 +36,7 @@ private:
     void changeMode(int suspend_mode_index, int resume_mode_index);
     void stopCurrentMode();
     void deleteSelectedModes();
+    void suspendSelectedModes();
 };
 
 #endif
