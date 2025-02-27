@@ -93,6 +93,8 @@ void setup() {
     USBSerial.begin(115200);
     bool success = true;
     #else
+    // The last two arguments are rxBufferSize and txBufferSize
+    // Set rx buffer long if you want to receive long strings
     bool success = WireSlave.begin(sda_pin, scl_pin, i2c_slave_addr, 200, 100);
     #endif
 #elif USE_M5STACK_BASIC
