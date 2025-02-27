@@ -80,7 +80,8 @@ class KeywordToAction:
             return
         num_subscribers = self.motion_name_pub.get_num_connections()
         if num_subscribers > 0:
-            motion_msg = String(data=msg.transcript[0])
+            text_no_space = "".join(msg.transcript[0].split())
+            motion_msg = String(data=text_no_space)
             self.motion_name_pub.publish(motion_msg)
 
     def mode_cb(self, msg):
