@@ -26,7 +26,7 @@ You can use the dry-run option to see which scripts will be installed without ac
 
 ### For atom s3 and atom echo
 
-Please write the programs found under the [firmware](https://github.com/iory/riberry/tree/master/firmware) section into the atom s3 and atom echo to display the IP and capture audio.
+Please write the programs found under the [firmware](https://github.com/iory/riberry/tree/main/firmware) section into the atom s3 and atom echo to display the IP and capture audio.
 
 
 ### Atom S3 Display
