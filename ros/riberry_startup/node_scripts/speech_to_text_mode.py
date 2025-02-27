@@ -45,7 +45,7 @@ class SpeechToTextMode(Mode):
             self.pub.publish(msg)
 
     def update_lcd(self):
-        sent_str = chr(PacketType.TEXT)
+        sent_str = chr(PacketType.SPEECH_TO_TEXT_MODE)
         if self.mode != "SpeechToTextMode":
             return
         if self.passthrough is True:
