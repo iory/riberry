@@ -4,21 +4,22 @@ from colorama import Back
 import rospy
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 from std_msgs.msg import Int32
-from std_msgs.msg import String
 
 from riberry.com.base import ComBase
+from riberry.com.base import PacketType
 from riberry.com.uart_base import UARTBase
+from riberry.mode import Mode
 
 
-class SpeechToTextMode:
+class SpeechToTextMode(Mode):
     def __init__(self):
+        super().__init__()
         device = ComBase.identify_device()
         if device != 'm5stack-LLM':
             return
         self.com = UARTBase()
         self.pub = rospy.Publisher('speech_to_text', SpeechRecognitionCandidates, queue_size=1)
         rospy.Subscriber('speech_to_text_raw', SpeechRecognitionCandidates, self.speech_cb)
-        rospy.Subscriber("atom_s3_mode", String, callback=self.mode_cb, queue_size=1)
         rospy.Subscriber("atom_s3_button_state", Int32, callback=self.button_cb, queue_size=1)
         rospy.Timer(rospy.Duration(1), self.timer_cb)
         self.mode = None
@@ -33,9 +34,7 @@ class SpeechToTextMode:
         else:
             rospy.loginfo("Start passthrough speech_to_text topic")
         self.passthrough = not self.passthrough
-
-    def mode_cb(self, msg):
-        self.mode = msg.data
+        self.update_lcd()
 
     def speech_cb(self, msg):
         if self.mode != "SpeechToTextMode":
@@ -45,16 +44,20 @@ class SpeechToTextMode:
         if self.passthrough is True:
             self.pub.publish(msg)
 
-    def timer_cb(self, event):
+    def update_lcd(self):
+        sent_str = chr(PacketType.TEXT)
         if self.mode != "SpeechToTextMode":
             return
-        self.com.write("Speech Recognition\n")
         if self.passthrough is True:
-            self.com.write(f"1tap: {Back.GREEN}ON{Back.RESET}\n\n")
+            sent_str += f"1tap: {Back.GREEN}Active{Back.RESET} Idle\n\n"
         else:
-            self.com.write(f"1tap: {Back.RED}OFF{Back.RESET}\n\n")
-        self.com.write(f"{self.text}\n")
+            sent_str += f"1tap: Active {Back.RED}Idle{Back.RESET}\n\n"
+        sent_str += "You Said\n"
+        sent_str += f"{self.text}\n"
+        self.com.write(sent_str)
 
+    def timer_cb(self, event):
+        self.update_lcd()
 
 if __name__ == '__main__':
     rospy.init_node('speech_to_text_mode')
