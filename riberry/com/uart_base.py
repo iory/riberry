@@ -1,3 +1,5 @@
+from filelock import FileLock
+from filelock import Timeout
 import serial
 import serial.tools.list_ports
 
@@ -58,6 +60,8 @@ class UARTBase(ComBase):
                 timeout=1,  # read timeout
                 write_timeout=1
             )
+            device_name = serial_port[len("/dev/"):]
+            self.lock = FileLock(f"/tmp/{device_name}_lock", timeout=10)
             return True
         except serial.serialutil.SerialException:
             print("[uart_base] Serial connection failed.")
@@ -70,6 +74,11 @@ class UARTBase(ComBase):
             print("[uart_base] failed to reset input buffer")
 
     def write(self, data):
+        try:
+            self.lock.acquire()
+        except Timeout as e:
+            print(e)
+            return
         try:
             if self.serial is None:
                 print("[uart_base] Serial is not initialized. Try to connect serial.")
@@ -96,6 +105,11 @@ class UARTBase(ComBase):
         except OSError as e:
             print(f"[uart_base] {e}. Restart serial.")
             self._connect_serial()
+        finally:
+            try:
+                self.lock.release()
+            except Timeout as e:
+                print(e)
 
     def read(self):
         try:
