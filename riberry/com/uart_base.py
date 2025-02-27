@@ -85,7 +85,8 @@ class UARTBase(ComBase):
                 self._connect_serial()
                 return
             if isinstance(data, str):
-                # The limit must be under WireSlave's rxBufferSize (currently 200)
+                # The limit must be under Serial's receive buffer size
+                # For AtomS3, about 160 is limit
                 self.serial.write(str_to_byte_list(data, 150))
             elif isinstance(data, (bytes, bytearray)):
                 self.serial.write(data)
@@ -96,7 +97,8 @@ class UARTBase(ComBase):
                 elif all(isinstance(item, str) and len(item) == 1 for item in data):
                     # If all elements are single-character strings, convert to ASCII values
                     data_str = ''.join(data)  # Combine list into a single string
-                    # The limit must be under WireSlave's rxBufferSize (currently 200)
+                    # The limit must be under Serial's receive buffer size
+                    # For AtomS3, about 160 is limit
                     self.serial.write(str_to_byte_list(data_str, 150))
                 else:
                     raise ValueError('List must contain either all integers or all single-character strings.')

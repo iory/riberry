@@ -91,7 +91,8 @@ class I2CBase(ComBase):
         packer = WirePacker(buffer_size=buffer_size)
 
         if isinstance(data, str):
-            for s in str_to_byte_list(data):
+            # The limit must be under WireSlave's rxBufferSize (currently 200)
+            for s in str_to_byte_list(data, 150):
                 try:
                     packer.write(s)
                 except ValueError as e:
@@ -108,7 +109,8 @@ class I2CBase(ComBase):
 
                 # If all elements are single-character strings, convert to ASCII values
                 data_str = ''.join(data)
-                for r in str_to_byte_list(data_str):
+                # The limit must be under WireSlave's rxBufferSize (currently 200)
+                for r in str_to_byte_list(data_str, 150):
                     packer.write(r)
             else:
                 raise ValueError('List must contain either all integers or all single-character strings.')
