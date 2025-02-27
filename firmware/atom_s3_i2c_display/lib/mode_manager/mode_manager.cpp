@@ -24,8 +24,8 @@ void ModeManager::task(void *parameter) {
     while (true) {
         // Check if selected Modes are changed
         if (!selectedModesStr.equals(instance->comm.selectedModesStr)) {
-            // Delete all modes
-            instance->deleteSelectedModes();
+            // Suspend all modes
+            instance->suspendSelectedModes();
             // Add selected modes
             selectedModesStr = instance->comm.selectedModesStr;
             char **selectedModesStrList = (char **)malloc(allModes->size() * sizeof(char *));
@@ -137,6 +137,14 @@ void ModeManager::deleteSelectedModes() {
     // Before deleting modes, all modes must be suspended
     for (int i = 0; i < selectedModes.size(); i++) {
         selectedModes[i]->deleteTask();
+    }
+    selectedModes.clear();
+}
+
+void ModeManager::suspendSelectedModes() {
+    // Before deleting modes, all modes must be suspended
+    for (int i = 0; i < selectedModes.size(); i++) {
+        selectedModes[i]->suspendTask();
     }
     selectedModes.clear();
 }
