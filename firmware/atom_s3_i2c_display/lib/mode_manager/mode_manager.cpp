@@ -34,6 +34,7 @@ void ModeManager::task(void *parameter) {
                                                        allModes->size());
             // Check if all selectedModesStrList names are valid
             bool allModesFound = true;
+            std::vector<int> invalidModeIndices;
             for (int i = 0; i < modeCount; i++) {
                 bool modeFound = false;
                 for (Mode *mode : *allModes) {
@@ -44,13 +45,13 @@ void ModeManager::task(void *parameter) {
                 }
                 if (!modeFound) {
                     allModesFound = false;
-                    break;
+                    invalidModeIndices.push_back(i);
                 }
             }
             if (!allModesFound) {
                 instance->lcd.drawBlack();
                 instance->lcd.printColorText("Invalid mode name found\n");
-                for (int i = 0; i < modeCount; i++) {
+                for (int i : invalidModeIndices) {
                     instance->lcd.printColorText(String(selectedModesStrList[i]));
                     instance->lcd.printColorText("\n");
                 }

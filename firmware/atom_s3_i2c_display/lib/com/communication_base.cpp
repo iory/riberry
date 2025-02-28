@@ -63,11 +63,43 @@ void CommunicationBase::receiveEvent(int howMany) {
 
     instance->updateLastReceiveTime();
     String str;
+    int offset = 0;
 
-    while (_stream->available()) {
-        char c = _stream->read();
-        str += c;
+    if (_stream == &WireSlave) {
+        while (_stream->available()) {
+            char c = _stream->read();
+            str += c;
+        }
+        offset = 1;
+    } else {
+        unsigned long start = millis();
+        while (str.length() < 2) {
+            if (_stream->available()) {
+                char c = _stream->read();
+                str += c;
+            }
+            if (millis() - start > PACKET_TIMEOUT) {
+                return;
+            }
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
+        }
+        uint8_t packetType = (uint8_t)str.charAt(0);
+        uint8_t packetLength = (uint8_t)str.charAt(1);
+
+        start = millis();
+        while (str.length() < packetLength) {
+            if (_stream->available()) {
+                char c = _stream->read();
+                str += c;
+            }
+            if (millis() - start > PACKET_TIMEOUT) {
+                return;
+            }
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
+        }
+        offset = 2;
     }
+
     if (str.length() < 1) {
         return;  // Invalid packet
     }
@@ -75,47 +107,47 @@ void CommunicationBase::receiveEvent(int howMany) {
     PacketType packetType = static_cast<PacketType>(str[0]);
     switch (packetType) {
         case TEXT:
-            instance->lcd.color_str = str.substring(1);
+            instance->lcd.color_str = str.substring(offset);
             break;
 
         case JPEG:
-            handleJpegPacket(str.substring(1));
+            handleJpegPacket(str.substring(offset));
             break;
 
         case QR_CODE:
-            handleQrCodePacket(str);
+            handleQrCodePacket(str, offset);
             break;
 
         case FORCE_MODE:
-            handleForceModePacket(str);
+            handleForceModePacket(str, offset);
             break;
 
         case SELECTED_MODE:
-            handleSelectedModePacket(str);
+            handleSelectedModePacket(str, offset);
             break;
 
         case DISPLAY_BATTERY_GRAPH_MODE:
-            instance->lcd.color_str = str.substring(1);  // remove PacketType Header
+            instance->lcd.color_str = str.substring(offset);  // remove PacketType Header
             break;
 
         case SERVO_CONTROL_MODE:
-            instance->lcd.color_str = str.substring(1);  // remove PacketType Header
+            instance->lcd.color_str = str.substring(offset);  // remove PacketType Header
             break;
 
         case PRESSURE_CONTROL_MODE:
-            instance->lcd.color_str = str.substring(1);  // remove PacketType Header
+            instance->lcd.color_str = str.substring(offset);  // remove PacketType Header
             break;
 
         case TEACHING_MODE:
-            instance->lcd.color_str = str.substring(1);  // remove PacketType Header
+            instance->lcd.color_str = str.substring(offset);  // remove PacketType Header
             break;
 
         case DISPLAY_ODOM_MODE:
-            instance->lcd.color_str = str.substring(1);  // remove PacketType Header
+            instance->lcd.color_str = str.substring(offset);  // remove PacketType Header
             break;
 
         case SPEECH_TO_TEXT_MODE:
-            instance->lcd.color_str = str.substring(1);  // remove PacketType Header
+            instance->lcd.color_str = str.substring(offset);  // remove PacketType Header
             break;
 
         case BUTTON_STATE_REQUEST:
@@ -216,22 +248,22 @@ void CommunicationBase::handleJpegPacket(const String& str) {
     }
 }
 
-void CommunicationBase::handleQrCodePacket(const String& str) {
-    if (str.length() > 1) {
-        uint8_t qrCodeLength = static_cast<uint8_t>(str[1]);
-        instance->lcd.qrCodeData = str.substring(2, 2 + qrCodeLength);
+void CommunicationBase::handleQrCodePacket(const String& str, int offset) {
+    if (str.length() > offset) {
+        uint8_t qrCodeLength = static_cast<uint8_t>(str[offset]);
+        instance->lcd.qrCodeData = str.substring(offset + 1, offset + 1 + qrCodeLength);
     }
 }
 
-void CommunicationBase::handleForceModePacket(const String& str) {
-    if (str.length() > 1) {
-        forcedMode = str.substring(1);
+void CommunicationBase::handleForceModePacket(const String& str, int offset) {
+    if (str.length() > offset) {
+        forcedMode = str.substring(offset);
     }
 }
 
-void CommunicationBase::handleSelectedModePacket(const String& str) {
-    if (str.length() > 1) {
-        selectedModesStr = str.substring(1);
+void CommunicationBase::handleSelectedModePacket(const String& str, int offset) {
+    if (str.length() > offset) {
+        selectedModesStr = str.substring(offset);
     }
 }
 
