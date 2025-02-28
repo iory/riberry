@@ -58,6 +58,8 @@ private:
     static void onDataSent(const uint8_t* mac_addr, esp_now_send_status_t status);
     static void onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_len);
 
+    static String pairingDataToString(const PairingData& data);
+
     // Mac addresses and Pairing Information
     uint8_t myMACAddress[6];
     static std::map<String, PairingData> pairingDataMap;
