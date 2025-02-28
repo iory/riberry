@@ -60,7 +60,8 @@ bool Pairing::addPeer(const String& macAddress) {
     peerInfo.encrypt = false;
 
     if (esp_now_is_peer_exist(peerMACAddress)) {
-        statusStr = "Peer already exists: " + macAddress;
+        // Ignore very frequent message
+        // statusStr = "Peer already exists: " + macAddress;
         return true;
     }
     esp_err_t addResult = esp_now_add_peer(&peerInfo);
@@ -93,6 +94,7 @@ void Pairing::sendPairingData(const PairingData& data) {
         esp_err_t resultSend = esp_now_send(peerMACAddress, (uint8_t*)&data, sizeof(data));
         if (resultSend == ESP_OK) {
             statusStr = "Data sent successfully to: " + macAddress;
+            statusStr += "\n" + pairingDataToString(data);
         } else {
             statusStr = "Failed to send data to: " + macAddress +
                         " Error code: " + String(resultSend) +
@@ -105,14 +107,22 @@ void Pairing::sendPairingData(const PairingData& data) {
 
 bool Pairing::receivePairingData(String macString, PairingData& receivedData) {
     if (pairedMACAddresses.size() == 0) {
-        statusStr = "No data received yet";
+        // Ignore very frequent message
+        // statusStr = "No data received yet";
         return false;
     }
     mutex_.lock();
     pairingDataMap[macString] = receivedData;
     mutex_.unlock();
+    // Ignore very frequent message
     statusStr = "Data received successfully from: " + macString;
+    statusStr += "\n" + pairingDataToString(receivedData);
     return true;
+}
+
+String Pairing::pairingDataToString(const PairingData& data) {
+    return String(data.IPv4[0]) + "." + String(data.IPv4[1]) + "." + String(data.IPv4[2]) + "." +
+           String(data.IPv4[3]);
 }
 
 void Pairing::broadcastMACAddress() {
@@ -121,7 +131,8 @@ void Pairing::broadcastMACAddress() {
     esp_err_t result =
             esp_now_send(broadcastAddress, (uint8_t*)&pairingRequest, sizeof(pairingRequest));
     if (result == ESP_OK) {
-        statusStr = "Broadcasting MAC Address";
+        // Ignore very frequent message
+        // statusStr = "Broadcasting MAC Address";
     } else {
         statusStr = "esp_now_send failed. Error code: " + String(result) +
                     " Error message: " + esp_err_to_name(result);
@@ -159,10 +170,12 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
             mac_addr[3], mac_addr[4], mac_addr[5]);
     String macString = String(macStr);
 
-    statusStr = "Received data from: " + macString + " Data length: " + String(data_len);
+    // Ignore very frequent message
+    // statusStr = "Received data from: " + macString + " Data length: " + String(data_len);
 
     if (_pairingActive && data_len == 1 && data[0] == 0x01) {
-        statusStr = "Pairing request received from: " + macString;
+        // Ignore very frequent message
+        // statusStr = "Pairing request received from: " + macString;
         uint8_t pairingResponse = 0x02;
         if (addPeer(macString) == false) {
             return;
@@ -174,10 +187,12 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
         mutex_.lock();
         pendingPeers[macString] = millis();
         mutex_.unlock();
-        statusStr = "Pairing response sent to: " + macString;
+        // Ignore very frequent message
+        // statusStr = "Pairing response sent to: " + macString;
 
     } else if (_pairingActive && data_len == 1 && data[0] == 0x02) {
-        statusStr = "Pairing response received from: " + macString;
+        // Ignore very frequent message
+        // statusStr = "Pairing response received from: " + macString;
         if (std::find(pairedMACAddresses.begin(), pairedMACAddresses.end(), macString) ==
             pairedMACAddresses.end()) {
             if (addPeer(macString) == false) {
@@ -186,9 +201,11 @@ void Pairing::onDataRecv(const uint8_t* mac_addr, const uint8_t* data, int data_
             mutex_.lock();
             pairedMACAddresses.push_back(macString);
             mutex_.unlock();
-            statusStr = "Added to paired list: " + macString;
+            // Ignore very frequent message
+            // statusStr = "Added to paired list: " + macString;
         }
-        statusStr = "Pairing complete with: " + macString;
+        // Ignore very frequent message
+        // statusStr = "Pairing complete with: " + macString;
 
         mutex_.lock();
         if (pendingPeers.find(macString) != pendingPeers.end()) {
