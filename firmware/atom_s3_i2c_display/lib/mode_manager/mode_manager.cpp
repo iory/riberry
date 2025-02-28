@@ -24,9 +24,6 @@ void ModeManager::task(void *parameter) {
     while (true) {
         // Check if selected Modes are changed
         if (!selectedModesStr.equals(instance->comm.selectedModesStr)) {
-            // Suspend all modes
-            instance->suspendSelectedModes();
-            // Add selected modes
             selectedModesStr = instance->comm.selectedModesStr;
             char **selectedModesStrList = (char **)malloc(allModes->size() * sizeof(char *));
             if (selectedModesStrList == nullptr) {
@@ -35,6 +32,33 @@ void ModeManager::task(void *parameter) {
             }
             int modeCount = instance->comm.splitString(selectedModesStr, ',', selectedModesStrList,
                                                        allModes->size());
+            // Check if all selectedModesStrList names are valid
+            bool allModesFound = true;
+            for (int i = 0; i < modeCount; i++) {
+                bool modeFound = false;
+                for (Mode *mode : *allModes) {
+                    if (mode->getName().equals(String(selectedModesStrList[i]))) {
+                        modeFound = true;
+                        break;
+                    }
+                }
+                if (!modeFound) {
+                    allModesFound = false;
+                    break;
+                }
+            }
+            if (!allModesFound) {
+                instance->lcd.drawBlack();
+                instance->lcd.printColorText("Invalid mode name found\n");
+                for (int i = 0; i < modeCount; i++) {
+                    instance->lcd.printColorText(String(selectedModesStrList[i]));
+                    instance->lcd.printColorText("\n");
+                }
+                instance->delayWithTimeTracking(pdMS_TO_TICKS(500));
+                continue;
+            }
+            // All selectedModesStrList name are valid, so suspend and add modes
+            instance->suspendSelectedModes();
             for (int i = 0; i < modeCount; i++) {
                 for (Mode *mode : *allModes) {
                     if (mode->getName().equals(String(selectedModesStrList[i]))) {
@@ -43,7 +67,7 @@ void ModeManager::task(void *parameter) {
                 }
             }
             free(selectedModesStrList);
-            // Start task
+            // Start the first task
             current_mode_index = 0;
             instance->startCurrentMode();
         }
