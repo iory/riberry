@@ -20,6 +20,7 @@ from riberry.esp_now_pairing import get_role
 from riberry.esp_now_pairing import Role
 from riberry.mode_type import mode_type_to_string
 from riberry.mode_type import ModeType
+from riberry.mode_type import string_to_mode_type
 from riberry.network import get_ip_address
 from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
@@ -310,8 +311,8 @@ class DisplayInformation:
 
     def force_mode(self, mode_name):
         header = [PacketType.FORCE_MODE]
-        forceModebytes = list(map(ord, mode_name))
-        self.com.write(header + forceModebytes)
+        packet = header + [string_to_mode_type(mode_name).value]
+        self.com.write(packet)
 
     def run_with_catch(self):
         try:
