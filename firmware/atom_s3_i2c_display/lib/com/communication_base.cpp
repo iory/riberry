@@ -4,7 +4,7 @@ CommunicationBase* CommunicationBase::instance = nullptr;
 Stream* CommunicationBase::_stream = nullptr;
 uint8_t CommunicationBase::requestBytes[100];
 String CommunicationBase::forcedMode = "";
-String CommunicationBase::selectedModesStr = "";
+uint8_t CommunicationBase::selectedModesBytes[100];
 Role CommunicationBase::role;
 bool CommunicationBase::pairingEnabled = false;
 
@@ -263,7 +263,10 @@ void CommunicationBase::handleForceModePacket(const String& str, int offset) {
 
 void CommunicationBase::handleSelectedModePacket(const String& str, int offset) {
     if (str.length() > offset) {
-        selectedModesStr = str.substring(offset);
+        String substring = str.substring(offset);
+        const uint8_t* buff = (const uint8_t*)substring.c_str();
+        size_t byteLen = buff[0];
+        memcpy(selectedModesBytes, buff, byteLen);
     }
 }
 
