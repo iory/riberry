@@ -16,30 +16,30 @@ class ModeType(Enum):
     PAIRING = 0x11
 
 
+MODE_TYPE_MAPPING = {
+    ModeType.NONE: "None",
+    ModeType.DISPLAY_INFORMATION: "DisplayInformationMode",
+    ModeType.DISPLAY_QRCODE: "DisplayQRcodeMode",
+    ModeType.DISPLAY_IMAGE: "DisplayImageMode",
+    ModeType.DISPLAY_BATTERY_GRAPH: "DisplayBatteryGraphMode",
+    ModeType.DISPLAY_ODOM: "DisplayOdomMode",
+    ModeType.SERVO_CONTROL: "ServoControlMode",
+    ModeType.PRESSURE_CONTROL: "PressureControlMode",
+    ModeType.TEACHING: "TeachingMode",
+    ModeType.SPEECH_TO_TEXT: "SpeechToTextMode",
+    ModeType.SYSTEM_DEBUG: "SystemDebugMode",
+    ModeType.PAIRING: "PairingMode",
+}
+
+
+
 def mode_type_to_string(mode_type):
-    if mode_type == ModeType.NONE:
-        return "None"
-    elif mode_type == ModeType.DISPLAY_INFORMATION:
-        return "DisplayInformationMode"
-    elif mode_type == ModeType.DISPLAY_QRCODE:
-        return "DisplayQRcodeMode"
-    elif mode_type == ModeType.DISPLAY_IMAGE:
-        return "DisplayImageMode"
-    elif mode_type == ModeType.DISPLAY_BATTERY_GRAPH:
-        return "DisplayBatteryGraphMode"
-    elif mode_type == ModeType.DISPLAY_ODOM:
-        return "DisplayOdomMode"
-    elif mode_type == ModeType.SERVO_CONTROL:
-        return "ServoControlMode"
-    elif mode_type == ModeType.PRESSURE_CONTROL:
-        return "PressureControlMode"
-    elif mode_type == ModeType.TEACHING:
-        return "TeachingMode"
-    elif mode_type == ModeType.SPEECH_TO_TEXT:
-        return "SpeechToTextMode"
-    elif mode_type == ModeType.SYSTEM_DEBUG:
-        return "SystemDebugMode"
-    elif mode_type == ModeType.PAIRING:
-        return "PairingMode"
-    else:
+    try:
+        return MODE_TYPE_MAPPING.get(mode_type)
+    except ValueError:
         return "Unknown"
+
+
+def string_to_mode_type(mode_str):
+    reverse_mapping = {v: k for k, v in MODE_TYPE_MAPPING.items()}
+    return reverse_mapping.get(mode_str, ModeType.NONE)
