@@ -30,7 +30,7 @@ public:
     void startReceiveEvent();
     static void setRequestBytes(uint8_t* bytes, size_t byteLen);
 
-    static String forcedMode;
+    static uint8_t forcedMode;
     static uint8_t selectedModesBytes[100];
     static Role role;
     void startPairing() { pairingEnabled = true; }

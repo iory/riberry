@@ -3,7 +3,7 @@
 CommunicationBase* CommunicationBase::instance = nullptr;
 Stream* CommunicationBase::_stream = nullptr;
 uint8_t CommunicationBase::requestBytes[100];
-String CommunicationBase::forcedMode = "";
+uint8_t CommunicationBase::forcedMode;
 uint8_t CommunicationBase::selectedModesBytes[100];
 Role CommunicationBase::role;
 bool CommunicationBase::pairingEnabled = false;
@@ -257,7 +257,9 @@ void CommunicationBase::handleQrCodePacket(const String& str, int offset) {
 
 void CommunicationBase::handleForceModePacket(const String& str, int offset) {
     if (str.length() > offset) {
-        forcedMode = str.substring(offset);
+        String substring = str.substring(offset);
+        const uint8_t* buff = (const uint8_t*)substring.c_str();
+        forcedMode = buff[0];
     }
 }
 

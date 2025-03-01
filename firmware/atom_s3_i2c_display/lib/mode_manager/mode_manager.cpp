@@ -78,7 +78,7 @@ void ModeManager::task(void *parameter) {
         bool isModeForced = false;
         int forced_mode_index;
         for (int i = 0; i < selectedModes.size(); i++) {
-            if (selectedModes[i]->getName().equals(instance->comm.forcedMode)) {
+            if (selectedModes[i]->getModeType() == instance->comm.forcedMode) {
                 isModeForced = true;
                 forced_mode_index = i;
                 break;
@@ -88,7 +88,7 @@ void ModeManager::task(void *parameter) {
         if (isModeForced) {
             instance->changeMode(current_mode_index, forced_mode_index);
             current_mode_index = forced_mode_index;
-            instance->comm.forcedMode = "";
+            instance->comm.forcedMode = ModeType::NONE;
         }
         // Change mode by long click
         if (instance->button_manager.wasLongPressed()) {
