@@ -37,6 +37,7 @@ battery_readers = []
 ros_available = False
 ros_additional_message = None
 atom_s3_mode = "DisplayInformationMode"
+atom_s3_selected_modes = atom_s3_mode
 atom_s3_forced_mode = None
 button_count = 0
 ros_display_image_flag = False
