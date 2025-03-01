@@ -1,6 +1,6 @@
 #include <display_qrcode_mode.h>
 
-DisplayQRcodeMode::DisplayQRcodeMode() : Mode("DisplayQRcodeMode") {}
+DisplayQRcodeMode::DisplayQRcodeMode() : Mode(ModeType::DISPLAY_QRCODE) {}
 
 void DisplayQRcodeMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     while (running) {

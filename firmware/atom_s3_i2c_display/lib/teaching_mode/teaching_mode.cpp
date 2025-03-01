@@ -1,6 +1,6 @@
 #include <teaching_mode.h>
 
-TeachingMode::TeachingMode() : Mode("TeachingMode") {}
+TeachingMode::TeachingMode() : Mode(ModeType::TEACHING) {}
 
 void TeachingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     while (running) {

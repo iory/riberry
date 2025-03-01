@@ -5,6 +5,7 @@
 #include <communication_base.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <mode_type.h>
 #include <primitive_lcd.h>
 #include <string_utils.h>
 
@@ -12,7 +13,7 @@
 
 class Mode : public ExecutionTimer {
 public:
-    Mode(const String& name) : ExecutionTimer(name), running(false) {}
+    Mode(const ModeType::Name& name) : ExecutionTimer(ModeType::toString(name)), running(false) {}
 
     virtual void suspendTask() {
         if (taskHandle != NULL) {

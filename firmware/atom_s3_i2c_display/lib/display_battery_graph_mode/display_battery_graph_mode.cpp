@@ -1,6 +1,6 @@
 #include <display_battery_graph_mode.h>
 
-DisplayBatteryGraphMode::DisplayBatteryGraphMode() : Mode("DisplayBatteryGraphMode") {}
+DisplayBatteryGraphMode::DisplayBatteryGraphMode() : Mode(ModeType::DISPLAY_BATTERY_GRAPH) {}
 
 void DisplayBatteryGraphMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     graph_h = (lcd.height() - title_h - x_label_h - 2);
