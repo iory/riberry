@@ -112,7 +112,8 @@ void ModeManager::createTask(uint8_t xCoreID) {
 
 void ModeManager::startCurrentMode() {
     if (selectedModes.size() == 0) return;
-    comm.setRequestStr(selectedModes[current_mode_index]->getName());
+    uint8_t bytes[] = {(uint8_t)selectedModes[current_mode_index]->getModeType()};
+    comm.setRequestBytes(bytes, sizeof(bytes) / sizeof(uint8_t));
     uint8_t xCoreID = 1;
     selectedModes[current_mode_index]->createTask(xCoreID, lcd, comm);
 }
@@ -150,7 +151,8 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     instance->lcd.setTextSize(DEFAULT_TEXT_SIZE);
     instance->lcd.resetLcdData();
     // Resume
-    comm.setRequestStr(selectedModes[resume_mode_index]->getName());
+    uint8_t bytes[] = {(uint8_t)selectedModes[resume_mode_index]->getModeType()};
+    comm.setRequestBytes(bytes, sizeof(bytes) / sizeof(uint8_t));
     uint8_t xCoreID = 1;
     selectedModes[resume_mode_index]->resumeTask(xCoreID, lcd, comm);
     instance->comm.startReceiveEvent();

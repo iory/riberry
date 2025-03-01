@@ -18,6 +18,8 @@ from riberry.com.uart_base import UARTBase
 from riberry.esp_now_pairing import ESPNowPairing
 from riberry.esp_now_pairing import get_role
 from riberry.esp_now_pairing import Role
+from riberry.mode_type import mode_type_to_string
+from riberry.mode_type import ModeType
 from riberry.network import get_ip_address
 from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
@@ -336,8 +338,9 @@ class DisplayInformation:
                 time.sleep(0.1)
                 mode_packet = self.com.read()
                 if len(mode_packet) > 1:
-                    button_count = int(mode_packet[0])
-                    atom_s3_mode = mode_packet[1:].decode(errors="ignore")
+                    button_count = int(mode_packet[1])
+                    atom_s3_mode_type = int(mode_packet[2])
+                    atom_s3_mode = mode_type_to_string(ModeType(atom_s3_mode_type))
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode

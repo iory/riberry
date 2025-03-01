@@ -13,7 +13,8 @@
 
 class Mode : public ExecutionTimer {
 public:
-    Mode(const ModeType::Name& name) : ExecutionTimer(ModeType::toString(name)), running(false) {}
+    Mode(const ModeType::Name& name)
+        : ExecutionTimer(ModeType::toString(name)), name(name), running(false) {}
 
     virtual void suspendTask() {
         if (taskHandle != NULL) {
@@ -130,9 +131,12 @@ public:
         return false;
     }
 
+    ModeType::Name getModeType() const { return name; }
+
 protected:
     String prevStr;
     bool running;
+    ModeType::Name name;
 };
 
 #endif  // MODE_H
