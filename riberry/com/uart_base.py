@@ -76,6 +76,9 @@ class UARTBase(ComBase):
     def write(self, data, add_packet_length_header=True):
         try:
             self.lock.acquire()
+        except AttributeError as e:  # self.lock is not initialized
+            print(e)
+            return
         except Timeout as e:
             print(e)
             return
