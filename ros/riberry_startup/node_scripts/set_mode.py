@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
+from std_msgs.msg import String
 
 from riberry.com.base import PacketType
 from riberry.mode import Mode
@@ -10,21 +11,27 @@ class SetMode(Mode):
     def __init__(self):
         super().__init__()
         self.mode_names = self.get_mode_names_from_rosparam()
-        rospy.Timer(rospy.Duration(1), self.timer_callback)
+        rospy.Subscriber(
+            "atom_s3_selected_modes", String, callback=self.cb, queue_size=1)
 
     def get_mode_names_from_rosparam(self):
         try:
             mode_name_list = rospy.get_param("~mode_names", "")
             return ",".join(mode_name_list)
         except KeyError:
-            rospy.logwarn("rosparam 'mode_names' が見つかりませんでした。空のリストを設定します。")
-            return ""
+            rospy.logwarn("rosparam 'mode_names' is not found.")
+            return
 
-    def timer_callback(self, event):
+    def cb(self, msg):
+        if self.mode_names != msg.data:
+            self.send_selected_modes()
+
+    def send_selected_modes(self):
+        rospy.loginfo(f"Change selected mode: {self.mode_names}")
         header = [PacketType.SELECTED_MODE]
-        forceModebytes = (list (map(ord, self.mode_names)))
-        rospy.loginfo_throttle(60, f"Mode names: {self.mode_names}")
-        self.write(header + forceModebytes)
+        selected_modes = list(map(ord, self.mode_names))
+        self.write(header + selected_modes)
+        rospy.sleep(3)  # Wait until selected mode is applied
 
 
 if __name__ == "__main__":
