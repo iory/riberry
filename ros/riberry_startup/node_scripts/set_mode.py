@@ -5,6 +5,7 @@ from std_msgs.msg import String
 
 from riberry.com.base import PacketType
 from riberry.mode import Mode
+from riberry.mode_type import string_to_mode_type
 
 
 class SetMode(Mode):
@@ -29,8 +30,11 @@ class SetMode(Mode):
     def send_selected_modes(self):
         rospy.loginfo(f"Change selected mode: {self.mode_names}")
         header = [PacketType.SELECTED_MODE]
-        selected_modes = list(map(ord, self.mode_names))
-        self.write(header + selected_modes)
+        mode_byte_list = [
+            string_to_mode_type(mode_name).value for mode_name in self.mode_names.split(",")]
+        msg_size = len(mode_byte_list) + 1
+        packet = header + [msg_size] + mode_byte_list
+        self.write(packet)
         rospy.sleep(3)  # Wait until selected mode is applied
 
 
