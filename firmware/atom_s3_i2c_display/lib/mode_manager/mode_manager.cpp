@@ -101,6 +101,8 @@ void ModeManager::task(void *parameter) {
             instance->changeMode(current_mode_index, next_mode_index);
             current_mode_index = next_mode_index;
         }
+        // Call setRequestBytes() after current_mode_index is updated
+        instance->setRequestBytes();
         instance->delayWithTimeTracking(pdMS_TO_TICKS(500));
     }
 }
@@ -112,8 +114,6 @@ void ModeManager::createTask(uint8_t xCoreID) {
 
 void ModeManager::startCurrentMode() {
     if (selectedModes.size() == 0) return;
-    uint8_t bytes[] = {(uint8_t)selectedModes[current_mode_index]->getModeType()};
-    comm.setRequestBytes(bytes, sizeof(bytes) / sizeof(uint8_t));
     uint8_t xCoreID = 1;
     selectedModes[current_mode_index]->createTask(xCoreID, lcd, comm);
 }
@@ -151,8 +151,6 @@ void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     instance->lcd.setTextSize(DEFAULT_TEXT_SIZE);
     instance->lcd.resetLcdData();
     // Resume
-    uint8_t bytes[] = {(uint8_t)selectedModes[resume_mode_index]->getModeType()};
-    comm.setRequestBytes(bytes, sizeof(bytes) / sizeof(uint8_t));
     uint8_t xCoreID = 1;
     selectedModes[resume_mode_index]->resumeTask(xCoreID, lcd, comm);
     instance->comm.startReceiveEvent();
@@ -174,4 +172,16 @@ void ModeManager::suspendSelectedModes() {
         selectedModes[i]->suspendTask();
     }
     selectedModes.clear();
+}
+
+void ModeManager::setRequestBytes() {
+    uint8_t *bytes = new uint8_t[selectedModes.size() + 1];
+    // Current mode
+    bytes[0] = {(uint8_t)selectedModes[current_mode_index]->getModeType()};
+    // Selected modes
+    for (size_t i = 0; i < selectedModes.size(); i++) {
+        bytes[i + 1] = (uint8_t)selectedModes[i]->getModeType();
+    }
+    comm.setRequestBytes(bytes, selectedModes.size() + 1);
+    delete[] bytes;
 }

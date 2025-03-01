@@ -37,6 +37,7 @@ private:
     void stopCurrentMode();
     void deleteSelectedModes();
     void suspendSelectedModes();
+    void setRequestBytes();
 };
 
 #endif
