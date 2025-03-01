@@ -44,15 +44,15 @@ CommunicationBase comm(lcd, button_manager, pairing, &Serial);
 #endif
 
 // Define all available modes
-Mode display_information_mode("DisplayInformationMode");
+Mode display_information_mode(ModeType::DISPLAY_INFORMATION);
 DisplayQRcodeMode display_qrcode_mode;
 DisplayImageMode display_image_mode;
 DisplayBatteryGraphMode display_battery_graph_mode;
-Mode display_odom_mode("DisplayOdomMode");
-Mode servo_control_mode("ServoControlMode");
-Mode pressure_control_mode("PressureControlMode");
+Mode display_odom_mode(ModeType::DISPLAY_ODOM);
+Mode servo_control_mode(ModeType::SERVO_CONTROL);
+Mode pressure_control_mode(ModeType::PRESSURE_CONTROL);
 TeachingMode teaching_mode;
-Mode speech_to_text_mode("SpeechToTextMode");
+Mode speech_to_text_mode(ModeType::SPEECH_TO_TEXT);
 SystemDebugMode system_debug_mode;
 PairingMode pairing_mode(button_manager, pairing, comm);
 const std::vector<Mode *> allModes = {

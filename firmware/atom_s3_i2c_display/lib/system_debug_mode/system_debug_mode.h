@@ -6,7 +6,7 @@
 
 class SystemDebugMode : public Mode {
 public:
-    SystemDebugMode() : Mode("SystemDebugMode") {
+    SystemDebugMode() : Mode(ModeType::SYSTEM_DEBUG) {
         previousFreeHeap = 0;  // Unknown at first time
         totalFreeHeap = heap_caps_get_total_size(MALLOC_CAP_8BIT);
     }

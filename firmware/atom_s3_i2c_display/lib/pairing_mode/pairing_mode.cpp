@@ -4,7 +4,7 @@
 #include <string_utils.h>
 
 PairingMode::PairingMode(ButtonManager &button_manager, Pairing &pairing, CommunicationBase &com)
-    : Mode("PairingMode"), button_manager(button_manager), pairing(pairing), com(com) {}
+    : Mode(ModeType::PAIRING), button_manager(button_manager), pairing(pairing), com(com) {}
 
 void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     prevStr = "";

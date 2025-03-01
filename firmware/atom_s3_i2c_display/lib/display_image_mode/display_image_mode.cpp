@@ -1,6 +1,6 @@
 #include <display_image_mode.h>
 
-DisplayImageMode::DisplayImageMode() : Mode("DisplayImageMode") {}
+DisplayImageMode::DisplayImageMode() : Mode(ModeType::DISPLAY_IMAGE) {}
 
 void DisplayImageMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     while (running) {
