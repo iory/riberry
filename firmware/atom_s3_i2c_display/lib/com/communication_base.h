@@ -28,7 +28,7 @@ public:
 
     void stopReceiveEvent();
     void startReceiveEvent();
-    static void setRequestStr(const String& str);
+    static void setRequestBytes(uint8_t* bytes, size_t byteLen);
 
     static String forcedMode;
     static String selectedModesStr;
@@ -58,7 +58,8 @@ private:
     static constexpr uint8_t forceModeHeader[3] = {0xFF, 0xFE, 0xFD};
     static constexpr uint8_t selectedModesHeader[3] = {0xFC, 0xFB, 0xFA};
 
-    static String requestStr; /**< String to be sent on I2C request. */
+    // Limited to a maximum of 100 bytes to prevent buffer overflow
+    static uint8_t requestBytes[100]; /**< Bytes to be sent on I2C request. */
 
     void updateLastReceiveTime();
 

@@ -2,7 +2,7 @@
 
 CommunicationBase* CommunicationBase::instance = nullptr;
 Stream* CommunicationBase::_stream = nullptr;
-String CommunicationBase::requestStr = "";
+uint8_t CommunicationBase::requestBytes[100];
 String CommunicationBase::forcedMode = "";
 String CommunicationBase::selectedModesStr = "";
 Role CommunicationBase::role;
@@ -273,20 +273,17 @@ void CommunicationBase::startReceiveEvent() { receiveEventEnabled = true; }
 
 void CommunicationBase::requestEvent() {
     if (_stream == nullptr || instance == nullptr) return;
-    uint8_t sentStr[100];
-    sentStr[0] = (uint8_t)instance->button_manager.getButtonState();
-    const char* modeData = requestStr.c_str();
-    size_t strLen = strlen(modeData);
-    if (strLen > 98) {
-        strLen = 98;  // Limited to a maximum of 98 bytes to prevent buffer overflow
-    }
-    memcpy(&sentStr[1], modeData, strLen);
-
-    _stream->write(sentStr, strLen + 1);
+    size_t byteLen = requestBytes[0];
+    requestBytes[1] = (uint8_t)instance->button_manager.getButtonState();
+    _stream->write(requestBytes, byteLen);
     instance->button_manager.notChangedButtonState();
 }
 
-void CommunicationBase::setRequestStr(const String& str) { requestStr = str; }
+void CommunicationBase::setRequestBytes(uint8_t* bytes, size_t byteLen) {
+    requestBytes[0] = byteLen + 2;
+    // requestBytes[1] is button information
+    memcpy(&requestBytes[2], bytes, byteLen);  // Mode information
+}
 
 void CommunicationBase::task(void* parameter) {
     if (_stream == nullptr) {
