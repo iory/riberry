@@ -52,6 +52,7 @@ def try_init_ros():
     global ros_display_image
     global battery_readers
     global atom_s3_mode
+    global atom_s3_selected_modes
     global button_count
     global pairing_info
     ros_display_image_param = None
@@ -110,6 +111,7 @@ def try_init_ros():
                 "atom_s3_force_mode", String, force_mode_callback, queue_size=1
             )
             mode_pub = rospy.Publisher("atom_s3_mode", String, queue_size=1)
+            selected_modes_pub = rospy.Publisher("atom_s3_selected_modes", String, queue_size=1)
             button_pub = rospy.Publisher("atom_s3_button_state", Int32, queue_size=1)
             pairing_info_pub = rospy.Publisher(
                 "pairing_information", String, queue_size=1)
@@ -165,6 +167,7 @@ def try_init_ros():
                         pisugar_battery_pub.publish(battery_reader.get_filtered_percentage())
 
                 mode_pub.publish(String(data=atom_s3_mode))
+                selected_modes_pub.publish(String(data=atom_s3_selected_modes))
                 button_pub.publish(Int32(data=button_count))
                 if pairing_info is not None:
                     # This is dangerous operation, so publish once
@@ -323,6 +326,7 @@ class DisplayInformation:
         global ros_display_image
         global ros_display_image_flag
         global atom_s3_mode
+        global atom_s3_selected_modes
         global atom_s3_forced_mode
         global button_count
         global pairing_info
@@ -338,9 +342,16 @@ class DisplayInformation:
                 time.sleep(0.1)
                 mode_packet = self.com.read()
                 if len(mode_packet) > 1:
+                    # packet_size = int(mode_packet[0])
                     button_count = int(mode_packet[1])
                     atom_s3_mode_type = int(mode_packet[2])
                     atom_s3_mode = mode_type_to_string(ModeType(atom_s3_mode_type))
+                    selected_modes = mode_packet[3:]
+                    selected_modes_str_list = [
+                        mode_type_to_string(ModeType(int(selected_mode))) for selected_mode in selected_modes]
+                    atom_s3_selected_modes = ",".join(selected_modes_str_list)
+                else:
+                    print("Cannot read packet")
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
