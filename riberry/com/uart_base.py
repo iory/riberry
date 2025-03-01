@@ -73,7 +73,7 @@ class UARTBase(ComBase):
         except serial.serialutil.PortNotOpenError:
             print("[uart_base] failed to reset input buffer")
 
-    def write(self, data):
+    def write(self, data, add_packet_length_header=True):
         try:
             self.lock.acquire()
         except Timeout as e:
@@ -87,23 +87,26 @@ class UARTBase(ComBase):
             if isinstance(data, str):
                 # The limit must be under Serial's receive buffer size
                 # For AtomS3, about 160 is limit
-                self.serial.write(str_to_byte_list(data, 150))
+                packet = str_to_byte_list(data, 150)
             elif isinstance(data, (bytes, bytearray)):
-                self.serial.write(data)
+                packet = data
             elif isinstance(data, list):
                 if all(isinstance(item, int) for item in data):
                     # If all elements are integers, treat as raw ASCII values
-                    self.serial.write(data)
+                    packet = data
                 elif all(isinstance(item, str) and len(item) == 1 for item in data):
                     # If all elements are single-character strings, convert to ASCII values
                     data_str = ''.join(data)  # Combine list into a single string
                     # The limit must be under Serial's receive buffer size
                     # For AtomS3, about 160 is limit
-                    self.serial.write(str_to_byte_list(data_str, 150))
+                    packet = str_to_byte_list(data_str, 150)
                 else:
                     raise ValueError('List must contain either all integers or all single-character strings.')
             else:
                 raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
+            if add_packet_length_header:
+                packet = [packet[0], len(packet) + 1] + packet[1:]
+            self.serial.write(packet)
         except OSError as e:
             print(f"[uart_base] {e}. Restart serial.")
             self._connect_serial()

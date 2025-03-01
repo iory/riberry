@@ -51,6 +51,7 @@ private:
 
     unsigned long lastReceiveTime = 0;
     const unsigned long receiveTimeout = 15000;
+    static const unsigned long PACKET_TIMEOUT = 200;
 
     static constexpr uint8_t jpegPacketHeader[3] = {0xFF, 0xD8, 0xEA};
     static constexpr uint8_t qrCodeHeader = 0x02;
@@ -63,9 +64,9 @@ private:
 
     static void receiveEvent(int howMany);
     static void handleJpegPacket(const String& str);
-    static void handleQrCodePacket(const String& str);
-    static void handleForceModePacket(const String& str);
-    static void handleSelectedModePacket(const String& str);
+    static void handleQrCodePacket(const String& str, int offset);
+    static void handleForceModePacket(const String& str, int offset);
+    static void handleSelectedModePacket(const String& str, int offset);
     static void requestEvent();
     static void task(void* parameter);
 };
