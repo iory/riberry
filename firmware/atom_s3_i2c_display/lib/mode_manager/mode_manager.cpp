@@ -3,7 +3,7 @@
 ModeManager *ModeManager::instance = nullptr;
 
 std::vector<Mode *> ModeManager::selectedModes = {};
-String ModeManager::selectedModesStr = "";
+uint8_t ModeManager::selectedModesBytes[100];
 int ModeManager::current_mode_index = 0;
 const std::vector<Mode *> *ModeManager::allModes = nullptr;
 
@@ -23,51 +23,46 @@ void ModeManager::task(void *parameter) {
 
     while (true) {
         // Check if selected Modes are changed
-        if (!selectedModesStr.equals(instance->comm.selectedModesStr)) {
-            selectedModesStr = instance->comm.selectedModesStr;
-            char **selectedModesStrList = (char **)malloc(allModes->size() * sizeof(char *));
-            if (selectedModesStrList == nullptr) {
-                Serial.println("Failed to allocate memory for selectedModesStrList.");
-                return;
-            }
-            int modeCount = instance->comm.splitString(selectedModesStr, ',', selectedModesStrList,
-                                                       allModes->size());
-            // Check if all selectedModesStrList names are valid
+        size_t byteLen = instance->comm.selectedModesBytes[0];
+        if (memcmp(selectedModesBytes, instance->comm.selectedModesBytes, byteLen) != 0) {
+            memcpy(selectedModesBytes, instance->comm.selectedModesBytes, byteLen);
+            size_t modeCount = selectedModesBytes[0] - 1;
+            // Check if all selectedModesByteList names are valid
             bool allModesFound = true;
             std::vector<int> invalidModeIndices;
             for (int i = 0; i < modeCount; i++) {
                 bool modeFound = false;
                 for (Mode *mode : *allModes) {
-                    if (mode->getName().equals(String(selectedModesStrList[i]))) {
+                    if (mode->getModeType() == selectedModesBytes[i + 1]) {
                         modeFound = true;
                         break;
                     }
                 }
                 if (!modeFound) {
                     allModesFound = false;
-                    invalidModeIndices.push_back(i);
+                    invalidModeIndices.push_back(i + 1);
                 }
             }
             if (!allModesFound) {
                 instance->lcd.drawBlack();
                 instance->lcd.printColorText("Invalid mode name found\n");
-                for (int i : invalidModeIndices) {
-                    instance->lcd.printColorText(String(selectedModesStrList[i]));
+                for (int j : invalidModeIndices) {
+                    instance->lcd.printColorText(
+                            ModeType::toString((ModeType::Name)selectedModesBytes[j]));
                     instance->lcd.printColorText("\n");
                 }
                 instance->delayWithTimeTracking(pdMS_TO_TICKS(500));
                 continue;
             }
-            // All selectedModesStrList name are valid, so suspend and add modes
+            // All selectedModesBytes are valid, so suspend and add modes
             instance->suspendSelectedModes();
             for (int i = 0; i < modeCount; i++) {
                 for (Mode *mode : *allModes) {
-                    if (mode->getName().equals(String(selectedModesStrList[i]))) {
+                    if (mode->getModeType() == selectedModesBytes[i + 1]) {
                         instance->addSelectedMode(*mode);
                     }
                 }
             }
-            free(selectedModesStrList);
             // Start the first task
             current_mode_index = 0;
             instance->startCurrentMode();

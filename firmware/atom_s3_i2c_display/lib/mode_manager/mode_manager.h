@@ -28,7 +28,7 @@ private:
 
     static const std::vector<Mode *> *allModes;
     static std::vector<Mode *> selectedModes;
-    static String selectedModesStr;
+    static uint8_t selectedModesBytes[100];
     static int current_mode_index;
 
     static void task(void *parameter);
