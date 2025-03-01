@@ -119,12 +119,13 @@ class UARTBase(ComBase):
             except Timeout as e:
                 print(e)
 
+    # read() must return bytes, not None
     def read(self):
         try:
             if self.serial is None:
                 print("[uart_base] Serial is not initialized. Try to connect serial.")
                 self._connect_serial()
-                return
+                return b''
             if self.serial.in_waiting:
                 return self.serial.read(self.serial.in_waiting or 1)
             else:
@@ -135,3 +136,4 @@ class UARTBase(ComBase):
                 self._connect_serial()
             except serial.serialutil.SerialException:
                 print("[uart_base] Serial reconnection failed.")
+            return b''
