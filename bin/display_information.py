@@ -41,6 +41,7 @@ atom_s3_mode = "DisplayInformationMode"
 atom_s3_selected_modes = atom_s3_mode
 atom_s3_forced_mode = None
 button_count = 0
+button_count_updated = False
 ros_display_image_flag = False
 ros_display_image = None
 esp_now_pairing = None
@@ -57,6 +58,7 @@ def try_init_ros():
     global atom_s3_mode
     global atom_s3_selected_modes
     global button_count
+    global button_count_updated
     global pairing_info
     ros_display_image_param = None
     prev_ros_display_image_param = None
@@ -172,7 +174,10 @@ def try_init_ros():
 
                 mode_pub.publish(String(data=atom_s3_mode))
                 selected_modes_pub.publish(String(data=atom_s3_selected_modes))
-                button_pub.publish(Int32(data=button_count))
+                if button_count_updated is True:
+                    # Do not publish the same button_count more than once
+                    button_pub.publish(Int32(data=button_count))
+                    button_count_updated = False
                 if pairing_info is not None and pairing_info != prev_pairing_info:
                     # This is dangerous operation, so publish once
                     pairing_info_pub.publish(String(data=pairing_info))
@@ -332,6 +337,7 @@ class DisplayInformation:
         global atom_s3_selected_modes
         global atom_s3_forced_mode
         global button_count
+        global button_count_updated
         global esp_now_pairing
         global pairing_info
         ssid = f'{self.com.identify_device()}-{get_mac_address()}'
@@ -349,6 +355,7 @@ class DisplayInformation:
                 if len(mode_packet) > 1:
                     # packet_size = int(mode_packet[0])
                     button_count = int(mode_packet[1])
+                    button_count_updated = True
                     atom_s3_mode_type = int(mode_packet[2])
                     atom_s3_mode = mode_type_to_string(ModeType(atom_s3_mode_type))
                     selected_modes = mode_packet[3:]
