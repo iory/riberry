@@ -114,8 +114,15 @@ void ModeManager::startCurrentMode() {
 }
 
 void ModeManager::stopCurrentMode() {
+    instance->lcd.lockLcd();
+    instance->lcd.drawBlack();
+    instance->lcd.printColorText("Stop current mode\n");
+    // When switching modes, ModeManager may suspend the mode before the mode releases lcd
+    // mutex. This deadlock causes lcd freeze. To avoid deadlock, mutex must be taken by
+    // ModeManager before suspending the mode task.
     if (selectedModes.size() == 0) return;
     selectedModes[current_mode_index]->suspendTask();
+    instance->lcd.unlockLcd();
 }
 
 bool ModeManager::isValidIndex(const std::vector<Mode *> &vec, int index) {
@@ -163,10 +170,17 @@ void ModeManager::deleteSelectedModes() {
 
 void ModeManager::suspendSelectedModes() {
     // Before deleting modes, all modes must be suspended
+    instance->lcd.lockLcd();
+    instance->lcd.drawBlack();
+    instance->lcd.printColorText("Suspend selected modes\n");
+    // When switching modes, ModeManager may suspend the mode before the mode releases lcd
+    // mutex. This deadlock causes lcd freeze. To avoid deadlock, mutex must be taken by
+    // ModeManager before suspending the mode task.
     for (int i = 0; i < selectedModes.size(); i++) {
         selectedModes[i]->suspendTask();
     }
     selectedModes.clear();
+    instance->lcd.unlockLcd();
 }
 
 void ModeManager::setRequestBytes() {
