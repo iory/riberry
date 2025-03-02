@@ -122,7 +122,7 @@ class ESPNowPairing:
                 packet = self.com.read()
                 if packet == b'':
                     print_throttle(1.0, f"[{Role.Secondary.value}] Waiting for pairing info ...")
-                elif len(packet) == 4:
+                elif len(packet) == 4 and packet != b'\xFF\xFF\xFF\xFF':
                     pairing_info = packet_to_pairing_info(packet)
                     self.pairing_info = pairing_info
                     print(f"[{Role.Secondary.value}] Receive pairing info: {pairing_info}")

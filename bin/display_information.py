@@ -393,8 +393,9 @@ class DisplayInformation:
             elif mode == 'PairingMode':
                 role = get_role(self.com)
                 if role is not None:
-                    esp_now_pairing = ESPNowPairing(
-                        com=self.com, role=role)
+                    if esp_now_pairing is None:
+                        esp_now_pairing = ESPNowPairing(
+                            com=self.com, role=role)
                     # Start Pairing
                     if button_count == 1:
                         if role == Role.Main:
@@ -402,6 +403,8 @@ class DisplayInformation:
                         esp_now_pairing.pairing()
                     # Double tap to reset ROS master
                     elif button_count == 2:
+                        esp_now_pairing = ESPNowPairing(
+                            com=self.com, role=role)
                         esp_now_pairing.set_pairing_info("localhost")
                     # Only secondary device can change ROS_MASTER_URI
                     if role == Role.Secondary:
