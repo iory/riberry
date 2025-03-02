@@ -14,6 +14,10 @@ from riberry.mode import Mode
 class ServoControlMode(Mode):
     def __init__(self):
         super().__init__()
+        # Create timer callback first to send string even if self.ri cannot be generated
+        self.init_finished = False
+        rospy.Timer(rospy.Duration(0.1), self.timer_callback)
+
         # Create robot model to control servo
         robot_model = RobotModel()
         namespace = ""
@@ -37,8 +41,7 @@ class ServoControlMode(Mode):
             callback=self.servo_on_off_cb,
             queue_size=1,
         )
-
-        rospy.Timer(rospy.Duration(0.1), self.timer_callback)
+        self.init_finished = True
 
     def button_cb(self, msg):
         """
@@ -75,6 +78,12 @@ class ServoControlMode(Mode):
         if self.mode != "ServoControlMode":
             return
         # Send message on AtomS3 LCD
+        if self.init_finished is False:
+            sent_str = chr(PacketType.SERVO_CONTROL_MODE)
+            sent_str += "Servo Control Mode\n\n"
+            sent_str += "Wait for servo response"
+            self.write(sent_str)
+            return
         sent_str = chr(PacketType.SERVO_CONTROL_MODE)
         sent_str += "Servo control mode\n\nSingle Click:\nServo on off"
         self.write(sent_str)
