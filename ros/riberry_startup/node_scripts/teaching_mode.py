@@ -99,6 +99,8 @@ class TeachingMode(Mode):
 
     def __init__(self):
         super().__init__()
+        self.init_finished = False
+        rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
         self.teaching_manager = TeachingManager()
         self.playing = False
         self.new_motion_name = None
@@ -115,7 +117,6 @@ class TeachingMode(Mode):
         rospy.Subscriber(
             "teaching_mode_additional_info",
             String, callback=self.additional_info_cb, queue_size=1)
-        rospy.Timer(rospy.Duration(0.1), self.update_atoms3)
 
         # Call action from rosservice
         rospy.Service('~play', SelectMotion, self.play_srv)
@@ -141,6 +142,8 @@ class TeachingMode(Mode):
             self.special_action_list.add_option(action["name"], position="end")
         self.special_action_selected = None
         self.special_action_executed = False
+
+        self.init_finished = True
 
     def mode_cb(self, msg):
         """Callback to update the current operational mode.
@@ -441,17 +444,25 @@ class TeachingMode(Mode):
             Instead, it reads these states and reflects them on the AtomS3 LCD.
         """
         if self.mode != "TeachingMode":
-            # When mode is changed,
-            # state automatically returns to WAIT
-            self.state = State.WAIT
-            self.play_list.reset_index()
+            if self.init_finished is True:
+                # When mode is changed,
+                # state automatically returns to WAIT
+                self.state = State.WAIT
+                self.play_list.reset_index()
+            return
+        delimiter = '|'
+        if self.init_finished is False:
+            sent_str = chr(PacketType.TEACHING_MODE)
+            sent_str += delimiter
+            sent_str += "Teaching Mode\n\n"
+            sent_str += "Wait for servo response"
+            self.write(sent_str)
             return
 
         sent_str = chr(PacketType.TEACHING_MODE)
         if self.teaching_manager.marker_manager.is_marker_recognized():
             marker_ids = self.teaching_manager.marker_manager.current_marker_ids()
             sent_str += str(marker_ids[0])
-        delimiter = '|'
         sent_str += delimiter
         if self.state != State.WAIT:
             self.additional_str = ""
