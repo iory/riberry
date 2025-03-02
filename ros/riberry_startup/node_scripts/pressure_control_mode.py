@@ -16,6 +16,10 @@ from riberry.select_list import SelectList
 class PressureControlMode(Mode):
     def __init__(self):
         super().__init__()
+        # Create timer callback first to call self.send_string() even if self.ri cannot be generated
+        self.init_finished = False
+        rospy.Timer(rospy.Duration(1), self.timer_callback)
+
         # Create robot model to control pressure
         robot_model = RobotModel()
         namespace = ""
@@ -52,7 +56,7 @@ class PressureControlMode(Mode):
                 callback_args=idx,
             )
             self.pressures[idx] = None
-        rospy.Timer(rospy.Duration(1), self.timer_callback)
+        self.init_finished = True
 
     def button_cb(self, msg):
         """
@@ -113,6 +117,12 @@ class PressureControlMode(Mode):
 
     def send_string(self):
         if self.mode != "PressureControlMode":
+            return
+        if self.init_finished is False:
+            sent_str = chr(PacketType.PRESSURE_CONTROL_MODE)
+            sent_str += "Pressure Control Mode\n\n"
+            sent_str += "Wait until pressure can be read."
+            self.write(sent_str)
             return
         sent_str = chr(PacketType.PRESSURE_CONTROL_MODE)
         sent_str += "pressure [kPa]\n\n"
