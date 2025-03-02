@@ -43,6 +43,7 @@ atom_s3_forced_mode = None
 button_count = 0
 ros_display_image_flag = False
 ros_display_image = None
+esp_now_pairing = None
 pairing_info = None
 stop_event = threading.Event()
 
@@ -59,6 +60,7 @@ def try_init_ros():
     global pairing_info
     ros_display_image_param = None
     prev_ros_display_image_param = None
+    prev_pairing_info = None
 
     battery_junction_temperature = None
     input_voltage = None
@@ -171,11 +173,10 @@ def try_init_ros():
                 mode_pub.publish(String(data=atom_s3_mode))
                 selected_modes_pub.publish(String(data=atom_s3_selected_modes))
                 button_pub.publish(Int32(data=button_count))
-                if pairing_info is not None:
+                if pairing_info is not None and pairing_info != prev_pairing_info:
                     # This is dangerous operation, so publish once
                     pairing_info_pub.publish(String(data=pairing_info))
-                    pairing_info = None
-                button_count = 0
+                prev_pairing_info = pairing_info
                 ros_display_image_param = rospy.get_param("display_image", None)
                 if battery_percentage is not None:
                     battery_pub.publish(battery_percentage)
@@ -331,6 +332,7 @@ class DisplayInformation:
         global atom_s3_selected_modes
         global atom_s3_forced_mode
         global button_count
+        global esp_now_pairing
         global pairing_info
         ssid = f'{self.com.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
@@ -343,6 +345,7 @@ class DisplayInformation:
                 self.com.write([PacketType.BUTTON_STATE_REQUEST])
                 time.sleep(0.1)
                 mode_packet = self.com.read()
+                button_count = 0
                 if len(mode_packet) > 1:
                     # packet_size = int(mode_packet[0])
                     button_count = int(mode_packet[1])
@@ -388,25 +391,26 @@ class DisplayInformation:
                     # after displaying the image to ensure it's not reused
                     ros_display_image = None
             elif mode == 'PairingMode':
-                # Single tap to start communication with AtomS3
-                if button_count == 1:
-                    role = get_role(self.com)
-                    if role is not None:
-                        esp_now_pairing = ESPNowPairing(
-                            com=self.com, role=role)
+                role = get_role(self.com)
+                if role is not None:
+                    esp_now_pairing = ESPNowPairing(
+                        com=self.com, role=role)
+                    # Start Pairing
+                    if button_count == 1:
                         if role == Role.Main:
                             esp_now_pairing.set_pairing_info(get_ip_address())
                         esp_now_pairing.pairing()
-                        if esp_now_pairing.role == Role.Secondary:
-                            new_pairing_info = esp_now_pairing.get_pairing_info()
-                            if new_pairing_info == "255.255.255.255":
-                                pairing_info = None
-                                print("pairing failed")
-                            else:
-                                pairing_info = new_pairing_info
-                # Double tap to reset ROS master
-                if button_count == 2:
-                    pairing_info = "localhost"
+                    # Double tap to reset ROS master
+                    elif button_count == 2:
+                        esp_now_pairing.set_pairing_info("localhost")
+                    # Only secondary device can change ROS_MASTER_URI
+                    if role == Role.Secondary:
+                        new_pairing_info = esp_now_pairing.get_pairing_info()
+                        if new_pairing_info == "255.255.255.255":
+                            pairing_info = None
+                            print("pairing is not done")
+                        else:
+                            pairing_info = new_pairing_info
                 # Send string without header to display current ROS_MASTER_URI on monitor
                 ros_master_uri = os.environ['ROS_MASTER_URI']
                 sent_str = [chr(PacketType.TEXT)]
