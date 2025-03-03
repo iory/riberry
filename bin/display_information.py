@@ -402,11 +402,11 @@ class DisplayInformation:
                         if role == Role.Main:
                             esp_now_pairing.set_pairing_info(get_ip_address())
                         esp_now_pairing.pairing()
-                    # Double tap to reset ROS master
+                    # Double tap to change role and reset ROS master
                     elif run_button_count == 2:
                         esp_now_pairing = ESPNowPairing(
                             com=self.com, role=role)
-                        esp_now_pairing.set_pairing_info("localhost")
+                        pairing_info = "localhost"
                     # Only secondary device can change ROS_MASTER_URI
                     if role == Role.Secondary:
                         new_pairing_info = esp_now_pairing.get_pairing_info()
