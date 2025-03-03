@@ -1,7 +1,10 @@
+#include <SerialTransfer.h>
 #include <communication_base.h>
 
 CommunicationBase* CommunicationBase::instance = nullptr;
 Stream* CommunicationBase::_stream = nullptr;
+SerialTransfer CommunicationBase::transfer;
+uint8_t CommunicationBase::buffer[256];
 uint8_t CommunicationBase::requestBytes[100];
 uint8_t CommunicationBase::forcedMode;
 uint8_t CommunicationBase::selectedModesBytes[100];
@@ -20,7 +23,29 @@ CommunicationBase::CommunicationBase(
     this->role = role;
 }
 
-void CommunicationBase::setStream(Stream* stream) { _stream = stream; }
+void CommunicationBase::setStream(Stream* stream) {
+    _stream = stream;
+    if (_stream == &Serial) {
+        transfer.begin(Serial);
+    }
+#if ARDUINO_USB_MODE
+    #if ARDUINO_USB_CDC_ON_BOOT
+    else if (_stream == &Serial1) {
+        transfer.begin(Serial1);
+    }
+    #else
+    else if (_stream == &Serial1) {
+        transfer.begin(Serial1);
+    } else if (_stream == &USBSerial) {
+        transfer.begin(USBSerial);
+    }
+    #endif
+#else
+    else if (_stream == &Serial1) {
+        transfer.begin(Serial1);
+    }
+#endif
+}
 
 Stream* CommunicationBase::getStream() const { return _stream; }
 
@@ -62,44 +87,24 @@ void CommunicationBase::receiveEvent(int howMany) {
     if (_stream == nullptr || instance == nullptr || !instance->receiveEventEnabled) return;
 
     instance->updateLastReceiveTime();
-    String str;
-    int offset = 0;
 
+    String str;
     if (_stream == &WireSlave) {
         while (_stream->available()) {
             char c = _stream->read();
             str += c;
         }
-        offset = 1;
+        processPacket(str, 1);
     } else {
-        unsigned long start = millis();
-        while (str.length() < 2) {
-            if (_stream->available()) {
-                char c = _stream->read();
-                str += c;
-            }
-            if (millis() - start > PACKET_TIMEOUT) {
-                return;
-            }
-            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
+        transfer.rxObj(buffer, 0, howMany);
+        for (uint16_t i = 0; i < howMany; i++) {
+            str += (char)buffer[i];
         }
-        uint8_t packetType = (uint8_t)str.charAt(0);
-        uint8_t packetLength = (uint8_t)str.charAt(1);
-
-        start = millis();
-        while (str.length() < packetLength) {
-            if (_stream->available()) {
-                char c = _stream->read();
-                str += c;
-            }
-            if (millis() - start > PACKET_TIMEOUT) {
-                return;
-            }
-            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
-        }
-        offset = 2;
+        processPacket(str, 1);
     }
+}
 
+void CommunicationBase::processPacket(const String& str, int offset) {
     if (str.length() < 1) {
         return;  // Invalid packet
     }
@@ -217,7 +222,6 @@ void CommunicationBase::receiveEvent(int howMany) {
         }
         default:
             // unknown packets
-            instance->lcd.color_str = str;
             break;
     }
 }
@@ -280,7 +284,12 @@ void CommunicationBase::requestEvent() {
     if (_stream == nullptr || instance == nullptr) return;
     size_t byteLen = requestBytes[0];
     requestBytes[1] = (uint8_t)instance->button_manager.getButtonState();
-    _stream->write(requestBytes, byteLen);
+    if (_stream == &WireSlave) {
+        _stream->write(requestBytes, byteLen);
+    } else {
+        transfer.txObj(requestBytes, 0, byteLen);
+        transfer.sendData(byteLen);
+    }
     instance->button_manager.notChangedButtonState();
 }
 
@@ -317,10 +326,12 @@ void CommunicationBase::task(void* parameter) {
     } else if (_stream == &Serial || _stream == &Serial1) {
 #endif
         instance->lastReceiveTime = millis() - instance->receiveTimeout;
+        size_t available = 0;
 
         while (true) {
-            if (_stream->available() > 0) {
-                receiveEvent(_stream->available());
+            available = transfer.available();
+            if (available > 0) {
+                receiveEvent(available);
             }
             // Insert a short delay to yield control to the RTOS scheduler.
             // Without this delay, the task could block other lower-priority

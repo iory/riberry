@@ -5,4 +5,5 @@ colorama
 filelock
 i2c-for-esp32
 pybsc
+pyserialtransfer
 smbus2

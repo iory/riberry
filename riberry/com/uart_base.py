@@ -1,5 +1,6 @@
 from filelock import FileLock
 from filelock import Timeout
+from pySerialTransfer import pySerialTransfer as txfer
 import serial
 import serial.tools.list_ports
 
@@ -51,15 +52,7 @@ class UARTBase(ComBase):
                     print(serial_port)
                 else:
                     raise NotImplementedError(f"Not supported device {device}")
-            self.serial = serial.Serial(
-                port=serial_port,
-                baudrate=self.baudrate,
-                bytesize=serial.EIGHTBITS,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
-                timeout=1,  # read timeout
-                write_timeout=1
-            )
+            self.serial = txfer.SerialTransfer(serial_port)
             device_name = serial_port[len("/dev/"):]
             self.lock = FileLock(f"/tmp/{device_name}_lock", timeout=10)
             return True
@@ -69,11 +62,11 @@ class UARTBase(ComBase):
 
     def reset_input_buffer(self):
         try:
-            self.serial.reset_input_buffer()
+            self.serial.connection.reset_input_buffer()
         except serial.serialutil.PortNotOpenError:
             print("[uart_base] failed to reset input buffer")
 
-    def write(self, data, add_packet_length_header=True):
+    def write(self, data):
         try:
             self.lock.acquire()
         except AttributeError as e:  # self.lock is not initialized
@@ -107,9 +100,10 @@ class UARTBase(ComBase):
                     raise ValueError('List must contain either all integers or all single-character strings.')
             else:
                 raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
-            if add_packet_length_header:
-                packet = [packet[0], len(packet) + 1] + packet[1:]
-            self.serial.write(packet)
+            send_size = 0
+            for p in packet:
+                send_size = self.serial.tx_obj(p, start_pos=send_size, val_type_override='B')
+            self.serial.send(send_size)
         except OSError as e:
             print(f"[uart_base] {e}. Restart serial.")
             self._connect_serial()
@@ -126,14 +120,12 @@ class UARTBase(ComBase):
                 print("[uart_base] Serial is not initialized. Try to connect serial.")
                 self._connect_serial()
                 return b''
-            if self.serial.in_waiting:
-                return self.serial.read(self.serial.in_waiting or 1)
-            else:
+            available = self.serial.available()
+            if available == 0:
                 return b''
-        except (OSError, TypeError):
-            print("[uart_base] Serial read failed. Restart serial.")
-            try:
-                self._connect_serial()
-            except serial.serialutil.SerialException:
-                print("[uart_base] Serial reconnection failed.")
+            received = self.serial.rx_obj(obj_type=list, list_format='B', obj_byte_size=available)
+            return received
+        except Exception as e:
+            print("[uart_base] Error during read:", e)
+            self._connect_serial()
             return b''

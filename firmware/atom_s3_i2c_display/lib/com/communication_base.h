@@ -1,6 +1,7 @@
 #ifndef COMMUNICATION_BASE_H
 #define COMMUNICATION_BASE_H
 
+#include <SerialTransfer.h>
 #include <WireSlave.h>
 #include <button_manager.h>
 #include <primitive_lcd.h>
@@ -39,8 +40,12 @@ public:
     static void setStream(Stream* stream);
     Stream* getStream() const;
 
+    static SerialTransfer transfer;
+
 private:
     static Stream* _stream;
+
+    static uint8_t buffer[256];
 
     bool receiveEventEnabled;
     static CommunicationBase* instance;
@@ -69,6 +74,7 @@ private:
     static void handleForceModePacket(const String& str, int offset);
     static void handleSelectedModePacket(const String& str, int offset);
     static void requestEvent();
+    static void processPacket(const String& str, int offset);
     static void task(void* parameter);
 };
 
