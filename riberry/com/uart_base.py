@@ -124,7 +124,7 @@ class UARTBase(ComBase):
             if available == 0:
                 return b''
             received = self.serial.rx_obj(obj_type=list, list_format='B', obj_byte_size=available)
-            return received
+            return bytes(received)
         except Exception as e:
             print("[uart_base] Error during read:", e)
             self._connect_serial()
