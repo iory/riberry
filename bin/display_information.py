@@ -415,10 +415,11 @@ class DisplayInformation:
                         else:
                             pairing_info = new_pairing_info
                 # Send string without header to display current ROS_MASTER_URI on monitor
-                ros_master_uri = os.environ['ROS_MASTER_URI']
-                sent_str = [chr(PacketType.TEXT)]
-                sent_str += ros_master_uri.replace("http://", "").replace(":11311", "")
-                self.com.write(sent_str)
+                if 'ROS_MASTER_URI' in os.environ:
+                    ros_master_uri = os.environ['ROS_MASTER_URI']
+                    sent_str = [chr(PacketType.TEXT)]
+                    sent_str += ros_master_uri.replace("http://", "").replace(":11311", "")
+                    self.com.write(sent_str)
             else:
                 time.sleep(0.1)
             if mode != "DisplayInformationMode":
