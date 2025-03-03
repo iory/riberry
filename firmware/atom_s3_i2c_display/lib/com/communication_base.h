@@ -45,10 +45,14 @@ public:
 
     static SerialTransfer transfer;
 
+    static void stopStream() { _stopStream = true; }
+    static void startStream() { _stopStream = false; }
+
 private:
     static Stream* _stream;
 
     static uint8_t buffer[256];
+    static bool _stopStream;
 
     bool receiveEventEnabled;
     static CommunicationBase* instance;
