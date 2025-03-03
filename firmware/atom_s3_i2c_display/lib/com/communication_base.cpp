@@ -1,7 +1,10 @@
+#include <SerialTransfer.h>
 #include <communication_base.h>
 
 CommunicationBase* CommunicationBase::instance = nullptr;
 Stream* CommunicationBase::_stream = nullptr;
+SerialTransfer CommunicationBase::transfer;
+uint8_t CommunicationBase::buffer[256];
 uint8_t CommunicationBase::requestBytes[100];
 uint8_t CommunicationBase::forcedMode;
 uint8_t CommunicationBase::selectedModesBytes[100];
@@ -20,9 +23,49 @@ CommunicationBase::CommunicationBase(
     this->role = role;
 }
 
-void CommunicationBase::setStream(Stream* stream) { _stream = stream; }
+void CommunicationBase::setStream(Stream* stream) {
+    _stream = stream;
+    if (_stream == &Serial) {
+        transfer.begin(Serial);
+    }
+#if ARDUINO_USB_MODE
+    #if ARDUINO_USB_CDC_ON_BOOT
+    else if (_stream == &Serial1) {
+        transfer.begin(Serial1);
+    }
+    #else
+    else if (_stream == &Serial1) {
+        transfer.begin(Serial1);
+    } else if (_stream == &USBSerial) {
+        transfer.begin(USBSerial);
+    }
+    #endif
+#else
+    else if (_stream == &Serial1) {
+        transfer.begin(Serial1);
+    }
+#endif
+}
 
 Stream* CommunicationBase::getStream() const { return _stream; }
+
+template <typename T>
+void CommunicationBase::write(const T& data, const size_t len) {
+    if (_stream == nullptr) return;
+    if (_stream == &WireSlave) {
+        uint8_t txBuff[200];
+        uint8_t* ptr = (uint8_t*)&data;
+        for (uint16_t i = 0; i < len; i++) {
+            txBuff[i] = *ptr;
+            ptr++;
+        }
+        _stream->write(txBuff, len);
+        WireSlave.update();
+    } else {
+        transfer.txObj(data, 0, len);
+        transfer.sendData(len);
+    }
+}
 
 void CommunicationBase::updateLastReceiveTime() { lastReceiveTime = millis(); }
 
@@ -62,44 +105,24 @@ void CommunicationBase::receiveEvent(int howMany) {
     if (_stream == nullptr || instance == nullptr || !instance->receiveEventEnabled) return;
 
     instance->updateLastReceiveTime();
-    String str;
-    int offset = 0;
 
+    String str;
     if (_stream == &WireSlave) {
         while (_stream->available()) {
             char c = _stream->read();
             str += c;
         }
-        offset = 1;
+        processPacket(str, 1);
     } else {
-        unsigned long start = millis();
-        while (str.length() < 2) {
-            if (_stream->available()) {
-                char c = _stream->read();
-                str += c;
-            }
-            if (millis() - start > PACKET_TIMEOUT) {
-                return;
-            }
-            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
+        transfer.rxObj(buffer, 0, howMany);
+        for (uint16_t i = 0; i < howMany; i++) {
+            str += (char)buffer[i];
         }
-        uint8_t packetType = (uint8_t)str.charAt(0);
-        uint8_t packetLength = (uint8_t)str.charAt(1);
-
-        start = millis();
-        while (str.length() < packetLength) {
-            if (_stream->available()) {
-                char c = _stream->read();
-                str += c;
-            }
-            if (millis() - start > PACKET_TIMEOUT) {
-                return;
-            }
-            instance->delayWithTimeTracking(pdMS_TO_TICKS(1));
-        }
-        offset = 2;
+        processPacket(str, 1);
     }
+}
 
+void CommunicationBase::processPacket(const String& str, int offset) {
     if (str.length() < 1) {
         return;  // Invalid packet
     }
@@ -157,15 +180,12 @@ void CommunicationBase::receiveEvent(int howMany) {
         case GET_PAIRING_TYPE:
             _stream->flush();
             if (pairingEnabled) {
-                _stream->write(getRoleStr(role).c_str(), getRoleStr(role).length());
+                write(getRoleStr(role), getRoleStr(role).length());
             }
             // If packets arrive while pairing is not enabled, return dummy data
             else {
                 String dummy = "dummy";
-                _stream->write(dummy.c_str(), dummy.length());
-            }
-            if (_stream == &WireSlave) {
-                WireSlave.update();
+                write(dummy, dummy.length());
             }
             break;
 
@@ -175,27 +195,18 @@ void CommunicationBase::receiveEvent(int howMany) {
                 std::map<String, PairingData> pairedDataMap = instance->pairing.getPairedData();
                 if (!pairedDataMap.empty()) {
                     auto it = pairedDataMap.begin();
-                    _stream->write(it->second.IPv4, 4);
-                    if (_stream == &WireSlave) {
-                        WireSlave.update();
-                    }
+                    write(it->second.IPv4, 4);
                 }
                 // If No paired data, return dummy IP address
                 else {
                     uint8_t dummy_ip[4] = {255, 255, 255, 255};
-                    _stream->write(dummy_ip, 4);
-                    if (_stream == &WireSlave) {
-                        WireSlave.update();
-                    }
+                    write(dummy_ip, 4);
                 }
             }
             // If packets arrive while pairing is not enabled, return dummy IP address
             else {
                 uint8_t dummy_ip[4] = {255, 255, 255, 255};
-                _stream->write(dummy_ip, 4);
-                if (_stream == &WireSlave) {
-                    WireSlave.update();
-                }
+                write(dummy_ip, 4);
             }
             break;
         }
@@ -217,7 +228,6 @@ void CommunicationBase::receiveEvent(int howMany) {
         }
         default:
             // unknown packets
-            instance->lcd.color_str = str;
             break;
     }
 }
@@ -280,7 +290,7 @@ void CommunicationBase::requestEvent() {
     if (_stream == nullptr || instance == nullptr) return;
     size_t byteLen = requestBytes[0];
     requestBytes[1] = (uint8_t)instance->button_manager.getButtonState();
-    _stream->write(requestBytes, byteLen);
+    write(requestBytes, byteLen);
     instance->button_manager.notChangedButtonState();
 }
 
@@ -317,10 +327,12 @@ void CommunicationBase::task(void* parameter) {
     } else if (_stream == &Serial || _stream == &Serial1) {
 #endif
         instance->lastReceiveTime = millis() - instance->receiveTimeout;
+        size_t available = 0;
 
         while (true) {
-            if (_stream->available() > 0) {
-                receiveEvent(_stream->available());
+            available = transfer.available();
+            if (available > 0) {
+                receiveEvent(available);
             }
             // Insert a short delay to yield control to the RTOS scheduler.
             // Without this delay, the task could block other lower-priority
