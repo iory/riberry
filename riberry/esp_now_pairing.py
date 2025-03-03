@@ -113,9 +113,13 @@ class ESPNowPairing:
         packet = pairing_info_to_packet(self.pairing_info)
         self.send_string(packet)
 
-    def receive_pairing_info(self):
+    def receive_pairing_info(self, timeout=5):
         try:
+            start_time = time.time()
             while True:
+                if time.time() - start_time > timeout:
+                    print(f"[{Role.Secondary.value}] Pairing timeout after {timeout} seconds.")
+                    return False
                 self.com.reset_input_buffer()
                 self.com.write([PacketType.PAIRING_IP_REQUEST])
                 time.sleep(0.1)
@@ -126,7 +130,7 @@ class ESPNowPairing:
                     pairing_info = packet_to_pairing_info(packet)
                     self.pairing_info = pairing_info
                     print(f"[{Role.Secondary.value}] Receive pairing info: {pairing_info}")
-                    return
+                    return True
                 time.sleep(0.1)
         except Exception as e:
             print(f"Error: {e}")
