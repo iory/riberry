@@ -49,6 +49,24 @@ void CommunicationBase::setStream(Stream* stream) {
 
 Stream* CommunicationBase::getStream() const { return _stream; }
 
+template <typename T>
+void CommunicationBase::write(const T& data, const size_t len) {
+    if (_stream == nullptr) return;
+    if (_stream == &WireSlave) {
+        uint8_t txBuff[200];
+        uint8_t* ptr = (uint8_t*)&data;
+        for (uint16_t i = 0; i < len; i++) {
+            txBuff[i] = *ptr;
+            ptr++;
+        }
+        _stream->write(txBuff, len);
+        WireSlave.update();
+    } else {
+        transfer.txObj(data, 0, len);
+        transfer.sendData(len);
+    }
+}
+
 void CommunicationBase::updateLastReceiveTime() { lastReceiveTime = millis(); }
 
 bool CommunicationBase::checkTimeout() { return millis() - lastReceiveTime > receiveTimeout; }
@@ -162,15 +180,12 @@ void CommunicationBase::processPacket(const String& str, int offset) {
         case GET_PAIRING_TYPE:
             _stream->flush();
             if (pairingEnabled) {
-                _stream->write(getRoleStr(role).c_str(), getRoleStr(role).length());
+                write(getRoleStr(role), getRoleStr(role).length());
             }
             // If packets arrive while pairing is not enabled, return dummy data
             else {
                 String dummy = "dummy";
-                _stream->write(dummy.c_str(), dummy.length());
-            }
-            if (_stream == &WireSlave) {
-                WireSlave.update();
+                write(dummy, dummy.length());
             }
             break;
 
@@ -180,27 +195,18 @@ void CommunicationBase::processPacket(const String& str, int offset) {
                 std::map<String, PairingData> pairedDataMap = instance->pairing.getPairedData();
                 if (!pairedDataMap.empty()) {
                     auto it = pairedDataMap.begin();
-                    _stream->write(it->second.IPv4, 4);
-                    if (_stream == &WireSlave) {
-                        WireSlave.update();
-                    }
+                    write(it->second.IPv4, 4);
                 }
                 // If No paired data, return dummy IP address
                 else {
                     uint8_t dummy_ip[4] = {255, 255, 255, 255};
-                    _stream->write(dummy_ip, 4);
-                    if (_stream == &WireSlave) {
-                        WireSlave.update();
-                    }
+                    write(dummy_ip, 4);
                 }
             }
             // If packets arrive while pairing is not enabled, return dummy IP address
             else {
                 uint8_t dummy_ip[4] = {255, 255, 255, 255};
-                _stream->write(dummy_ip, 4);
-                if (_stream == &WireSlave) {
-                    WireSlave.update();
-                }
+                write(dummy_ip, 4);
             }
             break;
         }
@@ -284,12 +290,7 @@ void CommunicationBase::requestEvent() {
     if (_stream == nullptr || instance == nullptr) return;
     size_t byteLen = requestBytes[0];
     requestBytes[1] = (uint8_t)instance->button_manager.getButtonState();
-    if (_stream == &WireSlave) {
-        _stream->write(requestBytes, byteLen);
-    } else {
-        transfer.txObj(requestBytes, 0, byteLen);
-        transfer.sendData(byteLen);
-    }
+    write(requestBytes, byteLen);
     instance->button_manager.notChangedButtonState();
 }
 

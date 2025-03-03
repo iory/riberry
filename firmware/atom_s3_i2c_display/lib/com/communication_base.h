@@ -40,6 +40,9 @@ public:
     static void setStream(Stream* stream);
     Stream* getStream() const;
 
+    template <typename T>
+    static void write(const T& data, const size_t len);
+
     static SerialTransfer transfer;
 
 private:
