@@ -12,6 +12,7 @@ class SetMode(Mode):
     def __init__(self):
         super().__init__()
         self.mode_names = self.get_mode_names_from_rosparam()
+        self.last_send_time = rospy.Time.now()
         rospy.Subscriber(
             "atom_s3_selected_modes", String, callback=self.cb, queue_size=1)
 
@@ -25,7 +26,11 @@ class SetMode(Mode):
 
     def cb(self, msg):
         if self.mode_names != msg.data:
-            self.send_selected_modes()
+            current_time = rospy.Time.now()
+            time_since_last_send = (current_time - self.last_send_time).to_sec()
+            if time_since_last_send >= 3.0:
+                self.send_selected_modes()
+                self.last_send_time = current_time
 
     def send_selected_modes(self):
         rospy.loginfo(f"Change selected mode: {self.mode_names}")
@@ -35,7 +40,6 @@ class SetMode(Mode):
         msg_size = len(mode_byte_list) + 1
         packet = header + [msg_size] + mode_byte_list
         self.write(packet)
-        rospy.sleep(3)  # Wait until selected mode is applied
 
 
 if __name__ == "__main__":
