@@ -15,6 +15,7 @@ enum Name : uint8_t {
     SPEECH_TO_TEXT = 0x09,
     SYSTEM_DEBUG = 0x10,
     PAIRING = 0x11,
+    FIRMWARE_UPDATE = 0xFF,
 };
 
 inline String toString(Name name) {
@@ -43,6 +44,8 @@ inline String toString(Name name) {
             return "SystemDebugMode";
         case PAIRING:
             return "PairingMode";
+        case FIRMWARE_UPDATE:
+            return "FirmwareUpdateMode";
         default:
             return "Unknown";
     }
