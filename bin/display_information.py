@@ -173,6 +173,7 @@ def try_init_ros():
                 mode_pub.publish(String(data=atom_s3_mode))
                 selected_modes_pub.publish(String(data=atom_s3_selected_modes))
                 button_pub.publish(Int32(data=button_count))
+                button_count = 0
                 if pairing_info is not None and pairing_info != prev_pairing_info:
                     # This is dangerous operation, so publish once
                     pairing_info_pub.publish(String(data=pairing_info))
@@ -345,7 +346,6 @@ class DisplayInformation:
                 self.com.write([PacketType.BUTTON_STATE_REQUEST])
                 time.sleep(0.1)
                 mode_packet = self.com.read()
-                button_count = 0
                 if len(mode_packet) > 1:
                     # packet_size = int(mode_packet[0])
                     button_count = int(mode_packet[1])
@@ -360,6 +360,7 @@ class DisplayInformation:
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
+            run_button_count = button_count
             print(f"Mode: {mode} device_type: {self.com.device_type}")
             # Display the QR code when Wi-Fi is not connected,
             # regardless of atom_s3_mode.
@@ -397,12 +398,12 @@ class DisplayInformation:
                         esp_now_pairing = ESPNowPairing(
                             com=self.com, role=role)
                     # Start Pairing
-                    if button_count == 1:
+                    if run_button_count == 1:
                         if role == Role.Main:
                             esp_now_pairing.set_pairing_info(get_ip_address())
                         esp_now_pairing.pairing()
                     # Double tap to reset ROS master
-                    elif button_count == 2:
+                    elif run_button_count == 2:
                         esp_now_pairing = ESPNowPairing(
                             com=self.com, role=role)
                         esp_now_pairing.set_pairing_info("localhost")
