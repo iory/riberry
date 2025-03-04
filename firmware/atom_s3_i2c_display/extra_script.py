@@ -24,6 +24,13 @@ def validate_i2c_address(addr):
 
 Import("env")
 
+def before_upload(source, target, env):
+    print("Erasing flash before upload...")
+    env.Execute("$PYTHONEXE -m platformio run -t erase")
+
+env.AddPreAction("upload", before_upload)
+
+
 try:
     riberry_version = subprocess.check_output(
         ["git", "log", "-1", "--pretty=format:%h"],
