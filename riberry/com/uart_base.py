@@ -1,5 +1,3 @@
-from filelock import FileLock
-from filelock import Timeout
 from pySerialTransfer import pySerialTransfer as txfer
 import serial
 import serial.tools.list_ports
@@ -28,11 +26,11 @@ def usb_devices():
 
 class UARTBase(ComBase):
 
-    def __init__(self, serial_port=None, baudrate=115200):
-        super().__init__()
+    def __init__(self, serial_port=None, baudrate=921600):
         self.baudrate = baudrate
         self.serial = None
         self._connect_serial(serial_port)
+        super().__init__(self.device_name)
 
     def _connect_serial(self, serial_port=None):
         """Reconnect if port disappear"""
@@ -52,9 +50,9 @@ class UARTBase(ComBase):
                     print(serial_port)
                 else:
                     raise NotImplementedError(f"Not supported device {device}")
-            self.serial = txfer.SerialTransfer(serial_port, restrict_ports=False)
-            device_name = serial_port[len("/dev/"):]
-            self.lock = FileLock(f"/tmp/{device_name}_lock", timeout=10)
+            self.serial = txfer.SerialTransfer(serial_port, baud=self.baudrate,
+                                               restrict_ports=False)
+            self.device_name = serial_port[len("/dev/"):]
             return True
         except serial.serialutil.SerialException:
             print("[uart_base] Serial connection failed.")
@@ -66,15 +64,7 @@ class UARTBase(ComBase):
         except serial.serialutil.PortNotOpenError:
             print("[uart_base] failed to reset input buffer")
 
-    def write(self, data):
-        try:
-            self.lock.acquire()
-        except AttributeError as e:  # self.lock is not initialized
-            print(e)
-            return
-        except Timeout as e:
-            print(e)
-            return
+    def _write(self, data, raw=False):
         try:
             if self.serial is None:
                 print("[uart_base] Serial is not initialized. Try to connect serial.")
@@ -100,18 +90,23 @@ class UARTBase(ComBase):
                     raise ValueError('List must contain either all integers or all single-character strings.')
             else:
                 raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
-            send_size = 0
-            for p in packet:
-                send_size = self.serial.tx_obj(p, start_pos=send_size, val_type_override='B')
-            self.serial.send(send_size)
+            if raw:
+                self.serial.connection.write(packet)
+            else:
+                send_size = 0
+                for p in packet:
+                    send_size = self.serial.tx_obj(p, start_pos=send_size, val_type_override='B')
+                self.serial.send(send_size)
         except OSError as e:
             print(f"[uart_base] {e}. Restart serial.")
             self._connect_serial()
-        finally:
-            try:
-                self.lock.release()
-            except Timeout as e:
-                print(e)
+
+    def write(self, data, raw=False):
+        try:
+            with self.lock:
+                self._write(data, raw)
+        except Exception as e:
+            print("[uart_base] Error during write:", e)
 
     # read() must return bytes, not None
     def read(self):

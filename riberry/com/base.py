@@ -1,6 +1,10 @@
+from contextlib import contextmanager
 from enum import IntEnum
 import os.path as osp
 import platform
+
+from filelock import FileLock
+from filelock import Timeout
 
 
 class PacketType(IntEnum):
@@ -20,10 +24,15 @@ class PacketType(IntEnum):
     SET_IP_REQUEST = 0x13
     SPEECH_TO_TEXT_MODE = 0x14
 
+    FIRMWARE_VERSION_REQUEST = 0xFD
+    FIRMWARE_UPDATE_MODE = 0xFF
+
 class ComBase:
 
-    def __init__(self):
+    def __init__(self, device_name):
         self.device_type = self.identify_device()
+        self._is_context_locked = False
+        self.lock = FileLock(f"/tmp/{device_name}.lock", timeout=10)
 
     def write(self, data):
         raise NotImplementedError('You should implement write function.')
@@ -55,6 +64,25 @@ class ComBase:
             return "Unknown Device"
         except FileNotFoundError:
             return "Unknown Device"
+
+    @contextmanager
+    def lock_context(self):
+        try:
+            if self.lock is None:
+                raise AttributeError("Lock is not initialized")
+            if not self._is_context_locked:
+                self.lock.acquire()
+                self._is_context_locked = True
+            yield
+        except Timeout as e:
+            print(f"[{self.__class__.__name__}] Lock acquire timeout: {e}")
+        finally:
+            if self._is_context_locked:
+                try:
+                    self.lock.release()
+                    self._is_context_locked = False
+                except Timeout as e:
+                    print(f"[{self.__class__.__name__}] Lock release timeout: {e}")
 
 
 def truncate_byte_list(byte_list, limit):

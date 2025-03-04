@@ -1,8 +1,7 @@
 import fcntl
+from pathlib import Path
 import sys
 
-from filelock import FileLock
-from filelock import Timeout
 from i2c_for_esp32 import WirePacker
 from i2c_for_esp32 import WireUnpacker
 
@@ -22,9 +21,10 @@ else:
 class I2C:
 
     def __init__(self, device=0x42, bus=5):
+        self.path = "/dev/i2c-" + str(bus)
         self.bus = bus
-        self.fr = open("/dev/i2c-" + str(bus), "rb", buffering=0)
-        self.fw = open("/dev/i2c-" + str(bus), "wb", buffering=0)
+        self.fr = open(self.path, "rb", buffering=0)
+        self.fw = open(self.path, "wb", buffering=0)
         # set device address
         I2C_SLAVE = 0x0703
         fcntl.ioctl(self.fr, I2C_SLAVE, device)
@@ -48,11 +48,10 @@ class I2C:
 class I2CBase(ComBase):
 
     def __init__(self, i2c_addr):
-        super().__init__()
+        self.device_type = self.identify_device()
         self.i2c_addr = i2c_addr
         self.setup_i2c()
-        lock_path = f"/tmp/i2c-{self.i2c.bus}.lock"
-        self.lock = FileLock(lock_path, timeout=10)
+        super().__init__(str(Path(self.i2c.path).stem))
 
     def setup_i2c(self):
         if self.device_type == "Raspberry Pi":
@@ -68,23 +67,19 @@ class I2CBase(ComBase):
 
     def i2c_write(self, packet):
         try:
-            self.lock.acquire()
-        except Timeout as e:
-            print(e)
-            return
-        try:
-            self.i2c.write(packet)
+            with self.lock:
+                self.i2c.write(packet)
         except OSError as e:
-            print(e)
+            print(f'[I2CBase] OS ERROR {e}')
         except TimeoutError as e:
-            print(f"I2C Write error {e}")
-        finally:
-            try:
-                self.lock.release()
-            except Timeout as e:
-                print(e)
+            print(f"[I2CBase] I2C Write error {e}")
+        except Exception as e:
+            print(f"[I2CBase] Error during write: {e}")
 
-    def write(self, data):
+    def write(self, data, raw=False):
+        if raw:
+            self.i2c_write(data)
+            return
         # Allocate a buffer size of 4 times the length of the string
         # to allow Unicode (4-byte characters) as well as ASCII characters
         buffer_size = len(data) * 4 + 2

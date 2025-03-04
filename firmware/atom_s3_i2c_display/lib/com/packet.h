@@ -14,4 +14,7 @@ enum PacketType : uint8_t {
     PAIRING_IP_REQUEST = 0x12,
     SET_IP_REQUEST = 0x13,
     SPEECH_TO_TEXT_MODE = 0x14,
+
+    FIRMWARE_VERSION_REQUEST = 0xFD,
+    FIRMWARE_UPDATE_MODE = 0xFF,
 };

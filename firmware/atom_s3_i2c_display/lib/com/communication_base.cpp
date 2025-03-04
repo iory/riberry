@@ -1,6 +1,9 @@
 #include <SerialTransfer.h>
 #include <communication_base.h>
 
+#include "firmware_update.h"
+#include "riberry_config.h"
+
 CommunicationBase* CommunicationBase::instance = nullptr;
 Stream* CommunicationBase::_stream = nullptr;
 SerialTransfer CommunicationBase::transfer;
@@ -10,6 +13,7 @@ uint8_t CommunicationBase::forcedMode;
 uint8_t CommunicationBase::selectedModesBytes[100];
 Role CommunicationBase::role;
 bool CommunicationBase::pairingEnabled = false;
+bool CommunicationBase::_stopStream = false;
 
 CommunicationBase::CommunicationBase(
         PrimitiveLCD& lcd, ButtonManager& button, Pairing& pairing, Stream* stream, Role role)
@@ -226,6 +230,24 @@ void CommunicationBase::processPacket(const String& str, int offset) {
             instance->pairing.setDataToSend(dataToSend);
             break;
         }
+        case FIRMWARE_VERSION_REQUEST: {
+            _stream->flush();
+            String version = VERSION;
+            write(version, version.length());
+            break;
+        }
+        case FIRMWARE_UPDATE_MODE: {
+            stopStream();
+            instance->lcd.lockLcd();
+            update_firmware(instance->lcd);
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(1000));
+            instance->lcd.color_str = "firmware update failed";
+            instance->delayWithTimeTracking(pdMS_TO_TICKS(1000));
+            instance->lcd.unlockLcd();
+            esp_restart();
+            startStream();
+            break;
+        }
         default:
             // unknown packets
             break;
@@ -311,6 +333,10 @@ void CommunicationBase::task(void* parameter) {
         WireSlave.onReceive(receiveEvent);
 
         while (true) {
+            if (_stopStream) {
+                instance->delayWithTimeTracking(pdMS_TO_TICKS(10));
+                continue;
+            }
             WireSlave.update();
             // After increasing the delay time after WireSlave.update() from 1ms to 10ms, the CPU
             // usage dropped from around 60% to 16%. If the CPU usage on Core 0 becomes too high, we
@@ -330,6 +356,10 @@ void CommunicationBase::task(void* parameter) {
         size_t available = 0;
 
         while (true) {
+            if (_stopStream) {
+                instance->delayWithTimeTracking(pdMS_TO_TICKS(10));
+                continue;
+            }
             available = transfer.available();
             if (available > 0) {
                 receiveEvent(available);
@@ -348,5 +378,5 @@ void CommunicationBase::task(void* parameter) {
 
 void CommunicationBase::createTask(uint8_t xCoreID) {
     this->xCoreID = xCoreID;
-    xTaskCreatePinnedToCore(task, "I2C Task", 2048, this, 24, NULL, xCoreID);
+    xTaskCreatePinnedToCore(task, "I2C Task", 4096 * 2, this, 24, NULL, xCoreID);
 }

@@ -1,5 +1,6 @@
 # flake8: noqa
 import os
+import subprocess
 
 from SCons.Script import Import
 
@@ -22,6 +23,24 @@ def validate_i2c_address(addr):
 
 
 Import("env")
+
+def before_upload(source, target, env):
+    print("Erasing flash before upload...")
+    env.Execute("$PYTHONEXE -m platformio run -t erase")
+
+env.AddPreAction("upload", before_upload)
+
+
+try:
+    riberry_version = subprocess.check_output(
+        ["git", "log", "-1", "--pretty=format:%h"],
+        universal_newlines=True
+    ).strip()
+    env.Append(CPPDEFINES=[f"RIBERRY_VERSION=\\\"{riberry_version}\\\""])
+except subprocess.CalledProcessError:
+    print("\033[91mWarning: Failed to get git commit hash. Using default RIBERRY_VERSION.\033[0m")
+    env.Append(CPPDEFINES=["RIBERRY_VERSION=\\\"unknown\\\""])
+
 
 USE_GROVE = os.getenv("USE_GROVE")
 LCD_ROTATION = os.getenv("LCD_ROTATION")
