@@ -1,5 +1,8 @@
 #include <primitive_lcd.h>
 
+#include "color.h"
+#include "riberry_config.h"
+
 PrimitiveLCD::PrimitiveLCD() : LGFX(), qrCodeData("") {
     init();
     lcdMutex = xSemaphoreCreateRecursiveMutex();
@@ -273,7 +276,10 @@ void PrimitiveLCD::printWaitMessage(int i2cAddress) {
 void PrimitiveLCD::drawNoDataReceived() {
     fillScreen(color565(255, 0, 0));  // Fill the screen with red
     setCursor(0, 0);
-    printColorText("No data received.\n");
+    char log_msg[50];
+    sprintf(log_msg, "No data received.\n%sV:%s\n%s", Color::Foreground::YELLOW, VERSION,
+            Color::Foreground::RESET);
+    printColorText(log_msg);
 }
 
 void PrimitiveLCD::drawBlack() {

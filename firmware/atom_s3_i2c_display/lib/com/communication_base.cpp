@@ -2,6 +2,7 @@
 #include <communication_base.h>
 
 #include "firmware_update.h"
+#include "riberry_config.h"
 
 CommunicationBase* CommunicationBase::instance = nullptr;
 Stream* CommunicationBase::_stream = nullptr;
@@ -227,6 +228,12 @@ void CommunicationBase::processPacket(const String& str, int offset) {
                 }
             }
             instance->pairing.setDataToSend(dataToSend);
+            break;
+        }
+        case FIRMWARE_VERSION_REQUEST: {
+            _stream->flush();
+            String version = VERSION;
+            write(version, version.length());
             break;
         }
         case FIRMWARE_UPDATE_MODE: {
