@@ -97,7 +97,8 @@ void setup() {
     #endif
 #elif USE_M5STACK_BASIC
     bool success = true;
-    Serial.begin(115200, SERIAL_8N1, 16, 17);
+    Serial.begin(921600, SERIAL_8N1, 16, 17);
+    Serial.setRxBufferSize(4096);
 #endif
 
 #ifdef PRINT_CPU_USAGE

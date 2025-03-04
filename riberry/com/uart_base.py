@@ -30,7 +30,7 @@ def usb_devices():
 
 class UARTBase(ComBase):
 
-    def __init__(self, serial_port=None, baudrate=115200):
+    def __init__(self, serial_port=None, baudrate=921600):
         super().__init__()
         self.baudrate = baudrate
         self.serial = None
