@@ -108,7 +108,7 @@ int i2c_read_with_dma(uint8_t* buffer,
 }
 #else
 constexpr bool use_i2c = false;
-bool setup_i2c_dma() { return false; }
+bool setup_i2c_dma(PrimitiveLCD& lcd) { return false; }
 int i2c_read_with_dma(uint8_t* buffer, size_t len, uint8_t slave_addr = 0) { return -1; }
 #endif
 
