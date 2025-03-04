@@ -80,6 +80,7 @@ void update_firmware(PrimitiveLCD& lcd, CommunicationBase& com) {
     lcd.drawBlack();
     lcd.printColorText("Total length: ");
     lcd.printColorText(String(totalLength).c_str());
+    lcd.printColorText(" bytes\n");
     delay(1000);
     err = esp_ota_begin(ota_partition, totalLength, &ota_handle);
     if (err != ESP_OK) {
@@ -116,8 +117,8 @@ void update_firmware(PrimitiveLCD& lcd, CommunicationBase& com) {
                 sprite.fillRect(0, 0, barWidth, 20, TFT_GREEN);
                 sprite.setTextColor(TFT_WHITE, TFT_BLACK);
                 sprite.setTextDatum(MC_DATUM);
-                sprite.drawString(String(progress) + "%", 100, 30);
-                sprite.pushSprite(0, lcd.height() / 2 - 10);
+                sprite.drawString(String(progress) + "%", lcd.width() / 2, 30);
+                sprite.pushSprite(0, lcd.height() / 2 + 10);
                 lastProgress = progress;
             }
         }
