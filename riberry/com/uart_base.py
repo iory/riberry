@@ -67,7 +67,7 @@ class UARTBase(ComBase):
         except serial.serialutil.PortNotOpenError:
             print("[uart_base] failed to reset input buffer")
 
-    def write(self, data):
+    def write(self, data, raw=False):
         try:
             self.lock.acquire()
         except AttributeError as e:  # self.lock is not initialized
@@ -101,10 +101,13 @@ class UARTBase(ComBase):
                     raise ValueError('List must contain either all integers or all single-character strings.')
             else:
                 raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
-            send_size = 0
-            for p in packet:
-                send_size = self.serial.tx_obj(p, start_pos=send_size, val_type_override='B')
-            self.serial.send(send_size)
+            if raw:
+                self.serial.connection.write(packet)
+            else:
+                send_size = 0
+                for p in packet:
+                    send_size = self.serial.tx_obj(p, start_pos=send_size, val_type_override='B')
+                self.serial.send(send_size)
         except OSError as e:
             print(f"[uart_base] {e}. Restart serial.")
             self._connect_serial()
