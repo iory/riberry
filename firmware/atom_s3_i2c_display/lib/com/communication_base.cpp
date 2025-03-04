@@ -232,7 +232,7 @@ void CommunicationBase::processPacket(const String& str, int offset) {
         case FIRMWARE_UPDATE_MODE: {
             stopStream();
             instance->lcd.lockLcd();
-            update_firmware(instance->lcd, *instance);
+            update_firmware(instance->lcd);
             instance->delayWithTimeTracking(pdMS_TO_TICKS(1000));
             instance->lcd.color_str = "firmware update failed";
             instance->delayWithTimeTracking(pdMS_TO_TICKS(1000));
@@ -371,5 +371,5 @@ void CommunicationBase::task(void* parameter) {
 
 void CommunicationBase::createTask(uint8_t xCoreID) {
     this->xCoreID = xCoreID;
-    xTaskCreatePinnedToCore(task, "I2C Task", 4096, this, 24, NULL, xCoreID);
+    xTaskCreatePinnedToCore(task, "I2C Task", 4096 * 2, this, 24, NULL, xCoreID);
 }
