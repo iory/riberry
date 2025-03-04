@@ -52,7 +52,8 @@ class UARTBase(ComBase):
                     print(serial_port)
                 else:
                     raise NotImplementedError(f"Not supported device {device}")
-            self.serial = txfer.SerialTransfer(serial_port, restrict_ports=False)
+            self.serial = txfer.SerialTransfer(serial_port, baud=self.baudrate,
+                                               restrict_ports=False)
             device_name = serial_port[len("/dev/"):]
             self.lock = FileLock(f"/tmp/{device_name}_lock", timeout=10)
             return True
