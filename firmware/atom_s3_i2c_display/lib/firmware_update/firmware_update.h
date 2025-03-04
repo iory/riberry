@@ -10,6 +10,7 @@
 
 #include <LovyanGFX.hpp>
 
+#include "color.h"
 #include "mode.h"
 #include "mode_type.h"
 
@@ -232,33 +233,35 @@ void update_firmware(PrimitiveLCD& lcd) {
     }
     if (total != totalLength) {
         lcd.drawBlack();
-        lcd.printColorText("Download failed\n");
+        lcd.printColorText(Color::Foreground::RED + "Download failed\n");
         char buf[64];
         snprintf(buf, sizeof(buf), "%d/%d\n", total, totalLength);
         lcd.printColorText(buf);
         if (total > totalLength) {
-            lcd.printColorText("Too much data received\n");
+            lcd.printColorText("Too much data received\n" + Color::Foreground::RESET);
         } else {
-            lcd.printColorText("Few data received\n");
+            lcd.printColorText("Few data received\n" + Color::Foreground::RESET);
         }
         delay(4000);
         return;
     }
     err = esp_ota_end(ota_handle);
     if (err != ESP_OK) {
-        lcd.printColorText("OTA end failed\n");
-        lcd.printColorText(esp_err_to_name(err));
+        lcd.printColorText(Color::Foreground::RED + "OTA end failed\n");
+        lcd.printColorText(esp_err_to_name(err) + Color::Foreground::RESET);
         delay(2000);
         return;
     }
     err = esp_ota_set_boot_partition(ota_partition);
     if (err != ESP_OK) {
-        lcd.printColorText("Set boot partition failed\n");
-        lcd.printColorText(esp_err_to_name(err));
+        lcd.printColorText(Color::Foreground::RED + "Set boot partition failed\n");
+        lcd.printColorText(esp_err_to_name(err) + Color::Foreground::RESET);
         delay(2000);
         return;
     }
-    lcd.printColorText("OTA success, restarting...\n");
+    lcd.drawBlack();
+    lcd.printColorText(Color::Foreground::GREEN + "Update Success!, restarting...\n" +
+                       Color::Foreground::RESET);
     delay(3000);
     esp_restart();
 }
