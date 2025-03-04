@@ -1,7 +1,3 @@
-from contextlib import contextmanager
-
-from filelock import FileLock
-from filelock import Timeout
 from pySerialTransfer import pySerialTransfer as txfer
 import serial
 import serial.tools.list_ports
@@ -31,11 +27,10 @@ def usb_devices():
 class UARTBase(ComBase):
 
     def __init__(self, serial_port=None, baudrate=921600):
-        super().__init__()
         self.baudrate = baudrate
         self.serial = None
         self._connect_serial(serial_port)
-        self._is_context_locked = False
+        super().__init__(self.device_name)
 
     def _connect_serial(self, serial_port=None):
         """Reconnect if port disappear"""
@@ -57,8 +52,7 @@ class UARTBase(ComBase):
                     raise NotImplementedError(f"Not supported device {device}")
             self.serial = txfer.SerialTransfer(serial_port, baud=self.baudrate,
                                                restrict_ports=False)
-            device_name = serial_port[len("/dev/"):]
-            self.lock = FileLock(f"/tmp/{device_name}_lock", timeout=10)
+            self.device_name = serial_port[len("/dev/"):]
             return True
         except serial.serialutil.SerialException:
             print("[uart_base] Serial connection failed.")
@@ -70,35 +64,7 @@ class UARTBase(ComBase):
         except serial.serialutil.PortNotOpenError:
             print("[uart_base] failed to reset input buffer")
 
-    @contextmanager
-    def lock_context(self):
-        try:
-            if self.lock is None:
-                raise AttributeError("Lock is not initialized")
-            if not self._is_context_locked:
-                self.lock.acquire()
-                self._is_context_locked = True
-            yield
-        except Timeout as e:
-            print(f"[uart_base] Lock acquire timeout: {e}")
-        finally:
-            if self._is_context_locked:
-                try:
-                    self.lock.release()
-                    self._is_context_locked = False
-                except Timeout as e:
-                    print(f"[uart_base] Lock release timeout: {e}")
-
-    def write(self, data, raw=False):
-        if not self._is_context_locked:
-            try:
-                self.lock.acquire()
-            except AttributeError as e:
-                print(e)
-                return
-            except Timeout as e:
-                print(e)
-                return
+    def _write(self, data, raw=False):
         try:
             if self.serial is None:
                 print("[uart_base] Serial is not initialized. Try to connect serial.")
@@ -134,12 +100,13 @@ class UARTBase(ComBase):
         except OSError as e:
             print(f"[uart_base] {e}. Restart serial.")
             self._connect_serial()
-        finally:
-            if not self._is_context_locked:
-                try:
-                    self.lock.release()
-                except Timeout as e:
-                    print(e)
+
+    def write(self, data, raw=False):
+        try:
+            with self.lock:
+                self._write(data, raw)
+        except Exception as e:
+            print("[uart_base] Error during write:", e)
 
     # read() must return bytes, not None
     def read(self):
