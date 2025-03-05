@@ -13,8 +13,11 @@
 
 class Mode : public ExecutionTimer {
 public:
-    Mode(const ModeType::Name& name)
-        : ExecutionTimer(ModeType::toString(name)), name(name), running(false) {}
+    Mode(const ModeType::Name& name, bool isSkippable = false)
+        : ExecutionTimer(ModeType::toString(name)),
+          name(name),
+          running(false),
+          _isSkippable(isSkippable) {}
 
     virtual void suspendTask() {
         if (taskHandle != NULL) {
@@ -133,10 +136,13 @@ public:
 
     ModeType::Name getModeType() const { return name; }
 
+    bool isSkippable() const { return _isSkippable; }
+
 protected:
     String prevStr;
     bool running;
     ModeType::Name name;
+    bool _isSkippable;
 };
 
 #endif  // MODE_H
