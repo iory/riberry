@@ -1,0 +1,157 @@
+name: Build and Release Multiple Firmwares
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  ##########################################################
+  # Job 1: Build all firmware variations (matrix)
+  ##########################################################
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [m5stack-atoms3, m5stack-basic]
+        rotation: [0, 1, 2, 3]
+        grove: [0, 1]
+        exclude:
+          # We exclude m5stack-basic with grove=1
+          - board: m5stack-basic
+            grove: 1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all tags if needed
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build firmware
+        run: |
+          echo "Board: ${{ matrix.board }}"
+          echo "Rotation: ${{ matrix.rotation }}"
+          echo "Grove: ${{ matrix.grove }}"
+
+          # Pass LCD_ROTATION and USE_GROVE as environment variables to PlatformIO
+          LCD_ROTATION=${{ matrix.rotation }} \
+          USE_GROVE=${{ matrix.grove }} \
+            pio run -d firmware/atom_s3_i2c_display -e ${{ matrix.board }}
+
+          # Rename the output to include board, rotation, and grove
+          BUILD_DIR="firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}"
+          OUTPUT_NAME="${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin"
+
+          mv "$BUILD_DIR/firmware.bin" "$BUILD_DIR/$OUTPUT_NAME"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Each matrix variation produces one artifact
+          name: firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}
+          path: |
+            firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+
+  ##########################################################
+  # Job 2: Create release (one time), expose "upload_url"
+  ##########################################################
+  release:
+    # Wait for "build" job to finish
+    needs: build
+    runs-on: ubuntu-latest
+
+    outputs:
+      # We'll publish the upload_url so the next job can see it
+      upload_url: ${{ steps.set_release_url.outputs.upload_url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: get-tag-name
+        run: |
+          echo "Available tags:"
+          git tag --list
+          LATEST_TAG=$(git tag --sort=-creatordate | head -n 1)
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No tags found, setting default tag"
+            LATEST_TAG="v0.0.0"
+          fi
+          echo "tag-name=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Calculate shortened SHA
+        id: short_sha
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)
+          TAGGED_SHA="${{ steps.get-tag-name.outputs.tag-name }}-${SHORT_SHA}"
+          echo "short_sha=$TAGGED_SHA" >> $GITHUB_OUTPUT
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.short_sha.outputs.short_sha }}
+          release_name: Release ${{ steps.short_sha.outputs.short_sha }}
+          draft: false
+          prerelease: false
+
+      - name: Set release upload URL
+        id: set_release_url
+        run: |
+          # Put the create_release output into a job-level output
+          echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
+
+  ######################################################
+  # Job 3: Use the same matrix to upload each firmware
+  ######################################################
+  upload:
+    needs: [build, release]
+    runs-on: ubuntu-latest
+
+    # Reuse the same matrix to avoid enumerating all combos by hand
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [m5stack-atoms3, m5stack-basic]
+        rotation: [0, 1, 2, 3]
+        grove: [0, 1]
+        exclude:
+          - board: m5stack-basic
+            grove: 1
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: all_firmwares
+
+      - name: Debug directory structure
+        run: |
+          ls -R all_firmwares
+
+      - name: Upload to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+          asset_name: ${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+          asset_content_type: application/octet-stream
