@@ -19,6 +19,7 @@
       - PressureControlMode
       - TeachingMode
       - SystemDebugMode
+      - FirmwareUpdateMode <!-- Enabled by display_information.service -->
     </rosparam>
   </node>
 
