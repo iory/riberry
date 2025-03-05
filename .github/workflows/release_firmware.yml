@@ -91,6 +91,8 @@ jobs:
           if [ -z "$LATEST_TAG" ]; then
             echo "No tags found, setting default tag"
             LATEST_TAG="v0.0.0"
+          else
+            LATEST_TAG=$(echo "$LATEST_TAG" | sed 's/^\(v[0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/')
           fi
           echo "tag-name=$LATEST_TAG" >> $GITHUB_OUTPUT
 
