@@ -18,6 +18,7 @@ from riberry.com.uart_base import UARTBase
 from riberry.esp_now_pairing import ESPNowPairing
 from riberry.esp_now_pairing import get_role
 from riberry.esp_now_pairing import Role
+from riberry.firmware_update import update_firmware
 from riberry.mode_type import mode_type_to_string
 from riberry.mode_type import ModeType
 from riberry.mode_type import string_to_mode_type
@@ -360,6 +361,23 @@ class DisplayInformation:
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
+            if mode == 'FirmwareUpdateMode':
+                with self.com.lock_context():
+                    self.com.write([PacketType.FIRMWARE_VERSION_REQUEST])
+                    time.sleep(0.01)
+                    version = self.com.read().decode('utf-8')
+                    print(f"Firmware version: {version}")
+                    version = version.split('_')
+                    if len(version) < 3:
+                        print("Invalid firmware version")
+                    else:
+                        lcd_rotation = version[1]
+                        use_grove = version[2]
+                        try:
+                            update_firmware(self.com, lcd_rotation=lcd_rotation,
+                                            use_grove=use_grove)
+                        except Exception as e:
+                            print(f"Firmware update failed: {e}")
             run_button_count = button_count
             print(f"Mode: {mode} device_type: {self.com.device_type}")
             # Display the QR code when Wi-Fi is not connected,
