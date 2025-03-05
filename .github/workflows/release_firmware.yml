@@ -97,7 +97,7 @@ jobs:
       - name: Calculate shortened SHA
         id: short_sha
         run: |
-          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           TAGGED_SHA="${{ steps.get-tag-name.outputs.tag-name }}-${SHORT_SHA}"
           echo "short_sha=$TAGGED_SHA" >> $GITHUB_OUTPUT
 
