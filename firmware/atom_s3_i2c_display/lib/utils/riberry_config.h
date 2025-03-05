@@ -9,4 +9,9 @@ constexpr const char VERSION[] = RIBERRY_VERSION;
 constexpr const char VERSION[] = "v0.0.0";  // OK
 #endif
 
+#ifdef LCD_ROTATION
+constexpr int INIT_LCD_ROTATION = LCD_ROTATION; /**< Current rotation of the LCD. */
+#else
+constexpr int INIT_LCD_ROTATION = 1; /**< Current rotation of the LCD. */
+#endif
 #endif  // RIBERRY_CONFIG_H

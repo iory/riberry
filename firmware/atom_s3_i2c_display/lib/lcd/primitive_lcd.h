@@ -12,6 +12,9 @@ constexpr float DEFAULT_TEXT_SIZE = 3.0;
 #include <LGFX_AUTODETECT.hpp>
 #include <LovyanGFX.hpp>
 
+#include "color.h"
+#include "riberry_config.h"
+
 class PrimitiveLCD : public LGFX {
 public:
     PrimitiveLCD();
@@ -84,11 +87,7 @@ private:
     SemaphoreHandle_t lcdMutex;
     float textSize = 0;
 
-#ifdef LCD_ROTATION
-    static constexpr int lcd_rotation = LCD_ROTATION; /**< Current rotation of the LCD. */
-#else
-    static constexpr int lcd_rotation = 1; /**< Current rotation of the LCD. */
-#endif
+    static constexpr int lcd_rotation = INIT_LCD_ROTATION;
     unsigned long lastDrawTime = 0;
 };
 
