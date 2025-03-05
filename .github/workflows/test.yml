@@ -19,10 +19,6 @@ jobs:
         include:
           - project_dir: firmware/atom_echo_i2c_audio
             env_option: ""
-          - project_dir: firmware/atom_s3_i2c_display
-            env_option: ""
-          - project_dir: firmware/atom_s3_i2c_display
-            env_option: "-e m5stack-basic"
           - project_dir: firmware/esp_now_pairing
             env_option: ""
 
