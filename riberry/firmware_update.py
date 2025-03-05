@@ -12,11 +12,11 @@ import riberry
 def download_firmware_from_github(url, save_path):
     response = requests.get(url, stream=True)
     response.raise_for_status()
-    with open(save_path, "wb") as f:
+    with open(save_path.name, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             if chunk:
                 f.write(chunk)
-    return save_path
+    return save_path.name
 
 
 def update_firmware(com, lcd_rotation=1, use_grove=0, firmware_path=None):
@@ -36,7 +36,7 @@ def update_firmware(com, lcd_rotation=1, use_grove=0, firmware_path=None):
             device_name = 'm5stack-atoms3'
         else:
             raise NotImplementedError(f"Not supported device {model}. Please feel free to add the device name to the list or ask the developer to add it.")
-        url = f'https://github.com/iory/riberry/releases/download/{riberry.__version__}-{riberry_git_version}/{device_name}-lcd{lcd_rotation}-grove{use_grove}.bin'
+        url = f'https://github.com/iory/riberry/releases/download/v{riberry.__version__}-{riberry_git_version}/{device_name}-lcd{lcd_rotation}-grove{use_grove}.bin'
         temp_file = tempfile.NamedTemporaryFile(suffix=".bin", delete=True)
         print(f"Downloading firmware from {url} to temporary file {temp_file.name}...")
         firmware_path = download_firmware_from_github(url, temp_file)
