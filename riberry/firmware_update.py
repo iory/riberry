@@ -77,6 +77,8 @@ def update_firmware(com, lcd_rotation=1, use_grove=0, firmware_path=None):
         time.sleep(5.0)
 
     with com.lock_context():
+        com.write([0xFD])
+        time.sleep(0.01)
         version = com.read().decode('utf-8')
         print(f"Firmware version: {version}")
         version = version.split('_')
@@ -84,7 +86,7 @@ def update_firmware(com, lcd_rotation=1, use_grove=0, firmware_path=None):
             print("Invalid firmware version. Firmware update failed.")
         else:
             if riberry_git_version is not None:
-                if version[0] != riberry.__version__:
+                if version[0] != riberry_git_version:
                     print("Invalid firmware version. Firmware update failed.")
                 else:
                     print("Firmware update succeeded.")
