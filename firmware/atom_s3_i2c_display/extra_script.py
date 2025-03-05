@@ -24,9 +24,19 @@ def validate_i2c_address(addr):
 
 Import("env")
 
+# get current env (e.g. m5stack-atoms3 or m5stack-basic)
+current_env = env["PIOENV"]
+
+
 def before_upload(source, target, env):
     print("Erasing flash before upload...")
-    env.Execute("$PYTHONEXE -m platformio run -t erase")
+    erase_cmd = f"$PYTHONEXE -m platformio run -e {current_env} -t erase"
+    try:
+        env.Execute(erase_cmd)
+    except Exception as e:
+        print(f"\033[91mError: Failed to erase flash: {str(e)}\033[0m")
+        Exit(1)
+    print("Erasing flash before upload...")
 
 env.AddPreAction("upload", before_upload)
 
