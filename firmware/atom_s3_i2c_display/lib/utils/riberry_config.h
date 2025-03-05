@@ -16,9 +16,9 @@ constexpr int INIT_LCD_ROTATION = 1; /**< Current rotation of the LCD. */
 #endif
 
 #ifdef USE_GROVE
-constexpr bool USE_GROVE = 1;
+constexpr bool USE_GROVE_OR_NOT = 1;
 #else
-constexpr bool USE_GROVE = 0;
+constexpr bool USE_GROVE_OR_NOT = 0;
 #endif
 
 #endif  // RIBERRY_CONFIG_H

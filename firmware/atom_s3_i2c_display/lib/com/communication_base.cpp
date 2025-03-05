@@ -232,8 +232,8 @@ void CommunicationBase::processPacket(const String& str, int offset) {
         }
         case FIRMWARE_VERSION_REQUEST: {
             _stream->flush();
-            String version =
-                    VERSION + String("_") + String(LCD_ROTATION) + String("_") + String(USE_GROVE);
+            String version = VERSION + String("_") + String(LCD_ROTATION) + String("_") +
+                             String(USE_GROVE_OR_NOT);
             write(version, version.length());
             break;
         }
