@@ -1,8 +1,5 @@
 #include <primitive_lcd.h>
 
-#include "color.h"
-#include "riberry_config.h"
-
 PrimitiveLCD::PrimitiveLCD() : LGFX(), qrCodeData("") {
     init();
     lcdMutex = xSemaphoreCreateRecursiveMutex();

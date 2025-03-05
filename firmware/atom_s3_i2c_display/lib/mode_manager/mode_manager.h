@@ -34,6 +34,7 @@ private:
     static void task(void *parameter);
     bool isValidIndex(const std::vector<Mode *> &vec, int index);
     void changeMode(int suspend_mode_index, int resume_mode_index);
+    void switchToNextMode();
     void stopCurrentMode();
     void deleteSelectedModes();
     void suspendSelectedModes();

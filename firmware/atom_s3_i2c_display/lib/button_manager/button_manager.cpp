@@ -6,6 +6,7 @@ ButtonManager::ButtonManager(int pin, bool activeLow, bool pullupActive)
       clicked(false),
       doubleClicked(false),
       longPressed(false),
+      longPressedState(false),
       ExecutionTimer("ButtonManager") {
     begin();
 }
@@ -99,9 +100,13 @@ void ButtonManager::handleMultiClick() {
 void ButtonManager::handleLongPress() {
     currentButtonState = PRESSED;
     longPressed = true;
+    longPressedState = true;
 }
 
-void ButtonManager::handleLongPressEnd() { currentButtonState = RELEASED; }
+void ButtonManager::handleLongPressEnd() {
+    currentButtonState = RELEASED;
+    longPressedState = false;
+}
 
 // Referencing M5's wasPressed()
 bool ButtonManager::wasClicked() {
@@ -126,6 +131,14 @@ bool ButtonManager::wasLongPressed() {
         return true;
     } else
         return false;
+}
+
+unsigned long ButtonManager::getPressedMs() {
+    if (longPressedState) {
+        return btn.getPressedMs();
+    } else {
+        return 0;
+    }
 }
 
 void ButtonManager::task(void *parameter) {

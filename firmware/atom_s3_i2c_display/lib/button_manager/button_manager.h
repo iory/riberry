@@ -63,6 +63,7 @@ public:
     bool wasClicked();
     bool wasDoubleClicked();
     bool wasLongPressed();
+    unsigned long getPressedMs();
 
     void createTask(uint8_t xCoreID);
 
@@ -72,6 +73,7 @@ private:
     bool clicked;
     bool doubleClicked;
     bool longPressed;
+    bool longPressedState;
 
     static void handleClickStatic(void *instance);
     static void handleDoubleClickStatic(void *instance);
