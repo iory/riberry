@@ -15,6 +15,8 @@ class ModeType(Enum):
     SYSTEM_DEBUG = 0x10
     PAIRING = 0x11
 
+    FIRMWARE_UPDATE_MODE = 0xFF
+
 
 MODE_TYPE_MAPPING = {
     ModeType.NONE: "None",
@@ -29,6 +31,8 @@ MODE_TYPE_MAPPING = {
     ModeType.SPEECH_TO_TEXT: "SpeechToTextMode",
     ModeType.SYSTEM_DEBUG: "SystemDebugMode",
     ModeType.PAIRING: "PairingMode",
+
+    ModeType.FIRMWARE_UPDATE_MODE: "FirmwareUpdateMode",
 }
 
 

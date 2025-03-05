@@ -90,16 +90,35 @@ void ModeManager::task(void *parameter) {
             current_mode_index = forced_mode_index;
             instance->comm.forcedMode = ModeType::NONE;
         }
+        // If the button is pressed for 7 seconds, the firmware update mode is entered.
+        if (instance->button_manager.getPressedMs() >= 7000) {
+            for (int i = 0; i < selectedModes.size(); i++) {
+                if (selectedModes[i]->getModeType() == ModeType::FIRMWARE_UPDATE) {
+                    instance->changeMode(current_mode_index, i);
+                    current_mode_index = i;
+                    break;
+                }
+            }
+        }
         // Change mode by long click
         if (instance->button_manager.wasLongPressed()) {
-            int next_mode_index = (current_mode_index + 1) % selectedModes.size();
-            instance->changeMode(current_mode_index, next_mode_index);
-            current_mode_index = next_mode_index;
+            instance->switchToNextMode();
         }
         // Call setRequestBytes() after current_mode_index is updated
         instance->setRequestBytes();
         instance->delayWithTimeTracking(pdMS_TO_TICKS(500));
     }
+}
+
+void ModeManager::switchToNextMode() {
+    if (selectedModes.size() == 0) return;
+    int next_mode_index = (current_mode_index + 1) % selectedModes.size();
+    while (selectedModes[next_mode_index]->isSkippable()) {
+        next_mode_index = (next_mode_index + 1) % selectedModes.size();
+        if (next_mode_index == current_mode_index) break;
+    }
+    instance->changeMode(current_mode_index, next_mode_index);
+    current_mode_index = next_mode_index;
 }
 
 void ModeManager::createTask(uint8_t xCoreID) {
