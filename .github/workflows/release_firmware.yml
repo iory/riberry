@@ -59,8 +59,8 @@ jobs:
 
           mv "$BUILD_DIR/firmware.bin" "$BUILD_DIR/$OUTPUT_NAME"
 
-      - name: Upload artifact
-        if: github.event_name != 'pull_request' # Execute not in case of pull_request
+      - name: Upload artifact (.bin file)
+        # if: github.event_name != 'pull_request' # Execute not in case of pull_request
         uses: actions/upload-artifact@v4
         with:
           # Each matrix variation produces one artifact
@@ -68,13 +68,22 @@ jobs:
           path: |
             firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
 
+      - name: Upload artifact (.elf file)
+        # if: github.event_name != 'pull_request' # Execute not in case of pull_request
+        uses: actions/upload-artifact@v4
+        with:
+          # Each matrix variation produces one artifact
+          name: firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}
+          path: |
+            firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
+
   ##########################################################
   # Job 2: Create release (one time), expose "upload_url"
   ##########################################################
   release:
     # Wait for "build" job to finish
     needs: build
-    if: github.event_name != 'pull_request' # Execute not in case of pull_request
+    # if: github.event_name != 'pull_request' # Execute not in case of pull_request
     runs-on: ubuntu-latest
 
     outputs:
@@ -130,7 +139,7 @@ jobs:
   ######################################################
   upload:
     needs: [build, release]
-    if: github.event_name != 'pull_request' # Execute not in case of pull_request
+    # if: github.event_name != 'pull_request' # Execute not in case of pull_request
     runs-on: ubuntu-latest
 
     # Reuse the same matrix to avoid enumerating all combos by hand
@@ -154,7 +163,7 @@ jobs:
         run: |
           ls -R all_firmwares
 
-      - name: Upload to release
+      - name: Upload to release (.bin file)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -162,4 +171,14 @@ jobs:
           upload_url: ${{ needs.release.outputs.upload_url }}
           asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
           asset_name: ${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+          asset_content_type: application/octet-stream
+
+      - name: Upload to release (.elf file)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
+          asset_name: ${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
           asset_content_type: application/octet-stream
