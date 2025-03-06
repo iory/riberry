@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+from pathlib import Path
 import socket
 import sys
 import threading
@@ -8,6 +9,7 @@ import time
 
 from colorama import Fore
 
+import riberry
 from riberry.battery import decide_battery_i2c_bus_number
 from riberry.battery import MP2760BatteryMonitor
 from riberry.battery import PisugarBatteryReader
@@ -19,6 +21,7 @@ from riberry.esp_now_pairing import ESPNowPairing
 from riberry.esp_now_pairing import get_role
 from riberry.esp_now_pairing import Role
 from riberry.firmware_update import update_firmware
+from riberry.git_utils import update_repository_with_safe_stash_apply
 from riberry.mode_type import mode_type_to_string
 from riberry.mode_type import ModeType
 from riberry.mode_type import string_to_mode_type
@@ -362,6 +365,7 @@ class DisplayInformation:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
             if mode == 'FirmwareUpdateMode':
+                update_repository_with_safe_stash_apply(Path(riberry.__file__).parent.parent)
                 with self.com.lock_context():
                     self.com.write([PacketType.FIRMWARE_VERSION_REQUEST])
                     time.sleep(0.01)

@@ -2,6 +2,7 @@ Adafruit-Blinka
 RPi.GPIO
 adafruit-circuitpython-mprls
 colorama
+GitPython
 filelock
 i2c-for-esp32
 pybsc
