@@ -11,6 +11,7 @@ uint8_t CommunicationBase::buffer[256];
 uint8_t CommunicationBase::requestBytes[100];
 uint8_t CommunicationBase::forcedMode;
 uint8_t CommunicationBase::selectedModesBytes[100];
+core_dump_regs_t CommunicationBase::regs;
 Role CommunicationBase::role;
 bool CommunicationBase::pairingEnabled = false;
 bool CommunicationBase::_stopStream = false;
@@ -228,6 +229,13 @@ void CommunicationBase::processPacket(const String& str, int offset) {
                 }
             }
             instance->pairing.setDataToSend(dataToSend);
+            break;
+        }
+        case CORE_DUMP_DATA_REQUEST: {
+            if (esp_reset_reason() == ESP_RST_PANIC && regs.core_dumped == 0) {
+                parse_core_dump_simple(&regs);
+            }
+            write(regs, sizeof(regs));
             break;
         }
         case FIRMWARE_VERSION_REQUEST: {
