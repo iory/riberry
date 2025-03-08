@@ -1,5 +1,6 @@
 import struct
 import subprocess
+import tempfile
 import time
 
 
@@ -54,10 +55,31 @@ def read_core_dump(com, elf_path=None, retry_count=5,
             time.sleep(0.01)
             version = com.read().decode().split('_')
             if len(version) >= 3:
-                version, lcd_rotation, use_grove = version[:3]
-                formatted_output += f"Core dumped Firmware version: {version}\n"
+                import riberry
+                from riberry.firmware_update import download_firmware_from_github
+                riberry_git_version, lcd_rotation, use_grove = version[:3]
+                formatted_output += f"Core dumped Firmware version: {riberry_git_version}\n"
                 formatted_output += f"LCD rotation: {lcd_rotation}\n"
                 formatted_output += f"Use Grove: {use_grove}\n"
+
+                if elf_path is None:
+                    model = com.device_type
+                    if model == 'm5stack-LLM':
+                        device_name = 'm5stack-basic'
+                    elif "Radxa" in model or "ROCK Pi" in model \
+                        or model == "Khadas VIM4" \
+                        or model == "NVIDIA Jetson Xavier NX Developer Kit":
+                        device_name = 'm5stack-atoms3'
+                    else:
+                        raise NotImplementedError(f"Not supported device {model}. Please feel free to add the device name to the list or ask the developer to add it.")
+
+                    url = f'https://github.com/iory/riberry/releases/download/v{riberry.__version__}-{riberry_git_version}/{device_name}-lcd{lcd_rotation}-grove{use_grove}.elf'
+                    temp_file = tempfile.NamedTemporaryFile(suffix=".elf", delete=True)
+                    print(f"Downloading firmware elf from {url} to temporary file {temp_file.name}...")
+                    try:
+                        elf_path = download_firmware_from_github(url, temp_file)
+                    except Exception as e:
+                        print(f"Failed to download firmware: {e}")
                 break
         time.sleep(0.1)
     if formatted_output == "":
