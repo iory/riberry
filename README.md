@@ -92,6 +92,44 @@ The `/atom_s3_button_state` topic publishes messages of type `std_msgs/Int32`. T
 
 AtomS3 has multiple modes, which can be switched with a long click. You can get which mode AtomS3 is in by topic. The `/atom_s3_mode` topic publishes messages of type `std_msgs/String`. You can use `/atom_s3_mode` as well as `/atom_s3_button_state` to define robot operations.
 
+##### Analyze Core Dump
+
+Riberry provides a tool to read and analyze core dumps from supported devices (e.g., M5Stack-Basic, Atom S3). `riberry-analyze-core-dump` allows you to retrieve
+core dump information and generate a clickable GitHub issue link for reporting.
+
+Run the script to analyze a core dump:
+
+```bash
+riberry-analyze-core-dump
+```
+
+You can optionally specify an ELF file for additional debugging information:
+
+```bash
+riberry-analyze-core-dump --elf-path /path/to/firmware.elf
+```
+
+Here’s an example of what the tool outputs when run on a Radxa Zero:
+
+```
+Core dumped Firmware version: 20df8eb
+LCD rotation: 1
+Use Grove: 0
+Device: Radxa Zero
+Communication: I2CBase
+
+PC      : 0x4209c205  PS      : 0x00060030  A0      : 0x820092bc  A1      : 0x3fcab140
+A2      : 0x3fc9b2f0  A3      : 0x3fc9b410  A4      : 0x3fc9b380  A5      : 0x00000004
+A6      : 0x3fcedf28  A7      : 0x80000001  A8      : 0x00000000  A9      : 0x3fcf5720
+A10     : 0x00060023  A11     : 0x00000003  A12     : 0x00060023  A13     : 0x80000000
+A14     : 0x00000000  A15     : 0x00ffffff  SAR     : 0x00000000  EXCCAUSE: 0x0000001d
+EXCVADDR: 0x00000000  LBEG    : 0x00000000
+
+Click here to create a GitHub issue
+```
+
+Feel free to create a GitHub issue.
+
 ## Distribute radxa image as SD card
 
 When distributing images, it's necessary to adjust the disk size among other parameters initially due to writing to an SD card.
