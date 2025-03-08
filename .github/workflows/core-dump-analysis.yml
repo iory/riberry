@@ -26,8 +26,8 @@ jobs:
       - name: Run riberry-analyze-core-dump
         id: analyze
         run: |
-          ISSUE_BODY="${{ github.event.issue.body }}"
-          ANALYSIS_RESULT=$(riberry-analyze-core-dump --text "$ISSUE_BODY")
+          echo "${{ github.event.issue.body }}" > issue_body.txt
+          ANALYSIS_RESULT=$(riberry-analyze-core-dump --text "$(cat issue_body.txt)")
           echo "analysis<<EOF" >> "$GITHUB_OUTPUT"
           echo "$ANALYSIS_RESULT" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
