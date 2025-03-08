@@ -26,7 +26,7 @@ jobs:
       - name: Run riberry-analyze-core-dump
         id: analyze
         run: |
-          cat <<EOF > issue_body.txt
+          cat << 'EOF' > issue_body.txt
           ${{ github.event.issue.body }}
           EOF
           echo "DEBUG: Issue body content:"
