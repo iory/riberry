@@ -19,6 +19,19 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent"
 ]
+dependencies = [
+    "Adafruit-Blinka",
+    # "RPi-GPIO"
+    "adafruit-circuitpython-mprls",
+    "colorama",
+    "GitPython",
+    "filelock",
+    "i2c-for-esp32",
+    "platformio",
+    "pybsc",
+    "pyserialtransfer==2.1.6",
+    "smbus2",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/iory/riberry"
