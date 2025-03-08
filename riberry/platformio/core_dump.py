@@ -45,7 +45,24 @@ def format_core_dump(data, elf_path=None):
     return output
 
 
-def read_core_dump(com, elf_path=None, retry_count=5):
+def read_core_dump(com, elf_path=None, retry_count=5,
+                   repo_owner="iory", repo_name="riberry"):
+    formatted_output = ""
+    for _ in range(retry_count):
+        with com.lock_context():
+            com.write([0xFD])
+            time.sleep(0.01)
+            version = com.read().decode().split('_')
+            if len(version) >= 3:
+                version, lcd_rotation, use_grove = version[:3]
+                formatted_output += f"Core dumped Firmware version: {version}\n"
+                formatted_output += f"LCD rotation: {lcd_rotation}\n"
+                formatted_output += f"Use Grove: {use_grove}\n\n"
+                break
+        time.sleep(0.1)
+    if formatted_output == "":
+        formatted_output += "Failed to read core dump version\n\n"
+
     for _ in range(retry_count):
         success = False
         with com.lock_context():
@@ -54,12 +71,21 @@ def read_core_dump(com, elf_path=None, retry_count=5):
             response = com.read()
             if len(response) > 0:
                 try:
-                    formatted_output = format_core_dump(response,
-                                                        elf_path=elf_path)
+                    formatted_output += format_core_dump(response,
+                                                         elf_path=elf_path)
                     success = True
-                    print(formatted_output)
                 except Exception as e:
                     print(f"Failed to format core dump: {e}")
         if success:
             break
         time.sleep(0.1)
+    if success:
+        from riberry.git_utils import generate_github_issue_url
+        print(formatted_output)
+
+        # Generate GitHub issue URL
+        issue_title = f"Core Dump Report - Firmware {version}"
+        message = "I have encountered a core dump while running the firmware."
+        issue_body = f"{message}\n```\n{formatted_output}\n```"
+        issue_url = generate_github_issue_url(repo_owner, repo_name, issue_title, issue_body)
+        print(f"Click here to create a GitHub issue: {issue_url}")
