@@ -6,6 +6,7 @@
 #include <button_manager.h>
 #include <primitive_lcd.h>
 
+#include "core_dump_utils.h"
 #include "execution_timer.h"
 #include "packet.h"
 #include "pairing.h"
@@ -53,6 +54,8 @@ private:
 
     static uint8_t buffer[256];
     static bool _stopStream;
+
+    static core_dump_regs_t regs;
 
     bool receiveEventEnabled;
     static CommunicationBase* instance;

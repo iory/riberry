@@ -1,4 +1,5 @@
 import logging
+import urllib
 
 import git
 
@@ -57,3 +58,14 @@ def update_repository_with_safe_stash_apply(repo_path):
             return False
 
     return True
+
+
+def generate_github_issue_url(repo_owner, repo_name, title, body):
+    """Generate a GitHub issue URL with pre-filled title and body."""
+    base_url = f"https://github.com/{repo_owner}/{repo_name}/issues/new"
+    params = {
+        "title": title,
+        "body": body
+    }
+    query_string = urllib.parse.urlencode(params)
+    return f"{base_url}?{query_string}"
