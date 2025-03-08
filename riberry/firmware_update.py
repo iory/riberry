@@ -7,6 +7,7 @@ import time
 import requests
 
 import riberry
+from riberry.platformio.device_to_mcu import get_device_to_mcu
 
 
 def download_firmware_from_github(url, save_path):
@@ -27,15 +28,7 @@ def update_firmware(com, lcd_rotation=1, use_grove=0, firmware_path=None):
             cwd=os.path.dirname(riberry.__file__),
             universal_newlines=True
         ).strip()
-        model = com.device_type
-        if model == 'm5stack-LLM':
-            device_name = 'm5stack-basic'
-        elif "Radxa" in model or "ROCK Pi" in model \
-            or model == "Khadas VIM4" \
-            or model == "NVIDIA Jetson Xavier NX Developer Kit":
-            device_name = 'm5stack-atoms3'
-        else:
-            raise NotImplementedError(f"Not supported device {model}. Please feel free to add the device name to the list or ask the developer to add it.")
+        device_name = get_device_to_mcu(com.device_type)
         url = f'https://github.com/iory/riberry/releases/download/v{riberry.__version__}-{riberry_git_version}/{device_name}-lcd{lcd_rotation}-grove{use_grove}.bin'
         temp_file = tempfile.NamedTemporaryFile(suffix=".bin", delete=True)
         print(f"Downloading firmware from {url} to temporary file {temp_file.name}...")

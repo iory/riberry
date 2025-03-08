@@ -2,6 +2,16 @@ import logging
 import urllib
 
 import git
+import requests
+
+
+def is_valid_github_url(url):
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=5)
+        return response.status_code == 200
+    except requests.exceptions.RequestException as e:
+        print(f"Error checking URL {url}: {e}")
+        return False
 
 
 def update_repository_with_safe_stash_apply(repo_path):
