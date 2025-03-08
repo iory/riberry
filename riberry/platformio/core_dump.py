@@ -1,22 +1,18 @@
+import re
 import struct
 import subprocess
 import tempfile
 import time
 
+from riberry.git_utils import is_valid_github_url
 
-def download_elf_file(temp_file, com, riberry_firmware_version, lcd_rotation, use_grove):
+GITHUB_ACTION_ANALYSIS_MESSAGE = "Automatically analyze core dumped cause by Github Action"
+URL_PROMPT_MESSAGE = "Maybe you can find the core dump cause in the following URL:"
+
+
+def _download_elf_file(temp_file, device_name, riberry_firmware_version, lcd_rotation, use_grove):
     import riberry
     from riberry.firmware_update import download_firmware_from_github
-    model = com.device_type
-    if model == 'm5stack-LLM':
-        device_name = 'm5stack-basic'
-    elif "Radxa" in model or "ROCK Pi" in model \
-        or model == "Khadas VIM4" \
-        or model == "NVIDIA Jetson Xavier NX Developer Kit":
-        device_name = 'm5stack-atoms3'
-    else:
-        raise NotImplementedError(f"Not supported device {model}. Please feel free to add the device name to the list or ask the developer to add it.")
-
     url = f'https://github.com/iory/riberry/releases/download/v{riberry.__version__}-{riberry_firmware_version}/{device_name}-lcd{lcd_rotation}-grove{use_grove}.elf'
     print(f"Downloading firmware elf from {url} to temporary file {temp_file.name}...")
     try:
@@ -24,6 +20,11 @@ def download_elf_file(temp_file, com, riberry_firmware_version, lcd_rotation, us
         return True
     except Exception as e:
         print(f"Failed to download firmware: {e}")
+
+def download_elf_file(temp_file, com, riberry_firmware_version, lcd_rotation, use_grove):
+    from riberry.platformio.device_to_mcu import get_device_to_mcu
+    device_name = get_device_to_mcu(com.device_type)
+    return _download_elf_file(temp_file, device_name, riberry_firmware_version, lcd_rotation, use_grove)
 
 
 def format_core_dump(data, com, elf_path=None,
@@ -61,17 +62,8 @@ def format_core_dump(data, com, elf_path=None,
             elf_path = temp_file.name
 
     if elf_path is not None:
-        from riberry.platformio.toolchain import ensure_toolchain
-        from riberry.platformio.toolchain import get_addr2line_path
-        ensure_toolchain()
-        addr2line_path = get_addr2line_path()
-        addr2line_cmd = [str(addr2line_path), "-e", str(elf_path), '-a', '-pfiaC', str(hex(pc))]
         output += '\n'
-        output += 'Executing addr2line command:\n'
-        output += ' '.join(addr2line_cmd) + '\n'
-        output += subprocess.check_output(
-            addr2line_cmd, stderr=subprocess.DEVNULL
-        ).decode()
+        output += run_addr2line(str(elf_path), pc)
     return output, True
 
 
@@ -135,3 +127,112 @@ def read_core_dump(com, elf_path=None, retry_count=5,
         clickable_url = f"\033]8;;{issue_url}\033\\Click here to create a GitHub issue\033]8;;\033\\"
         print(clickable_url)
         print(f"If not clickable, use this URL:\n{issue_url}")
+
+def generate_github_source_url(addr2line_output, riberry_firmware_version, repo_owner="iory", repo_name="riberry"):
+    pattern = r"at (.+):(\d+)$"
+    match = re.search(pattern, addr2line_output)
+    if not match:
+        print("Could not parse addr2line output for file path and line number")
+        return None
+    file_path = match.group(1)
+    line_number = match.group(2)
+    repo_root_pattern = rf'/tmp/{repo_name}/'
+    repo_root_match = re.search(repo_root_pattern, file_path)
+    if not repo_root_match:
+        print("Could not find repository root in file path")
+        return None
+    relative_path = file_path[repo_root_match.end():]
+    base_url = f"https://github.com/{repo_owner}/{repo_name}/blob/{riberry_firmware_version}/{relative_path}#L{line_number}"
+    if is_valid_github_url(base_url):
+        return base_url
+
+
+def extract_core_dump_info_from_text(text):
+    patterns = {
+        'riberry_firmware_version': r"Core dumped Firmware version: ([0-9a-f]{7})",  # SHAハッシュ用に修正
+        'lcd_rotation': r"LCD rotation: (\d+)",
+        'use_grove': r"Use Grove: (\w+)",
+        'device_type': r"Device: (.+?)\n",
+        'pc_value': r"PC\s*:\s*0x([0-9a-fA-F]{8})"
+    }
+    extracted_info = {}
+    for key, pattern in patterns.items():
+        match = re.search(pattern, text)
+        if match:
+            extracted_info[key] = match.group(1)
+        else:
+            print(f"Warning: Could not extract {key} from text")
+            extracted_info[key] = None
+    return extracted_info
+
+def extract_device_info(text):
+    try:
+        info = extract_core_dump_info_from_text(text)
+        if not info:
+            raise ValueError("Failed to extract core dump info from text")
+        return info
+    except Exception as e:
+        print(f"Error extracting device info: {e}")
+        raise
+
+
+def run_addr2line(elf_path, pc):
+    from riberry.platformio.toolchain import ensure_toolchain
+    from riberry.platformio.toolchain import get_addr2line_path
+    ensure_toolchain()
+    addr2line_path = get_addr2line_path()
+
+    addr2line_cmd = [str(addr2line_path), "-e", elf_path, '-a', '-pfiaC', hex(pc)]
+    try:
+        output = subprocess.check_output(addr2line_cmd, stderr=subprocess.DEVNULL).decode()
+        return f"Executing addr2line command:\n{' '.join(addr2line_cmd)}\n{output}"
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing addr2line: {e}")
+        return ""
+    except FileNotFoundError:
+        print("Error: addr2line tool not found in PATH")
+        return ""
+
+def analyze_core_dump(text):
+    try:
+        info = extract_device_info(text)
+    except ValueError as e:
+        print(f"Analysis aborted: {e}")
+        return
+
+    # Get device-specific details
+    from riberry.platformio.device_to_mcu import get_device_to_mcu
+    device_name = get_device_to_mcu(info['device_type'])
+    firmware_version = info['riberry_firmware_version']
+    lcd_rotation = info['lcd_rotation']
+    use_grove = info['use_grove']
+
+    try:
+        pc = int(info['pc_value'], 16)
+    except (ValueError, KeyError) as e:
+        print(f"Error parsing PC value: {e}")
+        return
+
+    # Download ELF file
+    elf_temp_file = tempfile.NamedTemporaryFile(suffix=".elf", delete=True)
+    found_elf_path = _download_elf_file(elf_temp_file, device_name, firmware_version, lcd_rotation, use_grove)
+    if not found_elf_path:
+        print("Analysis aborted due to ELF download failure")
+        return
+    elf_path = elf_temp_file.name
+
+    # Run addr2line and get output
+    print(GITHUB_ACTION_ANALYSIS_MESSAGE)
+    addr2line_output = run_addr2line(elf_path, pc)
+    if not addr2line_output:
+        print("Failed to get addr2line output")
+    else:
+        print(addr2line_output)
+
+        # Generate and validate GitHub URL
+        url = generate_github_source_url(addr2line_output, firmware_version)
+        if url:
+            print(URL_PROMPT_MESSAGE)
+            print(url)
+        else:
+            print("Could not generate a valid GitHub URL")
