@@ -4,7 +4,30 @@ import tempfile
 import time
 
 
-def format_core_dump(data, elf_path=None):
+def download_elf_file(temp_file, com, riberry_firmware_version, lcd_rotation, use_grove):
+    import riberry
+    from riberry.firmware_update import download_firmware_from_github
+    model = com.device_type
+    if model == 'm5stack-LLM':
+        device_name = 'm5stack-basic'
+    elif "Radxa" in model or "ROCK Pi" in model \
+        or model == "Khadas VIM4" \
+        or model == "NVIDIA Jetson Xavier NX Developer Kit":
+        device_name = 'm5stack-atoms3'
+    else:
+        raise NotImplementedError(f"Not supported device {model}. Please feel free to add the device name to the list or ask the developer to add it.")
+
+    url = f'https://github.com/iory/riberry/releases/download/v{riberry.__version__}-{riberry_firmware_version}/{device_name}-lcd{lcd_rotation}-grove{use_grove}.elf'
+    print(f"Downloading firmware elf from {url} to temporary file {temp_file.name}...")
+    try:
+        download_firmware_from_github(url, temp_file)
+        return True
+    except Exception as e:
+        print(f"Failed to download firmware: {e}")
+
+
+def format_core_dump(data, com, elf_path=None,
+                        riberry_firmware_version=None, lcd_rotation=None, use_grove=None):
     core_dumped = struct.unpack('<I', data[0:4])[0]
     pc = struct.unpack('<I', data[4:8])[0]
     ps = struct.unpack('<I', data[8:12])[0]
@@ -31,6 +54,12 @@ def format_core_dump(data, elf_path=None):
         + '\n'
     )
 
+    if elf_path is None:
+        temp_file = tempfile.NamedTemporaryFile(suffix=".elf", delete=True)
+        ret = download_elf_file(temp_file, com, riberry_firmware_version, lcd_rotation, use_grove)
+        if ret:
+            elf_path = temp_file.name
+
     if elf_path is not None:
         from riberry.platformio.toolchain import ensure_toolchain
         from riberry.platformio.toolchain import get_addr2line_path
@@ -48,42 +77,24 @@ def format_core_dump(data, elf_path=None):
 
 def read_core_dump(com, elf_path=None, retry_count=5,
                    repo_owner="iory", repo_name="riberry"):
-    formatted_output = ""
+    riberry_firmware_version = None
+    lcd_rotation = None
+    use_grove = None
     for _ in range(retry_count):
         with com.lock_context():
             com.write([0xFD])
             time.sleep(0.01)
             version = com.read().decode().split('_')
             if len(version) >= 3:
-                import riberry
-                from riberry.firmware_update import download_firmware_from_github
-                riberry_git_version, lcd_rotation, use_grove = version[:3]
-                formatted_output += f"Core dumped Firmware version: {riberry_git_version}\n"
-                formatted_output += f"LCD rotation: {lcd_rotation}\n"
-                formatted_output += f"Use Grove: {use_grove}\n"
-
-                if elf_path is None:
-                    model = com.device_type
-                    if model == 'm5stack-LLM':
-                        device_name = 'm5stack-basic'
-                    elif "Radxa" in model or "ROCK Pi" in model \
-                        or model == "Khadas VIM4" \
-                        or model == "NVIDIA Jetson Xavier NX Developer Kit":
-                        device_name = 'm5stack-atoms3'
-                    else:
-                        raise NotImplementedError(f"Not supported device {model}. Please feel free to add the device name to the list or ask the developer to add it.")
-
-                    url = f'https://github.com/iory/riberry/releases/download/v{riberry.__version__}-{riberry_git_version}/{device_name}-lcd{lcd_rotation}-grove{use_grove}.elf'
-                    temp_file = tempfile.NamedTemporaryFile(suffix=".elf", delete=True)
-                    print(f"Downloading firmware elf from {url} to temporary file {temp_file.name}...")
-                    try:
-                        elf_path = download_firmware_from_github(url, temp_file)
-                    except Exception as e:
-                        print(f"Failed to download firmware: {e}")
+                riberry_firmware_version = version[0]
+                lcd_rotation = version[1]
+                use_grove = version[2]
                 break
         time.sleep(0.1)
-    if formatted_output == "":
-        formatted_output += "Failed to read core dump version\n"
+    formatted_output = ""
+    formatted_output += f"Core dumped Firmware version: {riberry_firmware_version}\n"
+    formatted_output += f"LCD rotation: {lcd_rotation}\n"
+    formatted_output += f"Use Grove: {use_grove}\n"
     formatted_output += f"Device: {com.device_type}\n"
     formatted_output += f"Communication: {com.__class__.__name__}\n\n"
 
@@ -98,7 +109,11 @@ def read_core_dump(com, elf_path=None, retry_count=5,
                 try:
                     core_dumped_message, core_dumped = format_core_dump(
                         response,
-                        elf_path=elf_path)
+                        com,
+                        elf_path=elf_path,
+                        riberry_firmware_version=riberry_firmware_version,
+                        lcd_rotation=lcd_rotation,
+                        use_grove=use_grove)
                     formatted_output += core_dumped_message
                     success = True
                 except Exception as e:
