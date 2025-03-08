@@ -5,6 +5,7 @@ colorama
 GitPython
 filelock
 i2c-for-esp32
+platformio
 pybsc
 pyserialtransfer==2.1.6
 smbus2
