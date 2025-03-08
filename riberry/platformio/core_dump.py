@@ -15,7 +15,7 @@ def format_core_dump(data, elf_path=None):
     lbeg = struct.unpack('<I', data[88:92])[0]
 
     if core_dumped == 0:
-        return "No core dump available"
+        return "No core dump available", False
     output = (
         f"PC      : 0x{pc:08x}  PS      : 0x{ps:08x}  "
         + f"A0      : 0x{a_regs[0]:08x}  A1      : 0x{a_regs[1]:08x}\n"
@@ -43,7 +43,7 @@ def format_core_dump(data, elf_path=None):
         output += subprocess.check_output(
             addr2line_cmd, stderr=subprocess.DEVNULL
         ).decode()
-    return output
+    return output, True
 
 
 def read_core_dump(com, elf_path=None, retry_count=5,
@@ -87,6 +87,7 @@ def read_core_dump(com, elf_path=None, retry_count=5,
     formatted_output += f"Device: {com.device_type}\n"
     formatted_output += f"Communication: {com.__class__.__name__}\n\n"
 
+    core_dumped = False
     for _ in range(retry_count):
         success = False
         with com.lock_context():
@@ -95,17 +96,19 @@ def read_core_dump(com, elf_path=None, retry_count=5,
             response = com.read()
             if len(response) > 0:
                 try:
-                    formatted_output += format_core_dump(response,
-                                                         elf_path=elf_path)
+                    core_dumped_message, core_dumped = format_core_dump(
+                        response,
+                        elf_path=elf_path)
+                    formatted_output += core_dumped_message
                     success = True
                 except Exception as e:
                     print(f"Failed to format core dump: {e}")
         if success:
             break
         time.sleep(0.1)
-    if success:
+    print(formatted_output)
+    if success and core_dumped:
         from riberry.git_utils import generate_github_issue_url
-        print(formatted_output)
 
         # Generate GitHub issue URL
         issue_title = f"Core Dump Report - Firmware {version}"
