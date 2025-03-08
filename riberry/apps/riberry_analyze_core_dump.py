@@ -15,8 +15,15 @@ def main():
                         help='Path to the ELF file')
     parser.add_argument('--text', '-t', type=str, default=None,
                         help='Text to analyze core dump')
+    parser.add_argument('--file', '-f', type=str, default=None,
+                        help='File containing core dump text')
     args = parser.parse_args()
 
+    if args.file:
+        with open(args.file) as f:
+            text = f.read()
+        analyze_core_dump(text)
+        return
     if args.text:
         analyze_core_dump(args.text)
         return

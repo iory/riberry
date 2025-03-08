@@ -27,7 +27,11 @@ jobs:
         id: analyze
         run: |
           echo "${{ github.event.issue.body }}" > issue_body.txt
-          ANALYSIS_RESULT=$(riberry-analyze-core-dump --text "$(cat issue_body.txt)")
+          echo "DEBUG: Issue body content:"
+          cat issue_body.txt
+          ANALYSIS_RESULT=$(riberry-analyze-core-dump --file issue_body.txt || echo "Error: Failed to analyze core dump. Check input format or script logic.")
+          echo "DEBUG: Analysis result:"
+          echo "$ANALYSIS_RESULT"
           echo "analysis<<EOF" >> "$GITHUB_OUTPUT"
           echo "$ANALYSIS_RESULT" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
