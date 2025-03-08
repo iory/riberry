@@ -126,7 +126,8 @@ def read_core_dump(com, elf_path=None, retry_count=5,
         from riberry.git_utils import generate_github_issue_url
 
         # Generate GitHub issue URL
-        issue_title = f"Core Dump Report - Firmware {version}"
+        riberry_firmware_version = riberry_firmware_version or "unknown"
+        issue_title = f"Core Dump Report - Firmware {riberry_firmware_version}"
         message = "I have encountered a core dump while running the firmware."
         issue_body = f"{message}\n```\n{formatted_output}\n```"
         issue_url = generate_github_issue_url(repo_owner, repo_name, issue_title, issue_body)
