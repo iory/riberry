@@ -18,6 +18,9 @@ void PairingMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     std::vector<String> pairedMACs = pairing.getPairedMACAddresses();
     unsigned long pairingStartTime = 0;
     while (running) {
+        int *ptr = nullptr;
+        *ptr = 42;  // intentional crash to test error handling
+
         // TODO: Create a function to return an appropriate text size for each
         // display
 #ifdef ATOM_S3
