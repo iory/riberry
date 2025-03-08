@@ -57,11 +57,13 @@ def read_core_dump(com, elf_path=None, retry_count=5,
                 version, lcd_rotation, use_grove = version[:3]
                 formatted_output += f"Core dumped Firmware version: {version}\n"
                 formatted_output += f"LCD rotation: {lcd_rotation}\n"
-                formatted_output += f"Use Grove: {use_grove}\n\n"
+                formatted_output += f"Use Grove: {use_grove}\n"
                 break
         time.sleep(0.1)
     if formatted_output == "":
-        formatted_output += "Failed to read core dump version\n\n"
+        formatted_output += "Failed to read core dump version\n"
+    formatted_output += f"Device: {com.device_type}\n"
+    formatted_output += f"Communication: {com.__class__.__name__}\n\n"
 
     for _ in range(retry_count):
         success = False
