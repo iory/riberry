@@ -88,4 +88,7 @@ def read_core_dump(com, elf_path=None, retry_count=5,
         message = "I have encountered a core dump while running the firmware."
         issue_body = f"{message}\n```\n{formatted_output}\n```"
         issue_url = generate_github_issue_url(repo_owner, repo_name, issue_title, issue_body)
-        print(f"Click here to create a GitHub issue: {issue_url}")
+
+        clickable_url = f"\033]8;;{issue_url}\033\\Click here to create a GitHub issue\033]8;;\033\\"
+        print(clickable_url)
+        print(f"If not clickable, use this URL:\n{issue_url}")
