@@ -12,6 +12,55 @@ permissions:
   contents: write
 
 jobs:
+  non_release_firmware:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - project_dir: firmware/atom_echo_i2c_audio
+            env_option: ""
+          - project_dir: firmware/esp_now_pairing
+            env_option: "-e main"
+          - project_dir: firmware/esp_now_pairing
+            env_option: "-e secondary"
+          - project_dir: firmware/esp_now_pairing
+            env_option: "-e esp_now_init_deinit"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all tags if needed
+
+      - name: Cache PlatformIO dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Cache PlatformIO build
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pio
+          key: ${{ runner.os }}-pio-build-${{ hashFiles('firmware/atom_s3_i2c_display/src/**/*') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-build-
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build PlatformIO Project
+        run: pio run -d ${{ matrix.project_dir }} ${{ matrix.env_option }}
+
   ##########################################################
   # Job 1: Build all firmware variations (matrix)
   ##########################################################
