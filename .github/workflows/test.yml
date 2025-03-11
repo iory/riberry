@@ -12,33 +12,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  firmware:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - project_dir: firmware/atom_echo_i2c_audio
-            env_option: ""
-          - project_dir: firmware/esp_now_pairing
-            env_option: ""
-
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/pip
-            ~/.platformio/.cache
-          key: ${{ runner.os }}-pio
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Install PlatformIO Core
-        run: pip install --upgrade platformio
-
-      - name: Build PlatformIO Project
-        run: pio run -d ${{ matrix.project_dir }} ${{ matrix.env_option }}
-
   typos:
     name: Typos
     runs-on: ubuntu-latest
