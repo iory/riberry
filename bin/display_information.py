@@ -480,7 +480,13 @@ class DisplayInformation:
                         ],
                     )
                 elif wifi_connect_process is not None:
-                    self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
+                    retcode = wifi_connect_process.poll()
+                    if retcode is not None:
+                        print(f"wifi-connect exited with return code: {retcode}")
+                        wifi_connect_process = None
+                        self.display_wifi_settings()
+                    else:
+                        self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
                 else:
                     self.display_wifi_settings()
             else:
