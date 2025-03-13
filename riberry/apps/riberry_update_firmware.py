@@ -10,7 +10,7 @@ from riberry.firmware_update import update_firmware
 
 def main():
     parser = argparse.ArgumentParser(description='Update firmware for the device.')
-    parser.add_argument('--firmware-path', required=True, help='Path to the firmware file')
+    parser.add_argument('--firmware-path', '-f', required=True, help='Path to the firmware file')
     args = parser.parse_args()
 
     device = ComBase.identify_device()
