@@ -479,6 +479,7 @@ class DisplayInformation:
                             "192.168.4.2,192.168.4.5",
                         ],
                     )
+                elif wifi_connect_process is not None:
                     self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
                 else:
                     self.display_wifi_settings()
