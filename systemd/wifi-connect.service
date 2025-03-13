@@ -1,7 +1,7 @@
 [Unit]
 Description=Balena wifi connect service
-After=network-online.target
-Wants=network-online.target
+After=NetworkManager.service dbus.service
+Wants=NetworkManager.service dbus.service
 
 [Service]
 ExecStart=/usr/local/bin/start-wifi-connect.py
