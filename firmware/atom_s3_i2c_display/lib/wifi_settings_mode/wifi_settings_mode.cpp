@@ -6,6 +6,7 @@ WiFiSettingsMode::WiFiSettingsMode(ButtonManager &button_manager)
     : Mode(ModeType::WIFI_SETTINGS), button_manager(button_manager) {}
 
 void WiFiSettingsMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
+    String prevQrCodeData = "";
     prevStr = "";
     unsigned long prevTime = millis();
     ButtonState buttonState;
@@ -26,10 +27,11 @@ void WiFiSettingsMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
             }
         }
         if (!lcd.qrCodeData.isEmpty()) {
-            if (!compareIgnoringEscapeSequences(prevStr, lcd.qrCodeData)) {
+            if (!compareIgnoringEscapeSequences(prevQrCodeData, lcd.qrCodeData)) {
                 lcd.drawBlack();
                 lcd.drawQRcode(lcd.qrCodeData);
             }
+            prevQrCodeData = lcd.qrCodeData;
         } else {
             if (!compareIgnoringEscapeSequences(prevStr, lcd.color_str)) {
                 lcd.drawBlack();

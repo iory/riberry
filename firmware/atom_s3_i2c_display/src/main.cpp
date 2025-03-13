@@ -48,7 +48,7 @@ CommunicationBase comm(lcd, button_manager, pairing, &Serial);
 
 // Define all available modes
 Mode display_information_mode(ModeType::DISPLAY_INFORMATION);
-DisplayQRcodeMode display_qrcode_mode;
+DisplayQRcodeMode display_qrcode_mode(/*isSkippable=*/true);
 DisplayImageMode display_image_mode;
 DisplayBatteryGraphMode display_battery_graph_mode;
 Mode display_odom_mode(ModeType::DISPLAY_ODOM);
