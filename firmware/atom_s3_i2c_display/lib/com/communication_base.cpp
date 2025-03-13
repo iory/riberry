@@ -9,6 +9,7 @@ Stream* CommunicationBase::_stream = nullptr;
 SerialTransfer CommunicationBase::transfer;
 uint8_t CommunicationBase::buffer[256];
 uint8_t CommunicationBase::requestBytes[100];
+uint8_t CommunicationBase::additionalRequestBytes[100];
 uint8_t CommunicationBase::forcedMode;
 uint8_t CommunicationBase::selectedModesBytes[100];
 core_dump_regs_t CommunicationBase::regs;
@@ -231,6 +232,11 @@ void CommunicationBase::processPacket(const String& str, int offset) {
             instance->pairing.setDataToSend(dataToSend);
             break;
         }
+        case GET_ADDITIONAL_REQUEST: {
+            _stream->flush();
+            write(additionalRequestBytes, additionalRequestBytes[0]);
+            break;
+        }
         case CORE_DUMP_DATA_REQUEST: {
             if (esp_reset_reason() == ESP_RST_PANIC && regs.core_dumped == 0) {
                 parse_core_dump_simple(&regs);
@@ -329,6 +335,11 @@ void CommunicationBase::setRequestBytes(uint8_t* bytes, size_t byteLen) {
     requestBytes[0] = byteLen + 2;
     // requestBytes[1] is button information
     memcpy(&requestBytes[2], bytes, byteLen);  // Mode information
+}
+
+void CommunicationBase::setAdditionalRequestBytes(uint8_t* bytes, size_t byteLen) {
+    additionalRequestBytes[0] = byteLen + 1;
+    memcpy(&additionalRequestBytes[1], bytes, byteLen);
 }
 
 void CommunicationBase::task(void* parameter) {

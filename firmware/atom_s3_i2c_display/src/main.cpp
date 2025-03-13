@@ -14,6 +14,8 @@
 #include <system_debug_mode.h>
 #include <teaching_mode.h>
 
+#include "wifi_settings_mode.h"
+
 ButtonManager button_manager;
 PrimitiveLCD lcd;
 Pairing pairing;
@@ -57,11 +59,13 @@ Mode speech_to_text_mode(ModeType::SPEECH_TO_TEXT);
 SystemDebugMode system_debug_mode;
 PairingMode pairing_mode(button_manager, pairing, comm);
 FirmwareUpdateMode firmware_update_mode;
+WiFiSettingsMode wifi_settings_mode(button_manager);
 const std::vector<Mode*> allModes = {
         &display_information_mode,   &display_qrcode_mode, &display_image_mode,
         &display_battery_graph_mode, &display_odom_mode,   &servo_control_mode,
         &pressure_control_mode,      &teaching_mode,       &pairing_mode,
         &system_debug_mode,          &speech_to_text_mode, &firmware_update_mode,
+        &wifi_settings_mode,
 };
 
 ModeManager modemanager(lcd, button_manager, comm, allModes);
@@ -80,7 +84,8 @@ std::vector<ExecutionTimer*> executionTimers = {&pairing,
                                                 &pairing_mode,
                                                 &system_debug_mode,
                                                 &speech_to_text_mode,
-                                                &firmware_update_mode};
+                                                &firmware_update_mode,
+                                                &wifi_settings_mode};
 
 #ifdef ATOM_S3
 CPUUsageMonitor cpu_usage_monitor(executionTimers, &USBSerial);
@@ -116,7 +121,7 @@ void setup() {
     comm.createTask(0);
     modemanager.createTask(0);
     Mode* defaultModes[] = {&display_information_mode, &display_qrcode_mode, &pairing_mode,
-                            &system_debug_mode, &firmware_update_mode};
+                            &system_debug_mode,        &wifi_settings_mode,  &firmware_update_mode};
     for (Mode* mode : defaultModes) {
         modemanager.addSelectedMode(*mode);
         // AtomS3 I2C version causes heap error when modes are added without delay

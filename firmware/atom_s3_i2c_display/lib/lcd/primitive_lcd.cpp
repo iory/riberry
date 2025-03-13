@@ -246,6 +246,7 @@ void PrimitiveLCD::drawQRcode(const String& qrCodeData) {
         qrcode(qrCodeData.c_str(), static_cast<int>(width() / 2 - rectWidth / 2) + SPACING,
                static_cast<int>(height() / 2 - rectWidth / 2) + SPACING / 2,
                rectWidth - SPACING * 2, QR_VERSION);
+        resetQRcodeData();
     } else {
         fillScreen(color565(255, 0, 0));  // Fill the screen with red
         setCursor(0, 0);

@@ -5,6 +5,21 @@ import subprocess
 import time
 
 
+def get_wifi_info():
+    try:
+        result = subprocess.check_output(["iwconfig"], text=True, stderr=subprocess.DEVNULL)
+        ssid = "unknown"
+        rssi = "N/A"
+        for line in result.splitlines():
+            if "ESSID" in line:
+                ssid = line.split("ESSID:")[1].strip().strip('"')
+            if "Signal level" in line:
+                rssi = line.split("Signal level=")[1].split(" ")[0]
+        return ssid, rssi
+    except Exception:
+        return None, None
+
+
 def parse_ip(route_get_output):
     tokens = route_get_output.split()
     if "via" in tokens:
