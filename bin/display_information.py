@@ -384,7 +384,7 @@ class DisplayInformation:
             if mode != "WiFiSettingsMode":
                 if wifi_connect_process is not None:
                     print("Stop wifi-connect")
-                    subprocess.run(["sudo", "/usr/local/sbin/kill-wifi-connect.sh"])
+                    subprocess.run(["sudo", "/usr/local/bin/kill-wifi-connect.sh"])
                     wifi_connect_process.wait()
                     wifi_connect_process = None
             if mode == 'FirmwareUpdateMode':
