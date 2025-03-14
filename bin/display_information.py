@@ -409,7 +409,7 @@ class DisplayInformation:
             print(f"Mode: {mode} device_type: {self.com.device_type}")
             # Display the QR code when Wi-Fi is not connected,
             # regardless of atom_s3_mode.
-            if get_ip_address() is None:
+            if get_ip_address() is None and wifi_connect_process is None:
                 wifi_connected = False
                 if qrcode_mode_is_forced is False:
                     self.force_mode("DisplayQRcodeMode")
