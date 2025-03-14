@@ -96,7 +96,7 @@ CPUUsageMonitor cpu_usage_monitor(executionTimers, &Serial);
 void setup() {
 #ifdef ATOM_S3
     #ifdef USE_USB_SERIAL
-    USBSerial.begin(115200);
+    USBSerial.begin(921600);
     bool success = true;
     #else
     // The last two arguments are rxBufferSize and txBufferSize
@@ -110,7 +110,7 @@ void setup() {
 #endif
 
 #ifdef PRINT_CPU_USAGE
-    USBSerial.begin(115200);
+    USBSerial.begin(921600);
 #endif
     if (!success) {
         lcd.printColorText("I2C slave init failed\n");

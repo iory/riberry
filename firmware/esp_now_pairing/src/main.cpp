@@ -40,7 +40,7 @@ void setup() {
     pairing.createTask(xCoreID);
     printToLCD(String(main_or_secondary) + "\nMy MAC:\n" + pairing.getMyMACAddress());
 
-    USBSerial.begin(115200);
+    USBSerial.begin(921600);
     delay(1500);
 }
 

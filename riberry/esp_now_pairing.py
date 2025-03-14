@@ -50,7 +50,7 @@ def get_role(com):
         time.sleep(0.1)
     return None
 
-def find_USB_pairing_devices(usb_ports, baudrate=115200):
+def find_USB_pairing_devices(usb_ports, baudrate=921600):
     ret = []
     ports = usb_ports
     if len(ports) == 0:

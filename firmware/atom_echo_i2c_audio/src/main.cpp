@@ -134,7 +134,7 @@ void setup() {
     M5.dis.clear();
     M5.dis.drawpix(0, CRGB(255, 0, 0));
 
-    Serial.begin(115200);
+    Serial.begin(921600);
 
     InitI2SSpeakOrMic(MODE_MIC);
 
