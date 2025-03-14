@@ -96,6 +96,15 @@ PAIRING_TYPE=Main USE_USB_SERIAL=1 pio run -t upload
 PAIRING_TYPE=Secondary USE_USB_SERIAL=1 pio run -t upload
 ```
 
+### Upload via ssh
+
+We can upload firmware via ssh.
+
+```
+pio run
+pio run --upload-port scp:rock@<TARGET_IP>
+```
+
 ## Control multiple modes
 
 The `atom_s3_i2c_display` includes multiple modes. This feature allows the robot to be controlled using both the `/i2c_button_state` and `/i2c_mode topics`, making control programming easier.
