@@ -56,7 +56,7 @@ Mode servo_control_mode(ModeType::SERVO_CONTROL);
 Mode pressure_control_mode(ModeType::PRESSURE_CONTROL);
 TeachingMode teaching_mode;
 Mode speech_to_text_mode(ModeType::SPEECH_TO_TEXT);
-SystemDebugMode system_debug_mode;
+SystemDebugMode system_debug_mode(/*isSkippable=*/true);
 PairingMode pairing_mode(button_manager, pairing, comm);
 FirmwareUpdateMode firmware_update_mode;
 WiFiSettingsMode wifi_settings_mode(button_manager);
