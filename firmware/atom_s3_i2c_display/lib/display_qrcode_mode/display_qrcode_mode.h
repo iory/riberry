@@ -7,7 +7,7 @@
 
 class DisplayQRcodeMode : public Mode {
 public:
-    DisplayQRcodeMode();
+    DisplayQRcodeMode(bool isSkippable = false);
 
 private:
     void task(PrimitiveLCD &lcd, CommunicationBase &com) override;

@@ -1,6 +1,7 @@
 #include <display_qrcode_mode.h>
 
-DisplayQRcodeMode::DisplayQRcodeMode() : Mode(ModeType::DISPLAY_QRCODE) {}
+DisplayQRcodeMode::DisplayQRcodeMode(bool isSkippable)
+    : Mode(ModeType::DISPLAY_QRCODE, isSkippable) {}
 
 void DisplayQRcodeMode::task(PrimitiveLCD &lcd, CommunicationBase &com) {
     while (running) {

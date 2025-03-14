@@ -31,6 +31,7 @@ public:
     void stopReceiveEvent();
     void startReceiveEvent();
     static void setRequestBytes(uint8_t* bytes, size_t byteLen);
+    static void setAdditionalRequestBytes(uint8_t* bytes, size_t byteLen);
 
     static uint8_t forcedMode;
     static uint8_t selectedModesBytes[100];
@@ -75,6 +76,7 @@ private:
 
     // Limited to a maximum of 100 bytes to prevent buffer overflow
     static uint8_t requestBytes[100]; /**< Bytes to be sent on I2C request. */
+    static uint8_t additionalRequestBytes[100];
 
     void updateLastReceiveTime();
 

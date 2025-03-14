@@ -14,6 +14,7 @@ class ModeType(Enum):
     SPEECH_TO_TEXT = 0x09
     SYSTEM_DEBUG = 0x10
     PAIRING = 0x11
+    WIFI_SETTINGS = 0x12
 
     FIRMWARE_UPDATE_MODE = 0xFF
 
@@ -31,6 +32,7 @@ MODE_TYPE_MAPPING = {
     ModeType.SPEECH_TO_TEXT: "SpeechToTextMode",
     ModeType.SYSTEM_DEBUG: "SystemDebugMode",
     ModeType.PAIRING: "PairingMode",
+    ModeType.WIFI_SETTINGS: "WiFiSettingsMode",
 
     ModeType.FIRMWARE_UPDATE_MODE: "FirmwareUpdateMode",
 }

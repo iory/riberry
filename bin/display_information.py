@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -28,6 +29,7 @@ from riberry.mode_type import string_to_mode_type
 from riberry.network import get_ip_address
 from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
+from riberry.network import get_wifi_info
 from riberry.network import wait_and_get_ros_ip
 
 # Ensure that the standard output is line-buffered. This makes sure that
@@ -261,6 +263,20 @@ class DisplayInformation:
             self.com.write([PacketType.JPEG] + pack.tolist())
             time.sleep(0.005)
 
+    def display_wifi_settings(self):
+        ip = get_ip_address()
+        if ip is None:
+            ip = "no connection"
+        ssid, rssi = get_wifi_info()
+        wifi_str = (
+            f"{Fore.YELLOW}IP: {ip}{Fore.RESET}\n"
+            + f"{Fore.GREEN}SSID: {ssid}{Fore.RESET}\n"
+            + f"{Fore.CYAN}RSSI: {rssi}{Fore.RESET}"
+        )
+        sent_str = [chr(PacketType.TEXT)]
+        sent_str += f"{wifi_str}\n"
+        self.com.write(sent_str)
+
     def display_information(self):
         global ros_available
         global ros_additional_message
@@ -343,6 +359,7 @@ class DisplayInformation:
         ssid = ssid.replace(' ', '-')
         qrcode_mode_is_forced = False
         wifi_connected = True
+        wifi_connect_process = None
 
         while not stop_event.is_set():
             try:
@@ -364,6 +381,12 @@ class DisplayInformation:
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
+            if mode != "WiFiSettingsMode":
+                if wifi_connect_process is not None:
+                    print("Stop wifi-connect")
+                    subprocess.run(["sudo", "/usr/local/bin/kill-wifi-connect.sh"])
+                    wifi_connect_process.wait()
+                    wifi_connect_process = None
             if mode == 'FirmwareUpdateMode':
                 update_repository_with_safe_stash_apply(Path(riberry.__file__).parent.parent)
                 with self.com.lock_context():
@@ -386,7 +409,7 @@ class DisplayInformation:
             print(f"Mode: {mode} device_type: {self.com.device_type}")
             # Display the QR code when Wi-Fi is not connected,
             # regardless of atom_s3_mode.
-            if get_ip_address() is None:
+            if get_ip_address() is None and wifi_connect_process is None:
                 wifi_connected = False
                 if qrcode_mode_is_forced is False:
                     self.force_mode("DisplayQRcodeMode")
@@ -443,6 +466,35 @@ class DisplayInformation:
                     sent_str = [chr(PacketType.TEXT)]
                     sent_str += ros_master_uri.replace("http://", "").replace(":11311", "")
                     self.com.write(sent_str)
+            elif mode == 'WiFiSettingsMode':
+                self.com.read()
+                self.com.write([PacketType.GET_ADDITIONAL_REQUEST])
+                time.sleep(0.1)
+                wifi_request = self.com.read()
+                if wifi_request[1:] == b'wifi_connect' and wifi_connect_process is None:
+                    print("Starting wifi_connect")
+                    wifi_connect_process = subprocess.Popen(
+                        [
+                            "sudo",
+                            "/usr/local/sbin/wifi-connect",
+                            "-s",
+                            ssid,
+                            "-g",
+                            "192.168.4.1",
+                            "-d",
+                            "192.168.4.2,192.168.4.5",
+                        ],
+                    )
+                elif wifi_connect_process is not None:
+                    retcode = wifi_connect_process.poll()
+                    if retcode is not None:
+                        print(f"wifi-connect exited with return code: {retcode}")
+                        wifi_connect_process = None
+                        self.display_wifi_settings()
+                    else:
+                        self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
+                else:
+                    self.display_wifi_settings()
             else:
                 time.sleep(0.1)
             if mode != "DisplayInformationMode":

@@ -2,7 +2,6 @@
 
 import os.path as osp
 from pathlib import Path
-import re
 import subprocess
 import sys
 import time
@@ -12,24 +11,37 @@ import time
 # This is for systemd.
 sys.stdout.reconfigure(line_buffering=True)
 
-def get_interface_name():
-    try:
-        result = subprocess.run(["iwgetid"], capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"Error: {result.stderr.strip()}")
-            return None
-        match = re.match(r"^(\S+)", result.stdout.strip())
-        if match:
-            return match.group(1)
-        else:
-            print("No interface name found.")
-            return None
-    except FileNotFoundError:
-        print("Error: iwgetid command not found. Make sure wireless-tools is installed.")
-        return None
+def is_nm_ready(timeout=10):
+    for _ in range(timeout):
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "RUNNING", "general"],
+            capture_output=True, text=True
+        )
+        if result.stdout.strip() == "running":
+            return True
+        print("Waiting for NetworkManager to become ready...")
+        time.sleep(1)
+    return False
+
+if not is_nm_ready():
+    print("NetworkManager not ready. Exiting.")
+    sys.exit(1)
+
+def exists_interface(interface):
+    result = subprocess.run(
+        ["ip", "link", "show", interface],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True
+    )
+    if result.returncode == 0:
+        print(f"Interface {interface} found.")
+        return True
+    print(f"Waiting for interface {interface} to appear...")
+    return False
 
 def is_wifi_connected(interface="wlan0"):
-    while get_interface_name() != interface:
+    while not exists_interface(interface):
         print(f"Waiting for {interface} to be appeared...")
         time.sleep(1)
     try:
