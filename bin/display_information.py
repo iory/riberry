@@ -381,6 +381,12 @@ class DisplayInformation:
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
+            if mode != "WiFiSettingsMode":
+                if wifi_connect_process is not None:
+                    print("Stop wifi-connect")
+                    subprocess.run(["sudo", "/usr/local/sbin/kill-wifi-connect.sh"])
+                    wifi_connect_process.wait()
+                    wifi_connect_process = None
             if mode == 'FirmwareUpdateMode':
                 update_repository_with_safe_stash_apply(Path(riberry.__file__).parent.parent)
                 with self.com.lock_context():
@@ -491,12 +497,6 @@ class DisplayInformation:
                     self.display_wifi_settings()
             else:
                 time.sleep(0.1)
-            if mode != "WiFiSettingsMode":
-                if wifi_connect_process is not None:
-                    print("Stop wifi-connect")
-                    subprocess.run(["sudo", "/usr/local/sbin/kill-wifi-connect.sh"])
-                    wifi_connect_process.wait()
-                    wifi_connect_process = None
             if mode != "DisplayInformationMode":
                 global ros_additional_message
                 ros_additional_message = None
