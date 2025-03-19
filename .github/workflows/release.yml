@@ -1,3 +1,5 @@
+name: Release
+
 on:
   workflow_run:
     workflows: ["Build and Release Multiple Firmwares", "Run Tests"]
@@ -22,7 +24,8 @@ jobs:
             const prs = context.payload.workflow_run.pull_requests;
             if (!prs || prs.length === 0) {
               core.info("Could not find any pull requests in the workflow run.");
-              return { labels: "[]" };
+              core.setOutput("labels", "[]");
+              return;
             }
             const prNumber = prs[0].number;
             core.info(`Found PR number: ${prNumber}`);
@@ -33,7 +36,11 @@ jobs:
             });
             const labels = pr.labels.map(label => label.name);
             core.info(`Retrieved labels: ${labels}`);
-            return { labels: JSON.stringify(labels) };
+            core.setOutput("labels", JSON.stringify(labels));
+
+      - name: Debug labels output
+        run: |
+          echo "Labels output: ${{ steps.get_labels.outputs.labels }}"
 
       - name: Auto merge if auto-merge-ok label exists
         id: merge
@@ -48,12 +55,18 @@ jobs:
   tag-release:
     runs-on: ubuntu-latest
     needs: auto-merge
-    if: ${{ needs.auto-merge.outputs.mergeResult == 'merged' && contains(fromJson(needs.auto-merge.outputs.prLabels), 'release') }}
+    if: ${{ needs.auto-merge.outputs.mergeResult == 'merged' && contains(fromJson(needs.auto-merge.outputs.prLabels || '[]'), 'release') }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug outputs from auto-merge
+        run: |
+          echo "Merge Result: ${{ needs.auto-merge.outputs.mergeResult }}"
+          echo "PR Labels: ${{ needs.auto-merge.outputs.prLabels }}"
 
       - name: Set up Python
         uses: actions/setup-python@v4
