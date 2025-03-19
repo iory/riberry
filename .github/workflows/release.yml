@@ -19,7 +19,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const prs = github.event.workflow_run.pull_requests;
+            const prs = context.payload.workflow_run.pull_requests;
             if (!prs || prs.length === 0) {
               core.info("Could not find any pull requests in the workflow run.");
               return { labels: "[]" };
