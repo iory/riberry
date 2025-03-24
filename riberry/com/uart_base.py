@@ -52,6 +52,7 @@ class UARTBase(ComBase):
                     raise NotImplementedError(f"Not supported device {device}")
             self.serial = txfer.SerialTransfer(serial_port, baud=self.baudrate,
                                                restrict_ports=False)
+            self.serial.open()
             self.device_name = serial_port[len("/dev/"):]
             return True
         except serial.serialutil.SerialException:
@@ -91,7 +92,7 @@ class UARTBase(ComBase):
             else:
                 raise TypeError(f'Unsupported data type: {type(data)}. Expected str or bytes.')
             if raw:
-                self.serial.connection.write(packet)
+                return self.serial.connection.write(packet)
             else:
                 send_size = 0
                 for p in packet:
@@ -109,12 +110,14 @@ class UARTBase(ComBase):
             print("[uart_base] Error during write:", e)
 
     # read() must return bytes, not None
-    def read(self):
+    def read(self, raw=False):
         try:
             if self.serial is None:
                 print("[uart_base] Serial is not initialized. Try to connect serial.")
                 self._connect_serial()
                 return b''
+            if raw:
+                return self.serial.connection.read_all()
             available = self.serial.available()
             if available == 0:
                 return b''
