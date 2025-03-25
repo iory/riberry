@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import importlib
 import os
 from pathlib import Path
 import socket
@@ -389,6 +390,7 @@ class DisplayInformation:
                     wifi_connect_process = None
             if mode == 'FirmwareUpdateMode':
                 update_repository_with_safe_stash_apply(Path(riberry.__file__).parent.parent)
+                importlib.reload(riberry)
                 with self.com.lock_context():
                     self.com.write([PacketType.FIRMWARE_VERSION_REQUEST])
                     time.sleep(0.01)
