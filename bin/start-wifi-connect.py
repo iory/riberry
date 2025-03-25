@@ -11,6 +11,64 @@ import time
 # This is for systemd.
 sys.stdout.reconfigure(line_buffering=True)
 
+
+def is_connecting(interface="wlan0", timeout=10):
+    start_time = time.time()
+    print(f"Checking connection status for {interface} (timeout: {timeout}s)...")
+    while time.time() - start_time < timeout:
+        status = get_nm_connection_status()
+        if status is not None:
+            current_state = status['state']
+            connectivity = status['connectivity']
+            elapsed_time = round(time.time() - start_time, 1)
+            if current_state == 'connected':
+                print(f"[{elapsed_time}s] Connection established (connectivity: {connectivity})")
+                break
+            elif current_state == 'connecting':
+                print(f"[{elapsed_time}s] Still connecting... (connectivity: {connectivity})")
+            elif current_state == 'disconnected':
+                print(f"[{elapsed_time}s] Disconnected, waiting... (connectivity: {connectivity})")
+            else:
+                print(f"[{elapsed_time}s] State: {current_state}, connectivity: {connectivity}")
+        else:
+            elapsed_time = round(time.time() - start_time, 1)
+            print(f"[{elapsed_time}s] Unable to retrieve status, retrying...")
+        time.sleep(1.0)
+    if status and status['state'] == 'connected':
+        return False
+    elif status and status['state'] == 'connecting':
+        print(f"Timeout after {timeout}s, still in connecting state")
+        return True
+    else:
+        print(f"Timeout after {timeout}s, not connected")
+        return False
+
+def get_nm_connection_status():
+    try:
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "STATE,CONNECTIVITY", "general", "status"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        status_output = result.stdout.strip().split(':')
+        if len(status_output) >= 2:
+            state = status_output[0]  # connected, connecting, disconnected
+            connectivity = status_output[1]  # full, limited, none
+            return {
+                "state": state,
+                "connectivity": connectivity
+            }
+        else:
+            print("Unexpected nmcli general status output")
+            return None
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting NetworkManager status: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return None
+
 def is_nm_ready(timeout=10):
     for _ in range(timeout):
         result = subprocess.run(
@@ -40,11 +98,13 @@ def exists_interface(interface):
     print(f"Waiting for interface {interface} to appear...")
     return False
 
-def is_wifi_connected(interface="wlan0"):
+def is_wifi_connected(interface="wlan0", timeout=10):
     while not exists_interface(interface):
         print(f"Waiting for {interface} to be appeared...")
         time.sleep(1)
     try:
+        is_connecting()
+
         # Check if the interface has an IP address
         result = subprocess.run(
             ["ip", "addr", "show", interface],
