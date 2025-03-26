@@ -359,8 +359,6 @@ class DisplayInformation:
         global pairing_info
         ssid = f'{self.com.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
-        qrcode_mode_is_forced = False
-        wifi_connected = True
 
         while not stop_event.is_set():
             try:
@@ -403,22 +401,6 @@ class DisplayInformation:
                             print(f"Firmware update failed: {e}")
             run_button_count = button_count
             print(f"Mode: {mode} device_type: {self.com.device_type}")
-            # Display the QR code when Wi-Fi is not connected,
-            # regardless of atom_s3_mode.
-            if get_ip_address() is None:
-                wifi_connected = False
-                if qrcode_mode_is_forced is False:
-                    self.force_mode("DisplayQRcodeMode")
-                    qrcode_mode_is_forced = True
-                    time.sleep(1)
-                self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
-                time.sleep(1)
-                continue
-            else:
-                if wifi_connected is False:
-                    self.force_mode("DisplayInformationMode")
-                    time.sleep(1.0)
-                wifi_connected = True
             # Display data according to mode
             if mode == "DisplayInformationMode":
                 self.display_information()
@@ -467,16 +449,22 @@ class DisplayInformation:
                 self.com.write([PacketType.GET_ADDITIONAL_REQUEST])
                 time.sleep(0.1)
                 wifi_request = self.com.read()
+                status = get_wifi_connect_status()
                 if wifi_request[1:] == b'wifi_connect':
-                    status = get_wifi_connect_status()
                     if status == 'running':
                         print("Stop wifi_connect")
                         send_wifi_connect_command("stop_wifi_connect")
+                        time.sleep(2.0)
                     elif status == 'stopped':
                         print("Starting wifi_connect")
                         send_wifi_connect_command("restart_wifi_connect")
+                        time.sleep(2.0)
                 else:
-                    self.display_wifi_settings()
+                    if status == 'running':
+                        self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
+                    else:
+                        self.display_wifi_settings()
+                del status
             else:
                 time.sleep(0.1)
             if mode != "DisplayInformationMode":
