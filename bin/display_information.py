@@ -400,6 +400,10 @@ class DisplayInformation:
                         except Exception as e:
                             print(f"Firmware update failed: {e}")
             run_button_count = button_count
+            wifi_status = get_wifi_connect_status()
+            if wifi_status == 'running' and mode != 'WiFiSettingsMode':
+                self.force_mode("WiFiSettingsMode")
+                print("Mode has been forcibly changed to WiFiSettingsMode")
             print(f"Mode: {mode} device_type: {self.com.device_type}")
             # Display data according to mode
             if mode == "DisplayInformationMode":
@@ -449,22 +453,20 @@ class DisplayInformation:
                 self.com.write([PacketType.GET_ADDITIONAL_REQUEST])
                 time.sleep(0.1)
                 wifi_request = self.com.read()
-                status = get_wifi_connect_status()
                 if wifi_request[1:] == b'wifi_connect':
-                    if status == 'running':
+                    if wifi_status == 'running':
                         print("Stop wifi_connect")
                         send_wifi_connect_command("stop_wifi_connect")
                         time.sleep(2.0)
-                    elif status == 'stopped':
+                    elif wifi_status == 'stopped':
                         print("Starting wifi_connect")
                         send_wifi_connect_command("restart_wifi_connect")
                         time.sleep(2.0)
                 else:
-                    if status == 'running':
+                    if wifi_status == 'running':
                         self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
                     else:
                         self.display_wifi_settings()
-                del status
             else:
                 time.sleep(0.1)
             if mode != "DisplayInformationMode":
