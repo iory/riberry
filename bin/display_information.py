@@ -463,6 +463,7 @@ class DisplayInformation:
                         send_wifi_connect_command("restart_wifi_connect")
                         time.sleep(2.0)
                 else:
+                    print('Display WifiSettings information')
                     if wifi_status == 'running':
                         self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
                     else:
