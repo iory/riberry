@@ -15,16 +15,17 @@ def identify_device():
     try:
         with open("/proc/cpuinfo") as f:
             cpuinfo = f.read()
-
         if "Raspberry Pi" in cpuinfo:
             return "Raspberry Pi"
-
-        with open("/proc/device-tree/model") as f:
-            model = f.read().strip()
-
-        if "Radxa" in model or "ROCK Pi" in model:
-            return model
-
+        if osp.exists("/proc/device-tree/model"):
+            with open("/proc/device-tree/model") as f:
+                model = f.read().strip().replace("\x00", "")
+            if "Radxa" in model or "ROCK Pi" in model\
+               or model == "Khadas VIM4"\
+               or model == "NVIDIA Jetson Xavier NX Developer Kit":
+                return model
+        if osp.exists('/usr/local/m5stack/block-mount.sh'):
+            return 'm5stack-LLM'
         return "Unknown Device"
     except FileNotFoundError:
         return "Unknown Device"
