@@ -1,0 +1,7 @@
+[Unit]
+Description=Radxa Zero Heartbeat
+[Service]
+ExecStart=sh /usr/local/bin/radxa-zero-heartbeat.sh
+LogLevelMax=0
+[Install]
+WantedBy=multi-user.target

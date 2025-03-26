@@ -128,9 +128,8 @@ def main(dry_run=False, enable_oneshot=False):
             "./systemd/oneshot", "/etc/systemd/system", dry_run=dry_run
         )
 
-    enable_systemd_services(added_symlinks, dry_run=dry_run)
-
     if identify_device() == "Radxa Zero":
+        create_symlinks('./bin/radxa-zero', bin_target_dir, dry_run=dry_run)
         execute_dtc_command(
             dry_run,
             "/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m1-gpioh-6-gpioh-7.dtbo",
@@ -146,6 +145,11 @@ def main(dry_run=False, enable_oneshot=False):
             "/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-gpio-line-names.dtbo",
             "./overlays/meson-g12a-gpio-line-names.dts",
         )
+        added_symlinks += create_symlinks(
+            "./systemd/radxa-zero", "/etc/systemd/system", dry_run=dry_run
+        )
+
+    enable_systemd_services(added_symlinks, dry_run=dry_run)
 
     if dry_run:
         print("Dry-run mode: No changes were made.")
