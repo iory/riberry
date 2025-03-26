@@ -1,0 +1,13 @@
+[Unit]
+Description=Shutdown after heartbeat
+DefaultDependencies=no
+After=heartbeat.service
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/radxa-zero-led-off.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=shutdown.target

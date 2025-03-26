@@ -15,16 +15,17 @@ def identify_device():
     try:
         with open("/proc/cpuinfo") as f:
             cpuinfo = f.read()
-
         if "Raspberry Pi" in cpuinfo:
             return "Raspberry Pi"
-
-        with open("/proc/device-tree/model") as f:
-            model = f.read().strip()
-
-        if "Radxa" in model or "ROCK Pi" in model:
-            return model
-
+        if osp.exists("/proc/device-tree/model"):
+            with open("/proc/device-tree/model") as f:
+                model = f.read().strip().replace("\x00", "")
+            if "Radxa" in model or "ROCK Pi" in model\
+               or model == "Khadas VIM4"\
+               or model == "NVIDIA Jetson Xavier NX Developer Kit":
+                return model
+        if osp.exists('/usr/local/m5stack/block-mount.sh'):
+            return 'm5stack-LLM'
         return "Unknown Device"
     except FileNotFoundError:
         return "Unknown Device"
@@ -128,9 +129,8 @@ def main(dry_run=False, enable_oneshot=False):
             "./systemd/oneshot", "/etc/systemd/system", dry_run=dry_run
         )
 
-    enable_systemd_services(added_symlinks, dry_run=dry_run)
-
     if identify_device() == "Radxa Zero":
+        create_symlinks('./bin/radxa-zero', bin_target_dir, dry_run=dry_run)
         execute_dtc_command(
             dry_run,
             "/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-i2c-ee-m1-gpioh-6-gpioh-7.dtbo",
@@ -146,6 +146,11 @@ def main(dry_run=False, enable_oneshot=False):
             "/boot/dtbs/5.10.69-12-amlogic-g98700611d064/amlogic/overlay/meson-g12a-gpio-line-names.dtbo",
             "./overlays/meson-g12a-gpio-line-names.dts",
         )
+        added_symlinks += create_symlinks(
+            "./systemd/radxa-zero", "/etc/systemd/system", dry_run=dry_run
+        )
+
+    enable_systemd_services(added_symlinks, dry_run=dry_run)
 
     if dry_run:
         print("Dry-run mode: No changes were made.")
