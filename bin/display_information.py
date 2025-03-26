@@ -31,7 +31,8 @@ from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
 from riberry.network import get_wifi_info
 from riberry.network import wait_and_get_ros_ip
-from riberry.wifi_connect_utils import send_wifi_control_command
+from riberry.wifi_connect_utils import get_wifi_connect_status
+from riberry.wifi_connect_utils import send_wifi_connect_command
 
 # Ensure that the standard output is line-buffered. This makes sure that
 # each line of output is flushed immediately, which is useful for logging.
@@ -467,8 +468,13 @@ class DisplayInformation:
                 time.sleep(0.1)
                 wifi_request = self.com.read()
                 if wifi_request[1:] == b'wifi_connect':
-                    print("Starting wifi_connect")
-                    send_wifi_control_command("restart_wifi_connect")
+                    status = get_wifi_connect_status()
+                    if status == 'running':
+                        print("Stop wifi_connect")
+                        send_wifi_connect_command("stop_wifi_connect")
+                    elif status == 'stopped':
+                        print("Starting wifi_connect")
+                        send_wifi_connect_command("restart_wifi_connect")
                 else:
                     self.display_wifi_settings()
             else:
