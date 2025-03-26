@@ -4,7 +4,6 @@ import importlib
 import os
 from pathlib import Path
 import socket
-import subprocess
 import sys
 import threading
 import time
@@ -32,6 +31,8 @@ from riberry.network import get_mac_address
 from riberry.network import get_ros_master_ip
 from riberry.network import get_wifi_info
 from riberry.network import wait_and_get_ros_ip
+from riberry.wifi_connect_utils import get_wifi_connect_status
+from riberry.wifi_connect_utils import send_wifi_connect_command
 
 # Ensure that the standard output is line-buffered. This makes sure that
 # each line of output is flushed immediately, which is useful for logging.
@@ -358,9 +359,6 @@ class DisplayInformation:
         global pairing_info
         ssid = f'{self.com.identify_device()}-{get_mac_address()}'
         ssid = ssid.replace(' ', '-')
-        qrcode_mode_is_forced = False
-        wifi_connected = True
-        wifi_connect_process = None
 
         while not stop_event.is_set():
             try:
@@ -382,12 +380,6 @@ class DisplayInformation:
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
-            if mode != "WiFiSettingsMode":
-                if wifi_connect_process is not None:
-                    print("Stop wifi-connect")
-                    subprocess.run(["sudo", "/usr/local/bin/kill-wifi-connect.sh"])
-                    wifi_connect_process.wait()
-                    wifi_connect_process = None
             if mode == 'FirmwareUpdateMode':
                 update_repository_with_safe_stash_apply(Path(riberry.__file__).parent.parent)
                 importlib.reload(riberry)
@@ -408,23 +400,11 @@ class DisplayInformation:
                         except Exception as e:
                             print(f"Firmware update failed: {e}")
             run_button_count = button_count
+            wifi_status = get_wifi_connect_status()
+            if wifi_status == 'running' and mode != 'WiFiSettingsMode':
+                self.force_mode("WiFiSettingsMode")
+                print("Mode has been forcibly changed to WiFiSettingsMode")
             print(f"Mode: {mode} device_type: {self.com.device_type}")
-            # Display the QR code when Wi-Fi is not connected,
-            # regardless of atom_s3_mode.
-            if get_ip_address() is None and wifi_connect_process is None:
-                wifi_connected = False
-                if qrcode_mode_is_forced is False:
-                    self.force_mode("DisplayQRcodeMode")
-                    qrcode_mode_is_forced = True
-                    time.sleep(1)
-                self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
-                time.sleep(1)
-                continue
-            else:
-                if wifi_connected is False:
-                    self.force_mode("DisplayInformationMode")
-                    time.sleep(1.0)
-                wifi_connected = True
             # Display data according to mode
             if mode == "DisplayInformationMode":
                 self.display_information()
@@ -473,30 +453,21 @@ class DisplayInformation:
                 self.com.write([PacketType.GET_ADDITIONAL_REQUEST])
                 time.sleep(0.1)
                 wifi_request = self.com.read()
-                if wifi_request[1:] == b'wifi_connect' and wifi_connect_process is None:
-                    print("Starting wifi_connect")
-                    wifi_connect_process = subprocess.Popen(
-                        [
-                            "sudo",
-                            "/usr/local/sbin/wifi-connect",
-                            "-s",
-                            ssid,
-                            "-g",
-                            "192.168.4.1",
-                            "-d",
-                            "192.168.4.2,192.168.4.5",
-                        ],
-                    )
-                elif wifi_connect_process is not None:
-                    retcode = wifi_connect_process.poll()
-                    if retcode is not None:
-                        print(f"wifi-connect exited with return code: {retcode}")
-                        wifi_connect_process = None
-                        self.display_wifi_settings()
-                    else:
-                        self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
+                if wifi_request[1:] == b'wifi_connect':
+                    if wifi_status == 'running':
+                        print("Stop wifi_connect")
+                        send_wifi_connect_command("stop_wifi_connect")
+                        time.sleep(2.0)
+                    elif wifi_status == 'stopped':
+                        print("Starting wifi_connect")
+                        send_wifi_connect_command("restart_wifi_connect")
+                        time.sleep(2.0)
                 else:
-                    self.display_wifi_settings()
+                    print('Display WifiSettings information')
+                    if wifi_status == 'running':
+                        self.display_qrcode(f"WIFI:S:{ssid};T:nopass;;")
+                    else:
+                        self.display_wifi_settings()
             else:
                 time.sleep(0.1)
             if mode != "DisplayInformationMode":

@@ -2,6 +2,7 @@
 
 import os.path as osp
 from pathlib import Path
+import socket
 import subprocess
 import sys
 import time
@@ -10,6 +11,14 @@ import time
 # each line of output is flushed immediately, which is useful for logging.
 # This is for systemd.
 sys.stdout.reconfigure(line_buffering=True)
+
+# Abstract Unix socket setup
+SOCKET_PATH = '\0wifi_connect'
+server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+server.bind(SOCKET_PATH)
+server.listen(1)
+
+wifi_connect_process = None
 
 
 def is_connecting(interface="wlan0", timeout=10):
@@ -81,10 +90,6 @@ def is_nm_ready(timeout=10):
         time.sleep(1)
     return False
 
-if not is_nm_ready():
-    print("NetworkManager not ready. Exiting.")
-    sys.exit(1)
-
 def exists_interface(interface):
     result = subprocess.run(
         ["ip", "link", "show", interface],
@@ -150,39 +155,72 @@ def identify_device():
     except FileNotFoundError:
         return "Unknown Device"
 
-# Function to get the MAC address of wlan0
-def get_mac_address():
+def get_mac_address(interface='wlan0'):
     try:
-        mac_address = Path("/sys/class/net/wlan0/address").read_text().strip()
+        mac_address = Path(f"/sys/class/net/{interface}/address").read_text().strip()
         return mac_address.replace(":", "") if mac_address else None
     except FileNotFoundError:
         return None
 
+def stop_wifi_connect():
+    global wifi_connect_process
+    if wifi_connect_process and wifi_connect_process.poll() is None:
+        wifi_connect_process.terminate()
+        wifi_connect_process.wait()
+        print("WiFi Connect stopped.")
+    wifi_connect_process = None
 
-# Check if connected to a WiFi network
+def start_wifi_connect(model, mac_address):
+    global wifi_connect_process
+    if wifi_connect_process and wifi_connect_process.poll() is None:
+        print("wifi-connect is already running.")
+        return
+    try:
+        wifi_connect_process = subprocess.Popen(
+            ["wifi-connect", "-s", f"{model}-{mac_address}", "-g", "192.168.4.1", "-d", "192.168.4.2,192.168.4.5"]
+        )
+        print("WiFi Connect started successfully.")
+    except Exception as e:
+        print(f"Failed to start wifi-connect: {e}")
+
+while not is_nm_ready():
+    print("NetworkManager not ready. Waiting...")
+    time.sleep(1.0)
+
+model = identify_device().replace(" ", "-")
+mac_address = get_mac_address()
+while not mac_address:
+    print("MAC address not found. Waiting...")
+    time.sleep(1.0)
+    model = identify_device().replace(" ", "-")
+    mac_address = get_mac_address()
+
 if is_wifi_connected():
     print("Skipping WiFi Connect.")
 else:
     print("No default gateway found. Starting WiFi Connect.")
-    model = identify_device().replace(" ", "-")
-    mac_address = get_mac_address()
-    if mac_address:
-        # Run wifi-connect with the specified parameters
-        try:
-            result = subprocess.run(
-                [
-                    "wifi-connect",
-                    "-s",
-                    f"{model}-{mac_address}",
-                    "-g",
-                    "192.168.4.1",
-                    "-d",
-                    "192.168.4.2,192.168.4.5",
-                ],
-                check=True,
-            )
-            print("WiFi Connect started successfully.")
-        except subprocess.CalledProcessError:
-            print("WiFi Connect failed to start.")
+    start_wifi_connect(model, mac_address)
+
+# Main loop to listen for commands
+print("Waiting for commands on abstract socket...")
+while True:
+    conn, addr = server.accept()
+    command = conn.recv(1024).decode().strip()
+
+    if command == "switch_wifi":
+        print("Received command: Switch to another Wi-Fi")
+        start_wifi_connect(model, mac_address)
+    elif command == "restart_wifi_connect":
+        print("Received command: Restart wifi-connect")
+        start_wifi_connect(model, mac_address)
+    elif command == "stop_wifi_connect":
+        print("Received command: Stop wifi-connect")
+        stop_wifi_connect()
+    elif command == "status":
+        # Check wifi-connect status and respond
+        status = "running" if wifi_connect_process and wifi_connect_process.poll() is None else "stopped"
+        print(f"Received command: Check status - {status}")
+        conn.send(status.encode())
+        conn.close()
     else:
-        print("MAC address not found. WiFi Connect could not start.")
+        print(f"Unknown command received: {command}")
