@@ -1,12 +1,9 @@
 import math
-import os
-import subprocess
 import tempfile
 import time
 
 import requests
 
-import riberry
 from riberry.platformio.device_to_mcu import get_device_to_mcu
 
 
@@ -20,16 +17,19 @@ def download_firmware_from_github(url, save_path):
     return save_path.name
 
 
+def get_latest_release_tag():
+    api_url = "https://api.github.com/repos/iory/riberry/releases/latest"
+    response = requests.get(api_url)
+    response.raise_for_status()
+    return response.json()["tag_name"]
+
+
 def update_firmware(com, lcd_rotation=1, use_grove=0, firmware_path=None):
     riberry_git_version = None
     if firmware_path is None:
-        riberry_git_version = subprocess.check_output(
-            ["git", "log", "-1", "--pretty=format:%h"],
-            cwd=os.path.dirname(riberry.__file__),
-            universal_newlines=True
-        ).strip()
+        latest_tag = get_latest_release_tag()
         device_name = get_device_to_mcu(com.device_type)
-        url = f'https://github.com/iory/riberry/releases/download/v{riberry.__version__}-{riberry_git_version}/{device_name}-lcd{lcd_rotation}-grove{use_grove}.bin'
+        url = f"https://github.com/iory/riberry/releases/download/{latest_tag}/{device_name}-lcd{lcd_rotation}-grove{use_grove}.bin"
         temp_file = tempfile.NamedTemporaryFile(suffix=".bin", delete=True)
         print(f"Downloading firmware from {url} to temporary file {temp_file.name}...")
         firmware_path = download_firmware_from_github(url, temp_file)
