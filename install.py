@@ -105,6 +105,14 @@ def execute_dtc_command(dry_run, output_path, source_dts):
         )
 
 
+def ros_exists():
+    ros_types = ['one', 'noetic']
+    for ros_type in ros_types:
+        if osp.isfile(f"/opt/ros/{ros_type}/setup.bash"):
+            return True
+    return False
+
+
 def main(dry_run=False, enable_oneshot=False):
     if dry_run is False and os.geteuid() != 0:
         print("This script must be run as root.")
@@ -129,9 +137,15 @@ def main(dry_run=False, enable_oneshot=False):
     create_symlinks("./etc/opt/riberry", "/etc/opt/riberry", dry_run=dry_run)
 
     added_user_symlinks = []
-    added_symlinks = create_symlinks(
-        "./ros/riberry_startup/systemd", systemd_target_dir, dry_run=dry_run
-    )
+    added_symlinks = []
+    if ros_exists():
+        added_symlinks += create_symlinks(
+            "./ros/riberry_startup/systemd", systemd_target_dir, dry_run=dry_run
+        )
+        added_user_symlinks += create_symlinks(
+            "./ros/riberry_startup/systemd/user", systemd_target_dir, username=username,
+            dry_run=dry_run
+        )
     added_symlinks += create_symlinks(
         systemd_source_dir, systemd_target_dir, dry_run=dry_run
     )

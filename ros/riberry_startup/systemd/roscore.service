@@ -11,7 +11,7 @@ SyslogIdentifier=%n
 Restart=always
 RestartSec=10s
 Type=simple
-User=rock
+User=root
 StandardOutput=journal
 StandardError=journal
 
