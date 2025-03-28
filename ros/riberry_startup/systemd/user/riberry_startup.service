@@ -1,5 +1,5 @@
 [Unit]
-Description=Run user-specific ROS nodes
+Description=Startup Riberry launch service
 # This service starts after roscore.service
 After=roscore.service
 # This service requires roscore.service
@@ -10,12 +10,12 @@ BindsTo=roscore.service
 [Service]
 EnvironmentFile=-/etc/opt/riberry/riberry.user
 Environment="ROSCONSOLE_FORMAT='[${severity}] [${time}] [${node}:${logger}]: ${message}'"
-ExecStart=/bin/bash -c '. $SETUP && export $(python3 $(rospack find riberry_startup)/scripts/get_roshost.py --rossetmaster $RIBERRY_ROS_MASTER_IP) && roslaunch riberry_startup user.launch --wait'
+ExecStart=/bin/bash -c '. $SETUP && export $(python3 $(rospack find riberry_startup)/scripts/get_roshost.py --rossetmaster $RIBERRY_ROS_MASTER_IP) && roslaunch riberry_startup riberry_startup.launch --wait'
 SyslogIdentifier=%n
 Restart=always
 RestartSec=10s
 Type=simple
-User=rock
+User=%I
 
 [Install]
 WantedBy=multi-user.target

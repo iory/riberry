@@ -16,6 +16,8 @@ def decide_battery_i2c_bus_number():
         bus_number = 1
     elif device_type == "Radxa Zero":
         bus_number = 3
+    elif device_type == "Radxa ZERO 3":
+        bus_number = 3
     else:
         bus_number = None
     return bus_number
