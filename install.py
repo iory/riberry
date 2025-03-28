@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import getpass
 import os
 import os.path as osp
 import subprocess
@@ -31,20 +32,27 @@ def identify_device():
         return "Unknown Device"
 
 
-def create_symlinks(source_dir, target_dir, dry_run=False):
+def create_symlinks(source_dir, target_dir, username=None, dry_run=False):
     added_symlinks = []
     for item in os.listdir(source_dir):
         source_path = os.path.join(source_dir, item)
         if not (osp.isfile(source_path) and is_regular_file(item)):
             continue
-        target_path = os.path.join(target_dir, item)
+        if username is None:
+            target_path = os.path.join(target_dir, item)
+        else:
+            target_path = os.path.join(target_dir, item.replace(".service", f"@{username}.service"))
         if os.path.isfile(source_path):
             if dry_run:
                 print(f"Dry-run: Would create symlink: {target_path} -> {source_path}")
             else:
                 if os.path.lexists(target_path):
                     os.remove(target_path)
-                os.symlink(osp.abspath(source_path), osp.abspath(target_path))
+                if username is None:
+                    os.symlink(osp.abspath(source_path), osp.abspath(target_path))
+                else:
+                    # need to copy
+                    subprocess.run(["cp", "-f", source_path, target_path])
                 print(f"Created symlink: {target_path} -> {source_path}")
                 added_symlinks.append(target_path)
     return added_symlinks
@@ -102,8 +110,11 @@ def main(dry_run=False, enable_oneshot=False):
         print("This script must be run as root.")
         sys.exit(1)
 
+    username = os.getenv("SUDO_USER") or getpass.getuser()
+
     bin_source_dir = "./bin"
     systemd_source_dir = "./systemd"
+    user_systemd_source_dir = "./systemd/user"
     bin_target_dir = "/usr/local/bin"
     systemd_target_dir = "/etc/systemd/system"
 
@@ -118,11 +129,16 @@ def main(dry_run=False, enable_oneshot=False):
         os.makedirs("/etc/opt/riberry", 0o777, exist_ok=True)
     create_symlinks("./etc/opt/riberry", "/etc/opt/riberry", dry_run=dry_run)
 
+    added_user_symlinks = []
     added_symlinks = create_symlinks(
         "./ros/riberry_startup/systemd", systemd_target_dir, dry_run=dry_run
     )
     added_symlinks += create_symlinks(
         systemd_source_dir, systemd_target_dir, dry_run=dry_run
+    )
+    added_user_symlinks += create_symlinks(
+        user_systemd_source_dir, systemd_target_dir, username=username,
+        dry_run=dry_run
     )
     if enable_oneshot:
         added_symlinks += create_symlinks(
@@ -151,6 +167,7 @@ def main(dry_run=False, enable_oneshot=False):
         )
 
     enable_systemd_services(added_symlinks, dry_run=dry_run)
+    enable_systemd_services(added_user_symlinks, dry_run=dry_run)
 
     if dry_run:
         print("Dry-run mode: No changes were made.")
