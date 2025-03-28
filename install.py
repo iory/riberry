@@ -8,6 +8,34 @@ import subprocess
 import sys
 
 
+def find_broken_symlinks(directory):
+    broken_links = []
+    for root, _, files in os.walk(directory):
+        for filename in files:
+            filepath = os.path.join(root, filename)
+            if os.path.islink(filepath):
+                target = os.readlink(filepath)
+                if not os.path.isabs(target):
+                    target = os.path.join(os.path.dirname(filepath), target)
+                if not os.path.exists(target):
+                    broken_links.append(filepath)
+    return broken_links
+
+def remove_broken_symlinks(broken_links, dry_run=False):
+    if not broken_links:
+        print("No broken symbolic links found.")
+        return
+
+    for link in broken_links:
+        if dry_run:
+            print(f"[Dry Run] Would remove: {link}")
+        else:
+            try:
+                os.remove(link)
+                print(f"Removed: {link}")
+            except OSError as e:
+                print(f"Failed to remove: {link} ({e})")
+
 def is_regular_file(filename):
     return not filename.endswith("~") and not filename.startswith(".")
 
@@ -182,6 +210,9 @@ def main(dry_run=False, enable_oneshot=False):
 
     enable_systemd_services(added_symlinks, dry_run=dry_run)
     enable_systemd_services(added_user_symlinks, dry_run=dry_run)
+
+    remove_broken_symlinks(find_broken_symlinks("/etc/systemd/system"),
+                           dry_run=dry_run)
 
     if dry_run:
         print("Dry-run mode: No changes were made.")
