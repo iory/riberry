@@ -147,6 +147,13 @@ If you are concerned about the security of the network:
 # sudo rm -f /etc/NetworkManager/system-connections/*
 ```
 
+## Install wifi-connect
+
+```
+sudo apt install -y curl unzip
+curl https://gist.githubusercontent.com/708yamaguchi/5dc14b90fedc30ca6785f8f7fb741627/raw/71de8351897517721c23bc6fe12f974ed6582a3a/radxa-install.sh | bash
+```
+
 ## Contributing
 
 ### Automatic Formatting
