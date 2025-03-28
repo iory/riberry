@@ -177,7 +177,7 @@ def start_wifi_connect(model, mac_address):
         return
     try:
         wifi_connect_process = subprocess.Popen(
-            ["wifi-connect", "-s", f"{model}-{mac_address}", "-g", "192.168.4.1", "-d", "192.168.4.2,192.168.4.5"]
+            ["/usr/local/sbin/wifi-connect", "-s", f"{model}-{mac_address}", "-g", "192.168.4.1", "-d", "192.168.4.2,192.168.4.5"]
         )
         print("WiFi Connect started successfully.")
     except Exception as e:
