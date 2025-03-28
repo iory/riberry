@@ -118,7 +118,6 @@ def main(dry_run=False, enable_oneshot=False):
     bin_target_dir = "/usr/local/bin"
     systemd_target_dir = "/etc/systemd/system"
 
-    copy_files("./boot", "/boot", dry_run=dry_run)
     create_symlinks(bin_source_dir, bin_target_dir, dry_run=dry_run)
 
     if dry_run is False:
@@ -146,6 +145,7 @@ def main(dry_run=False, enable_oneshot=False):
         )
 
     if identify_device() == "Radxa Zero":
+        copy_files("./boot", "/boot", dry_run=dry_run)
         create_symlinks('./bin/radxa-zero', bin_target_dir, dry_run=dry_run)
         execute_dtc_command(
             dry_run,
