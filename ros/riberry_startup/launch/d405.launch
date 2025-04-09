@@ -4,6 +4,7 @@
   <arg name="enable_depth" default="true" />
   <arg name="color_fps" default="15" />
   <arg name="depth_fps" default="15" />
+  <arg name="exposure" default="10000" />
 
   <!-- D405 -->
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
@@ -18,10 +19,14 @@
     <arg name="depth_width" value="1280" if="$(arg high_resolution)" />
     <arg name="depth_height" value="720" if="$(arg high_resolution)" />
     <!-- Low resolution -->
-    <arg name="color_width" value="848" unless="$(arg high_resolution)" />
-    <arg name="color_height" value="480" unless="$(arg high_resolution)" />
-    <arg name="depth_width" value="424" unless="$(arg high_resolution)" />
-    <arg name="depth_height" value="240" unless="$(arg high_resolution)" />
+    <arg name="color_width" value="424" unless="$(arg high_resolution)" />
+    <arg name="color_height" value="240" unless="$(arg high_resolution)" />
+    <arg name="depth_width" value="480" unless="$(arg high_resolution)" />
+    <arg name="depth_height" value="270" unless="$(arg high_resolution)" />
   </include>
+
+  <rosparam subst_value="true">
+    /camera/stereo_module/exposure: $(arg exposure)
+  </rosparam>
 
 </launch>
