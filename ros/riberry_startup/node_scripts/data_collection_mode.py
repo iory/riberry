@@ -1,0 +1,243 @@
+#!/usr/bin/env python3
+
+from datetime import datetime
+import os
+import threading
+
+from colorama import Fore
+import rosbag
+import rospy
+import rostopic
+from std_msgs.msg import Int32
+
+from riberry.com.base import PacketType
+from riberry.filecheck_utils import get_cache_dir
+from riberry.mode import Mode
+
+
+class RosbagRecorder:
+    def __init__(self):
+        self.bag = None
+        self.subscribers = []
+        self.running = False
+        self.lock = threading.Lock()
+        self.publishers = {}
+
+    def _callback(self, topic_name):
+        def inner(msg):
+            with self.lock:
+                if self.bag and self.running:
+                    self.bag.write(topic_name, msg, rospy.Time.now())
+        return inner
+
+    def _get_message_class(self, topic):
+        try:
+            msg_type, _, _ = rostopic.get_topic_class(topic)
+            return msg_type
+        except Exception:
+            return None
+
+    def is_recording(self):
+        return self.running
+
+    def start_recording(self, topics, bag_filename, timeout=1.0):
+        self.bag = rosbag.Bag(bag_filename, 'w')
+        self.running = True
+
+        for topic in topics:
+            try:
+                msg_class = self._get_message_class(topic)
+                if msg_class is None:
+                    raise AssertionError(
+                        f"Unknown message type {topic}")
+                rospy.wait_for_message(topic, msg_class, timeout=timeout)
+                rospy.loginfo(f"Subscribing to {topic}")
+                sub = rospy.Subscriber(topic, msg_class, self._callback(topic))
+                self.subscribers.append(sub)
+            except rospy.ROSException:
+                raise AssertionError(f"Timeout '{topic}'")
+
+    def stop_recording(self):
+        self.running = False
+        for sub in self.subscribers:
+            sub.unregister()
+        self.subscribers = []
+        with self.lock:
+            if self.bag:
+                self.bag.close()
+                self.bag = None
+
+    def show_bag(self, bag_filename):
+        if not os.path.exists(bag_filename):
+            rospy.logwarn(f"Bag file {bag_filename} not found.")
+            return
+        rospy.loginfo(f"Saved rosbag: {bag_filename}")
+        with rosbag.Bag(bag_filename, 'r') as bag:
+            info = {}
+            start_time = None
+            end_time = None
+
+            for topic, msg, t in bag.read_messages():
+                if topic not in info:
+                    info[topic] = {
+                        "type": type(msg).__name__,
+                        "count": 0
+                    }
+                info[topic]["count"] += 1
+                if start_time is None or t < start_time:
+                    start_time = t
+                if end_time is None or t > end_time:
+                    end_time = t
+
+            rospy.loginfo("Recorded topics:")
+            for topic, meta in info.items():
+                rospy.loginfo(f"  {topic}: {meta['count']} msgs (type: {meta['type']})")
+
+            if start_time and end_time:
+                duration = (end_time - start_time).to_sec()
+                rospy.loginfo(f"Duration: {duration:.2f} seconds")
+
+
+class DataCollectionMode(Mode):
+    def __init__(self):
+        super().__init__()
+        # rosbag recorder
+        self.topics = rospy.get_param("~topic_names")
+        rospy.loginfo(
+            "Topics to be recorded:\n" + "\n".join(
+                f"  - {topic}" for topic in self.topics))
+        self.cache_dir = get_cache_dir()
+        self.recorder = RosbagRecorder()
+        # Callbacks
+        self.additional_msg = ""
+        rospy.Timer(rospy.Duration(0.5), self.timer_callback)
+        rospy.Subscriber(
+            "atom_s3_button_state", Int32,
+            callback=self.button_cb, queue_size=1
+        )
+
+    def latest_filename(self):
+        current_dir = self.current_dataset_dir()
+        if current_dir is None:
+            return None
+        all_entries = os.listdir(current_dir)
+        files = [os.path.join(current_dir, entry) for entry in all_entries
+                 if os.path.isfile(os.path.join(current_dir, entry))]
+        if not files:
+            return None  # ファイルがない場合
+        files_sorted = sorted(files)
+        last_file = files_sorted[-1]
+        return last_file
+
+    def current_dataset_dir(self):
+        """Return the latest dataset dir"""
+        if not os.path.isdir(self.cache_dir):
+            return None
+        dirs = [
+            os.path.join(self.cache_dir, d)
+            for d in os.listdir(self.cache_dir)
+            if os.path.isdir(os.path.join(self.cache_dir, d)) and d.startswith("dataset_")
+        ]
+        dirs.sort(key=os.path.getmtime, reverse=True)
+        return dirs[0] if dirs else None
+
+    def current_dataset_size(self):
+        """Return the size of the latest dataset dir"""
+        dir_path = self.current_dataset_dir()
+        if dir_path is None:
+            return None
+        if not os.path.isdir(dir_path):
+            return 0
+        file_count = 0
+        for item in os.listdir(dir_path):
+            item_path = os.path.join(dir_path, item)
+            if os.path.isfile(item_path):
+                file_count += 1
+        return file_count
+
+    def create_dataset_dir(self):
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dataset_name = f"dataset_{current_time}"
+        dataset_dir = os.path.join(self.cache_dir, dataset_name)
+        os.mkdir(dataset_dir)
+        return dataset_dir
+
+    def button_cb(self, msg):
+        if self.mode != "DataCollectionMode":
+            return
+        if msg.data == 1:
+            self.additional_msg = ""
+            current_time = datetime.now().strftime("%m%d_%H%M%S")
+            dataset_dir = self.current_dataset_dir()
+            if dataset_dir is None:
+                message = "Create dataset first"
+                rospy.logerr("Create dataset first")
+                self.additional_message = message
+                return
+            # Start recording
+            if not self.recorder.is_recording():
+                try:
+                    bag_filename = os.path.join(
+                        dataset_dir,
+                        f'{current_time}.bag')
+                    self.recorder.start_recording(self.topics, bag_filename)
+                    self.additional_msg = "Recording rosbag ..."
+                except AssertionError as e:
+                    error_msg = f"Recording aborted: {e}"
+                    rospy.logerr(error_msg)
+                    self.additional_msg = error_msg
+                    self.recorder.stop_recording()
+                    os.remove(bag_filename)
+            # Stop recording
+            else:
+                self.recorder.stop_recording()
+                message = "Successfully finish recording"
+                rospy.loginfo(message)
+                self.additional_msg = message
+                self.recorder.show_bag(self.latest_filename())
+        # Delete the latest data
+        elif msg.data == 2:
+            latest_bag_filename = self.latest_filename()
+            if latest_bag_filename is not None:
+                os.remove(latest_bag_filename)
+                message = "Remove the latest data"
+                rospy.loginfo(message)
+                rospy.loginfo(latest_bag_filename)
+                self.additional_msg = message
+        # Create new dataset
+        elif msg.data == 3:
+            message = "Create dataset"
+            rospy.loginfo(message)
+            self.additional_msg = message
+            self.create_dataset_dir()
+
+    def timer_callback(self, event):
+        if self.mode != "DataCollectionMode":
+            return
+        self.send_string()
+
+    def send_string(self):
+        sent_str = chr(PacketType.DATA_COLLECTION_MODE)
+        if self.recorder.is_recording():
+            sent_str += "1 " + Fore.GREEN + "start" + Fore.RESET + "/stop\n"
+        else:
+            sent_str += "1 start/" + Fore.GREEN + "stop\n" + Fore.RESET
+        sent_str += "2 Remove last\n"
+        sent_str += "3 New Dataset\n\n"
+        dataset_dir = self.current_dataset_dir()
+        if dataset_dir is not None:
+            dataset_id = os.path.basename(dataset_dir)[len("dataset_"):]  # Remove prefix
+            dataset_day, dataset_time = dataset_id.split("_")
+            sent_str += f"ID: {dataset_day}_\n{dataset_time}\n"
+        sent_str += f"Size: {self.current_dataset_size()}\n"
+        sent_str += "\n" + self.additional_msg
+
+        # Send message on AtomS3 LCD
+        self.write(sent_str)
+
+
+if __name__ == "__main__":
+    rospy.init_node("data_collection_mode")
+    rospy.loginfo("Start Data Collection Mode")
+    dcm = DataCollectionMode()
+    rospy.spin()
