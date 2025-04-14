@@ -42,8 +42,6 @@ class RosbagRecorder:
 
     def start_recording(self, topics, bag_filename, timeout=1.0):
         self.bag = rosbag.Bag(bag_filename, 'w')
-        self.running = True
-
         for topic in topics:
             try:
                 msg_class = self._get_message_class(topic)
@@ -56,6 +54,7 @@ class RosbagRecorder:
                 self.subscribers.append(sub)
             except rospy.ROSException:
                 raise AssertionError(f"Timeout '{topic}'")
+        self.running = True
 
     def stop_recording(self):
         self.running = False
@@ -219,7 +218,8 @@ class DataCollectionMode(Mode):
     def send_string(self):
         sent_str = chr(PacketType.DATA_COLLECTION_MODE)
         if self.recorder.is_recording():
-            sent_str += "1 " + Fore.GREEN + "start" + Fore.RESET + "/stop\n"
+            sent_str += "1 " + Fore.GREEN + "start" + Fore.RESET + "/stop"
+            sent_str += Fore.RED + "●" + Fore.RESET + "\n"
         else:
             sent_str += "1 start/" + Fore.GREEN + "stop\n" + Fore.RESET
         sent_str += "2 Remove last\n"
