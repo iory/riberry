@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 
 from datetime import datetime
+import json
 import os
 import threading
 
 from colorama import Fore
+from kxr_controller.kxr_interface import KXRROSRobotInterface
+import numpy as np
 import rosbag
 import rospy
 import rostopic
+from skrobot.model import RobotModel
+from skrobot.utils.urdf import no_mesh_load_mode
 from std_msgs.msg import Int32
 
 from riberry.com.base import PacketType
@@ -108,12 +113,26 @@ class DataCollectionMode(Mode):
         self.cache_dir = get_cache_dir()
         self.recorder = RosbagRecorder()
         # Callbacks
-        self.additional_msg = ""
+        self.ri = None
         rospy.Timer(rospy.Duration(0.5), self.timer_callback)
         rospy.Subscriber(
             "atom_s3_button_state", Int32,
             callback=self.button_cb, queue_size=1
         )
+        # Create robot model
+        self.additional_msg = "Creating robot model..."
+        robot_model = RobotModel()
+        namespace = ""
+        with no_mesh_load_mode():
+            robot_model.load_urdf_from_robot_description(
+                namespace + "/robot_description_viz")
+        self.ri = KXRROSRobotInterface(
+            robot_model, namespace=namespace, controller_timeout=60.0
+        )
+        if self.ri is None:
+            self.additional_msg = "Failed to Create robot model"
+        else:
+            self.additional_msg = "Ready for data collection"
 
     def latest_filename(self):
         current_dir = self.current_dataset_dir()
@@ -121,12 +140,30 @@ class DataCollectionMode(Mode):
             return None
         all_entries = os.listdir(current_dir)
         files = [os.path.join(current_dir, entry) for entry in all_entries
-                 if os.path.isfile(os.path.join(current_dir, entry))]
+                 if os.path.isfile(os.path.join(current_dir, entry)) and entry.endswith("bag")]
         if not files:
             return None  # ファイルがない場合
         files_sorted = sorted(files)
         last_file = files_sorted[-1]
         return last_file
+
+    def initial_angle_vector(self, angle_vector=None):
+        """Initial angle vector of the task"""
+        dir_path = self.current_dataset_dir()
+        if dir_path is None:
+            return None
+        json_path = os.path.join(dir_path, "initial_state.json")
+        # Read initial angle vector
+        if angle_vector is None:
+            with open(json_path) as f:
+                angle_vector = json.load(f)["angle_vector"]
+                return np.array(angle_vector, dtype=np.float32)
+        # Write initial angle vector
+        else:
+            json_data = {"angle_vector": angle_vector.tolist()}
+            with open(json_path, 'w') as f:
+                json.dump(json_data, f, indent=4)
+                return True
 
     def current_dataset_dir(self):
         """Return the latest dataset dir"""
@@ -150,7 +187,7 @@ class DataCollectionMode(Mode):
         file_count = 0
         for item in os.listdir(dir_path):
             item_path = os.path.join(dir_path, item)
-            if os.path.isfile(item_path):
+            if os.path.isfile(item_path) and item_path.endswith("bag"):
                 file_count += 1
         return file_count
 
@@ -164,6 +201,9 @@ class DataCollectionMode(Mode):
     def button_cb(self, msg):
         if self.mode != "DataCollectionMode":
             return
+        if self.ri is None:
+            rospy.logwarn("KXRROSRobotInterface instance is not created.")
+            return
         if msg.data == 1:
             self.additional_msg = ""
             current_time = datetime.now().strftime("%m%d_%H%M%S")
@@ -176,11 +216,19 @@ class DataCollectionMode(Mode):
             # Start recording
             if not self.recorder.is_recording():
                 try:
-                    bag_filename = os.path.join(
-                        dataset_dir,
-                        f'{current_time}.bag')
-                    self.recorder.start_recording(self.topics, bag_filename)
-                    self.additional_msg = "Recording rosbag ..."
+                    initial_angle_vector = self.initial_angle_vector()
+                    if initial_angle_vector is not None:
+                        # Move to initial pose
+                        self.ri.servo_on()
+                        self.ri.angle_vector(initial_angle_vector, 3)
+                        self.ri.wait_interpolation()
+                        # Users can record task after servo off
+                        self.ri.servo_off()
+                        bag_filename = os.path.join(
+                            dataset_dir,
+                            f'{current_time}.bag')
+                        self.recorder.start_recording(self.topics, bag_filename)
+                        self.additional_msg = "Recording rosbag ..."
                 except AssertionError as e:
                     error_msg = f"Recording aborted: {e}"
                     rospy.logerr(error_msg)
@@ -209,6 +257,7 @@ class DataCollectionMode(Mode):
             rospy.loginfo(message)
             self.additional_msg = message
             self.create_dataset_dir()
+            self.initial_angle_vector(self.ri.angle_vector())
 
     def timer_callback(self, event):
         if self.mode != "DataCollectionMode":
