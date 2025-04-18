@@ -122,7 +122,7 @@ class DataCollectionMode(Mode):
         # Create robot model
         self.additional_msg = "Creating robot model..."
         robot_model = RobotModel()
-        namespace = ""
+        namespace = self.get_base_namespace()
         with no_mesh_load_mode():
             robot_model.load_urdf_from_robot_description(
                 namespace + "/robot_description_viz")

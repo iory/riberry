@@ -22,7 +22,7 @@ class KeywordToAction:
     def __init__(self):
         # Create robot model to control pressure
         robot_model = RobotModel()
-        namespace = ""
+        namespace = self.get_base_namespace()
         with no_mesh_load_mode():
             robot_model.load_urdf_from_robot_description(
                 namespace + "/robot_description_viz")
@@ -207,6 +207,12 @@ class KeywordToAction:
             info = f"Unknown keyword: {keyword}"
             self.info_on_atoms3(info)
             rospy.logwarn(info)
+
+    def get_base_namespace(self):
+        """Return the clean namespace for the node."""
+        full_namespace = rospy.get_namespace()
+        last_slash_pos = full_namespace.rfind("/")
+        return full_namespace[:last_slash_pos] if last_slash_pos != 0 else ""
 
 
 if __name__ == "__main__":
