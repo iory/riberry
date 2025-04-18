@@ -104,7 +104,11 @@ if __name__ == "__main__":
         rospy.loginfo("[change_systemd_rosmaster] rospy node finished")
 
     with Manager() as manager:
-        next_ros_master_ip = manager.Value('s', 'localhost')
+        try:
+            ip = os.environ['ROS_MASTER_URI'][7:-6]  # http://192.X.Y.1:11311 -> 192.X.Y.1
+            next_ros_master_ip = manager.Value('s', ip)
+        except KeyError:
+            next_ros_master_ip = manager.Value('s', 'localhost')
         while True:
             # Use rospy inside process to completely reset rospy.init_node()
             # after process finished
