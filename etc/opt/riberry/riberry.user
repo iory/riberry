@@ -1,1 +1,7 @@
 SETUP=/home/rock/ros/kxr/devel/setup.bash
+
+# Comment in when you use external computer's roscore
+# RIBERRY_ROS_MASTER_IP=
+
+# Comment in when you change ROS namespace
+# ROS_NAMESPACE=
