@@ -1,5 +1,6 @@
 import rospy
 
+
 def get_base_namespace():
     """Return the clean namespace for the node."""
     full_namespace = rospy.get_namespace()

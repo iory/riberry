@@ -9,6 +9,7 @@ from std_msgs.msg import Int32
 
 from riberry.com.base import PacketType
 from riberry.mode import Mode
+from riberry.utils.ros.namespace import get_base_namespace
 
 
 class ServoControlMode(Mode):
@@ -20,7 +21,7 @@ class ServoControlMode(Mode):
 
         # Create robot model to control servo
         robot_model = RobotModel()
-        namespace = ""
+        namespace = get_base_namespace()
         with no_mesh_load_mode():
             robot_model.load_urdf_from_robot_description(
                 namespace + "/robot_description_viz")

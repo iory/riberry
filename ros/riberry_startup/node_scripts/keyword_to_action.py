@@ -16,13 +16,14 @@ from std_msgs.msg import String
 from std_srvs.srv import SetBool
 
 from riberry.filecheck_utils import get_cache_dir
+from riberry.utils.ros.namespace import get_base_namespace
 
 
 class KeywordToAction:
     def __init__(self):
         # Create robot model to control pressure
         robot_model = RobotModel()
-        namespace = ""
+        namespace = get_base_namespace()
         with no_mesh_load_mode():
             robot_model.load_urdf_from_robot_description(
                 namespace + "/robot_description_viz")

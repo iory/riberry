@@ -9,6 +9,8 @@ import rospy
 from skrobot.model import RobotModel
 from std_msgs.msg import Int32
 
+from riberry.utils.ros.namespace import get_base_namespace
+
 
 class ButtonActionManager(threading.Thread):
     """
@@ -108,7 +110,7 @@ class ButtonActionManager(threading.Thread):
         self.run() is executed when the self.start() is called.
         """
         robot_model = RobotModel()
-        namespace = ""
+        namespace = get_base_namespace()
         robot_model.load_urdf_from_robot_description(namespace + "/robot_description_viz")
         self.ri = KXRROSRobotInterface(
             robot_model, namespace=namespace, controller_timeout=60.0
