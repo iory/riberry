@@ -22,7 +22,7 @@ class PressureControlMode(Mode):
 
         # Create robot model to control pressure
         robot_model = RobotModel()
-        namespace = self.get_base_namespace()
+        namespace = ""
         with no_mesh_load_mode():
             robot_model.load_urdf_from_robot_description(
                 namespace + "/robot_description_viz")
