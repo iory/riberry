@@ -39,7 +39,7 @@ class MotionManager:
             raise Exception(f"skrobot version is not greater than {required_version}. (current version: {current_version})\npip install scikit-robot -U")
         # Create robot model to control pressure
         robot_model = RobotModel()
-        namespace = self.get_base_namespace()
+        namespace = ""
         with no_mesh_load_mode():
             robot_model.load_urdf_from_robot_description(
                 namespace + "/robot_description_viz")
@@ -347,9 +347,3 @@ class MotionManager:
         message = "IK success"
         rospy.loginfo(message)
         return (moved_motion, message)
-
-    def get_base_namespace(self):
-        """Return the clean namespace for the node."""
-        full_namespace = rospy.get_namespace()
-        last_slash_pos = full_namespace.rfind("/")
-        return full_namespace[:last_slash_pos] if last_slash_pos != 0 else ""
