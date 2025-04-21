@@ -6,6 +6,7 @@ from skrobot.model import RobotModel
 from skrobot.utils.urdf import no_mesh_load_mode
 
 from riberry.teaching_interface import TeachingRobotInterface
+from riberry.utils.ros.namespace import get_base_namespace
 
 
 class MotionManager:
@@ -39,7 +40,7 @@ class MotionManager:
             raise Exception(f"skrobot version is not greater than {required_version}. (current version: {current_version})\npip install scikit-robot -U")
         # Create robot model to control pressure
         robot_model = RobotModel()
-        namespace = ""
+        namespace = get_base_namespace()
         with no_mesh_load_mode():
             robot_model.load_urdf_from_robot_description(
                 namespace + "/robot_description_viz")
