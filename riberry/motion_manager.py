@@ -45,7 +45,7 @@ class MotionManager:
             robot_model.load_urdf_from_robot_description(
                 namespace + "/robot_description_viz")
         self.ri = TeachingRobotInterface(
-            robot_model, namespace=namespace, controller_timeout=60.0
+            robot_model, namespace=namespace[1:], controller_timeout=60.0
         )
         self.joint_names = self.ri.robot.joint_names
         self.end_coords_name = rospy.get_param("~end_coords_name", None)

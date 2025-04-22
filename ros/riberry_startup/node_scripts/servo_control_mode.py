@@ -26,7 +26,7 @@ class ServoControlMode(Mode):
             robot_model.load_urdf_from_robot_description(
                 namespace + "/robot_description_viz")
         self.ri = KXRROSRobotInterface(
-            robot_model, namespace=namespace, controller_timeout=60.0
+            robot_model, namespace=namespace[1:], controller_timeout=60.0
         )
 
         # Button and mode callback
