@@ -175,3 +175,38 @@ The following sections provide details on the base code for the AtomS3 firmware.
 - Display Battery Graph Mode
 
   Displays the remaining battery charge as a percentage, with a graph of the change over time underneath.
+
+### How to Add New Modes
+
+1. **Define a New Mode**
+
+   - **Firmware**
+     - Add 2 entries in [`mode_type.h`](https://github.com/iory/riberry/blob/main/firmware/atom_s3_i2c_display/lib/mode/mode_type.h)
+     - Add 3 entries in [`main.cpp`](https://github.com/iory/riberry/blob/main/firmware/atom_s3_i2c_display/src/main.cpp)
+
+   - **Python**
+     - Add 2 entries in [`mode_type.py`](https://github.com/iory/riberry/blob/main/riberry/mode_type.py)
+
+2. **Define a New Packet for the Mode**
+
+   - **Firmware**
+     - Add 1 entry in [`communication_base.cpp`](https://github.com/iory/riberry/blob/main/firmware/atom_s3_i2c_display/lib/com/communication_base.cpp)
+     - Add 1 entry in [`packet.h`](https://github.com/iory/riberry/blob/main/firmware/atom_s3_i2c_display/lib/com/packet.h)
+
+   - **Python**
+     - Add 1 entry in [`base.py`](https://github.com/iory/riberry/blob/main/riberry/com/base.py)
+
+3. **Add a Program to Handle the New Mode**
+
+   For example, place your `rospy` node under [`node_scripts`](https://github.com/iory/riberry/blob/main/ros/riberry_startup/node_scripts/)
+
+4. **Add the Mode to the roslaunch File for convenience**
+
+   Add 2 entries in [`all_modes.launch`](https://github.com/iory/riberry/blob/main/ros/riberry_startup/launch/all_modes.launch)
+
+5. **(Optional) Define New Mode Firmware**
+
+   If you want a custom visualization for the new mode, place the firmware in [`lib`](https://github.com/iory/riberry/blob/main/firmware/atom_s3_i2c_display/lib/)
+
+See mode addition sample Pull Request for reference:
+[PR #303](https://github.com/iory/riberry/pull/303)
