@@ -55,12 +55,12 @@ class ButtonActionManager(threading.Thread):
     def button_cb(self, msg):
         """
         When AtomS3 is
-        - pressed and holded, toggle pressure control.
+        - pressed and held, toggle pressure control.
         - pressed once, toggle servo on off.
         """
         state = msg.data
         if state == 11:
-            rospy.loginfo("AtomS3 is pressed and holded. Toggle pressure control.")
+            rospy.loginfo("AtomS3 is pressed and held. Toggle pressure control.")
             self.toggle_pressure_control()
         if state == 1:
             rospy.loginfo("AtomS3 is pressed once. Toggle servo on off.")
