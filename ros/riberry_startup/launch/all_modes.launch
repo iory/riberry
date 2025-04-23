@@ -22,6 +22,7 @@
       - FirmwareUpdateMode <!-- Enabled by display_information.service -->
       - WiFiSettingsMode <!-- Enabled by display_information.service -->
       - DataCollectionMode
+      - LeaderFollowerMode
     </rosparam>
   </node>
 
@@ -62,6 +63,22 @@
       - /camera/depth/camera_info
       - /camera/depth/image_rect_raw/compressedDepth
       - /camera/extrinsics/depth_to_color
+    </rosparam>
+  </node>
+
+  <node name="leader_follower_mode"
+        pkg="riberry_startup" type="leader_follower_mode.py"
+        output="screen"
+        respawn="true" clear_params="true">
+    <rosparam param="topic_names">
+      - /follower/joint_states
+      - /tf
+      - /tf_static
+      - /follower/camera/color/camera_info
+      - /follower/camera/color/image_raw/compressed
+      - /follower/camera/depth/camera_info
+      - /follower/camera/depth/image_rect_raw/compressedDepth
+      - /follower/camera/extrinsics/depth_to_color
     </rosparam>
   </node>
 

@@ -61,12 +61,13 @@ PairingMode pairing_mode(button_manager, pairing, comm);
 FirmwareUpdateMode firmware_update_mode;
 WiFiSettingsMode wifi_settings_mode(button_manager);
 Mode data_collection_mode(ModeType::DATA_COLLECTION);
+Mode leader_follower_mode(ModeType::LEADER_FOLLOWER);
 const std::vector<Mode*> allModes = {
         &display_information_mode,   &display_qrcode_mode,  &display_image_mode,
         &display_battery_graph_mode, &display_odom_mode,    &servo_control_mode,
         &pressure_control_mode,      &teaching_mode,        &pairing_mode,
         &system_debug_mode,          &speech_to_text_mode,  &firmware_update_mode,
-        &wifi_settings_mode,         &data_collection_mode,
+        &wifi_settings_mode,         &data_collection_mode, &leader_follower_mode,
 };
 
 ModeManager modemanager(lcd, button_manager, comm, allModes);
@@ -87,7 +88,8 @@ std::vector<ExecutionTimer*> executionTimers = {&pairing,
                                                 &speech_to_text_mode,
                                                 &firmware_update_mode,
                                                 &wifi_settings_mode,
-                                                &data_collection_mode};
+                                                &data_collection_mode,
+                                                &leader_follower_mode};
 
 #ifdef ATOM_S3
 CPUUsageMonitor cpu_usage_monitor(executionTimers, &USBSerial);
