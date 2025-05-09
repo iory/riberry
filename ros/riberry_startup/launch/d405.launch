@@ -10,6 +10,7 @@
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="enable_color" value="$(arg enable_color)" />
     <arg name="enable_depth" value="$(arg enable_depth)" />
+    <arg name="align_depth" value="$(arg enable_depth)" />
     <arg name="enable_infra" value="false" />
     <arg name="color_fps" value="$(arg color_fps)" />
     <arg name="depth_fps" value="$(arg depth_fps)" />
