@@ -80,7 +80,6 @@ def try_init_ros():
     battery_percentage = None
     while not stop_event.is_set():
         try:
-            import cv_bridge
             import rosgraph
             import rospy
             import sensor_msgs.msg
@@ -101,6 +100,7 @@ def try_init_ros():
                 ros_additional_message = msg.data
 
             def ros_image_callback(msg):
+                import cv_bridge
                 global ros_display_image
                 bridge = cv_bridge.CvBridge()
                 ros_display_image = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
