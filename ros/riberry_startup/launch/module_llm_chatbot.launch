@@ -1,0 +1,16 @@
+<launch>
+
+  <arg name="system_prompt" />
+
+  <include file="$(find riberry_startup)/launch/module_llm_speech_to_text.launch" />
+
+  <node name="chatbot_node"
+	pkg="riberry_startup" type="chatbot_node.py"
+	respawn="true" output="screen">
+    <rosparam subst_value="true">
+      system_prompt: $(arg system_prompt)
+    </rosparam>
+    <remap from="~input" to="speech_to_text" />
+  </node>
+
+</launch>
