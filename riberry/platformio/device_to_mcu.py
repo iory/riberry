@@ -3,6 +3,7 @@ def get_device_to_mcu(device_model):
         device_name = 'm5stack-basic'
     elif "Radxa" in device_model or "ROCK Pi" in device_model \
         or device_model == "Khadas VIM4" \
+        or 'Raspberry' in device_model \
         or device_model == "NVIDIA Jetson Xavier NX Developer Kit":
         device_name = 'm5stack-atoms3'
     else:
