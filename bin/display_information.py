@@ -481,15 +481,16 @@ class DisplayInformation:
 
 if __name__ == "__main__":
     battery_bus_number = decide_battery_i2c_bus_number()
-    if MP2760BatteryMonitor.exists(battery_bus_number):
-        print("[Display Information] Use JSK Battery Board")
-        battery_readers.append(MP2760BatteryMonitor(battery_bus_number))
-    if PisugarBatteryReader.exists(battery_bus_number):
-        print("[Display Information] Use Pisugar")
-        battery_readers.append(PisugarBatteryReader(battery_bus_number))
-    for battery_reader in battery_readers:
-        battery_reader.daemon = True
-        battery_reader.start()
+    if battery_bus_number is not None:
+        if MP2760BatteryMonitor.exists(battery_bus_number):
+            print("[Display Information] Use JSK Battery Board")
+            battery_readers.append(MP2760BatteryMonitor(battery_bus_number))
+        if PisugarBatteryReader.exists(battery_bus_number):
+            print("[Display Information] Use Pisugar")
+            battery_readers.append(PisugarBatteryReader(battery_bus_number))
+        for battery_reader in battery_readers:
+            battery_reader.daemon = True
+            battery_reader.start()
 
     display_thread = threading.Thread(target=DisplayInformation().run_with_catch)
     display_thread.daemon = True
