@@ -133,7 +133,7 @@ class MP2760BatteryMonitor(threading.Thread):
         self.bus.close()
 
     @staticmethod
-    def exists(self, bus_number=3, device_address=0x5C):
+    def exists(bus_number=3, device_address=0x5C):
         try:
             with smbus2.SMBus(bus_number) as bus:
                 bus.read_byte(device_address)

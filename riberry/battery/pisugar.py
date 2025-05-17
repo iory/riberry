@@ -174,7 +174,7 @@ class PisugarBatteryReader(threading.Thread):
         self.join()
 
     @staticmethod
-    def exists(self, bus_number=3):
+    def exists(bus_number=3):
         try:
             with smbus2.SMBus(bus_number) as bus:
                 bus.read_byte(0x57)
