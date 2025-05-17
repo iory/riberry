@@ -175,6 +175,8 @@ class PisugarBatteryReader(threading.Thread):
 
     @staticmethod
     def exists(bus_number=3):
+        if bus_number is None:
+            return False
         try:
             with smbus2.SMBus(bus_number) as bus:
                 bus.read_byte(0x57)
