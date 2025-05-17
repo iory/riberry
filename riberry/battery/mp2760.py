@@ -134,6 +134,8 @@ class MP2760BatteryMonitor(threading.Thread):
 
     @staticmethod
     def exists(bus_number=3, device_address=0x5C):
+        if bus_number is None:
+            return False
         try:
             with smbus2.SMBus(bus_number) as bus:
                 bus.read_byte(device_address)
