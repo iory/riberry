@@ -377,7 +377,7 @@ class DisplayInformation:
                         mode_type_to_string(ModeType(int(selected_mode))) for selected_mode in selected_modes]
                     atom_s3_selected_modes = ",".join(selected_modes_str_list)
                 else:
-                    print("Cannot read packet")
+                    print(f"Cannot read packet. Read {len(mode_packet)} bytes.")
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
