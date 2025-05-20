@@ -44,6 +44,9 @@ class ComBase:
     def reset_input_buffer(self):
         pass
 
+    def reconnect(self):
+        return True
+
     @staticmethod
     def identify_device():
         try:

@@ -58,6 +58,9 @@ class UARTBase(ComBase):
             print("[uart_base] Serial connection failed.")
             return False
 
+    def reconnect(self):
+        return self._connect_serial()
+
     def reset_input_buffer(self):
         try:
             self.serial.connection.reset_input_buffer()
@@ -115,10 +118,11 @@ class UARTBase(ComBase):
                 print("[uart_base] Serial is not initialized. Try to connect serial.")
                 self._connect_serial()
                 return b''
-            available = self.serial.available()
-            if available == 0:
-                return b''
-            received = self.serial.rx_obj(obj_type=list, list_format='B', obj_byte_size=available)
+            with self.lock:
+                available = self.serial.available()
+                if available == 0:
+                    return b''
+                received = self.serial.rx_obj(obj_type=list, list_format='B', obj_byte_size=available)
             return bytes(received)
         except Exception as e:
             print("[uart_base] Error during read:", e)

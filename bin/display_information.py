@@ -377,7 +377,8 @@ class DisplayInformation:
                         mode_type_to_string(ModeType(int(selected_mode))) for selected_mode in selected_modes]
                     atom_s3_selected_modes = ",".join(selected_modes_str_list)
                 else:
-                    print("Cannot read packet")
+                    print(f"Cannot read packet. Read {len(mode_packet)} bytes.")
+                    self.com.reconnect()
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
@@ -404,6 +405,7 @@ class DisplayInformation:
             wifi_status = get_wifi_connect_status()
             if wifi_status == 'running' and mode != 'WiFiSettingsMode':
                 self.force_mode("WiFiSettingsMode")
+                atom_s3_mode = "WiFiSettingsMode"
                 print("Mode has been forcibly changed to WiFiSettingsMode")
             print(f"Mode: {mode} device_type: {self.com.device_type}")
             # Display data according to mode
@@ -450,10 +452,11 @@ class DisplayInformation:
                     sent_str += ros_master_uri.replace("http://", "").replace(":11311", "")
                     self.com.write(sent_str)
             elif mode == 'WiFiSettingsMode':
-                self.com.read()
-                self.com.write([PacketType.GET_ADDITIONAL_REQUEST])
-                time.sleep(0.1)
-                wifi_request = self.com.read()
+                with self.com.lock_context():
+                    self.com.read()
+                    self.com.write([PacketType.GET_ADDITIONAL_REQUEST])
+                    time.sleep(0.1)
+                    wifi_request = self.com.read()
                 if wifi_request[1:] == b'wifi_connect':
                     if wifi_status == 'running':
                         print("Stop wifi_connect")
