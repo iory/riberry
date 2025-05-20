@@ -58,6 +58,9 @@ class UARTBase(ComBase):
             print("[uart_base] Serial connection failed.")
             return False
 
+    def reconnect(self):
+        return self._connect_serial()
+
     def reset_input_buffer(self):
         try:
             self.serial.connection.reset_input_buffer()

@@ -378,6 +378,7 @@ class DisplayInformation:
                     atom_s3_selected_modes = ",".join(selected_modes_str_list)
                 else:
                     print(f"Cannot read packet. Read {len(mode_packet)} bytes.")
+                    self.com.reconnect()
             except Exception as e:
                 print(f"Mode reading failed. {e}")
             mode = atom_s3_mode
