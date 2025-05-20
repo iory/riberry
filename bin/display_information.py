@@ -451,10 +451,11 @@ class DisplayInformation:
                     sent_str += ros_master_uri.replace("http://", "").replace(":11311", "")
                     self.com.write(sent_str)
             elif mode == 'WiFiSettingsMode':
-                self.com.read()
-                self.com.write([PacketType.GET_ADDITIONAL_REQUEST])
-                time.sleep(0.1)
-                wifi_request = self.com.read()
+                with self.com.lock_context():
+                    self.com.read()
+                    self.com.write([PacketType.GET_ADDITIONAL_REQUEST])
+                    time.sleep(0.1)
+                    wifi_request = self.com.read()
                 if wifi_request[1:] == b'wifi_connect':
                     if wifi_status == 'running':
                         print("Stop wifi_connect")
