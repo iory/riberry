@@ -404,6 +404,7 @@ class DisplayInformation:
             wifi_status = get_wifi_connect_status()
             if wifi_status == 'running' and mode != 'WiFiSettingsMode':
                 self.force_mode("WiFiSettingsMode")
+                atom_s3_mode = "WiFiSettingsMode"
                 print("Mode has been forcibly changed to WiFiSettingsMode")
             print(f"Mode: {mode} device_type: {self.com.device_type}")
             # Display data according to mode
