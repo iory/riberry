@@ -150,7 +150,7 @@ bool ModeManager::isValidIndex(const std::vector<Mode *> &vec, int index) {
 
 void ModeManager::changeMode(int suspend_mode_index, int resume_mode_index) {
     if (!isValidIndex(selectedModes, suspend_mode_index) ||
-        !isValidIndex(selectedModes, resume_mode_index))
+        !isValidIndex(selectedModes, resume_mode_index) || suspend_mode_index == resume_mode_index)
         return;
     // Suspend
     // deleteTask may not release heap memory, so use suspendTask instead.
