@@ -351,6 +351,7 @@ class TeachingMode(Mode):
             return State.RECORD
 
     def handle_play_list_select_state(self, msg: Int32) -> State:
+        self.load_play_list()
         if msg.data != 0 and len(self.play_list.options) <= 0:
             return State.WAIT
         # select play file
@@ -382,6 +383,7 @@ class TeachingMode(Mode):
             return State.WAIT
 
     def handle_motion_list_select_state(self, msg: Int32) -> State:
+        self.load_play_list()
         if msg.data != 0 and len(self.play_list.options) <= 0:
             return State.WAIT
         # select motion file
@@ -542,7 +544,6 @@ class TeachingMode(Mode):
             json_path = get_json_path(self.json_dir)
             result_message = self.teaching_manager.record(json_path)
             self.additional_str = result_message
-            self.play_list.add_option(json_path)
 
         self.record_thread = threading.Thread(
             target=record_task, daemon=True)
