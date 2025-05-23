@@ -39,9 +39,10 @@ class TeachingManager:
             rospy.loginfo(f'Load motion data file {play_filepath}.')
             with open(play_filepath) as f:
                 json_data = json.load(f)
-                self.motion_manager.set_motion([j for j in json_data if 'joint_states' in j])
-                self.motion_manager.set_actions([j for j in json_data if 'special_action' in j])
-                self.marker_manager.set_markers([j for j in json_data if 'marker_id' in j])
+                motion_data = json_data['motion']
+                self.motion_manager.set_motion([j for j in motion_data if 'joint_states' in j])
+                self.motion_manager.set_actions([j for j in motion_data if 'special_action' in j])
+                self.marker_manager.set_markers([j for j in motion_data if 'marker_id' in j])
             rospy.loginfo(f'Loaded motion data: {self.motion_manager.get_motion()}')
             rospy.loginfo(f'Loaded marker data {self.marker_manager.get_markers()}')
 
@@ -89,12 +90,11 @@ class TeachingManager:
                 if self.start_time is not None:
                     self.marker_manager.add_marker(self.start_time)
                 rospy.sleep(0.1)
-            f.write(
-                json.dumps(
-                    self.motion_manager.get_motion()+\
-                    self.motion_manager.get_actions()+\
-                    self.marker_manager.get_markers(),
-                    indent=4, separators=(",", ": ")))
+            json_data = {}
+            json_data['motion'] = self.motion_manager.get_motion()+\
+                self.motion_manager.get_actions()+\
+                self.marker_manager.get_markers()
+            f.write(json.dumps(json_data, indent=4, separators=(",", ": ")))
             rospy.loginfo(f'Finish saving motion to {record_filepath}')
         motion_duration = self.motion_manager.get_motion()[-1]["time"]
         message = f"Record {motion_duration:.1f} [s] motion:\n" +\
