@@ -141,6 +141,30 @@ def ros_exists():
     return False
 
 
+def install_apt_packages(packages, dry_run=False):
+    if not packages:
+        print("No APT packages specified for installation.")
+        return
+
+    if dry_run:
+        print("[Dry Run] Would update package lists using 'apt update'.")
+        print(f"[Dry Run] Would install APT packages: {', '.join(packages)}")
+    else:
+        try:
+            print("Updating package lists (apt update)...")
+            subprocess.run(["apt", "update"], check=True)
+
+            print(f"Installing APT packages: {', '.join(packages)}...")
+            install_command = ["apt", "install", "-y"] + packages
+            subprocess.run(install_command, check=True)
+            print("APT packages installed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to execute apt command: {e}")
+            print("Please check your internet connection and permissions.")
+        except FileNotFoundError:
+            print("Error: 'apt' command not found. This script assumes a Debian-based system (like Ubuntu, Raspberry Pi OS).")
+
+
 def main(dry_run=False, enable_oneshot=False):
     if dry_run is False and os.geteuid() != 0:
         print("This script must be run as root.")
@@ -207,6 +231,11 @@ def main(dry_run=False, enable_oneshot=False):
         added_symlinks += create_symlinks(
             "./systemd/radxa-zero", "/etc/systemd/system", dry_run=dry_run
         )
+    packages_to_install = [
+        'wireless-tools',  # for iwgetid command
+    ]
+    if packages_to_install:
+        install_apt_packages(packages_to_install, dry_run=dry_run)
 
     enable_systemd_services(added_symlinks, dry_run=dry_run)
     enable_systemd_services(added_user_symlinks, dry_run=dry_run)
