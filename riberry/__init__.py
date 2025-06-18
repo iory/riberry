@@ -1,8 +1,8 @@
 # flake8: noqa
 
-import pkg_resources
+import importlib.metadata
 
 try:
-    __version__ = pkg_resources.get_distribution("riberry-robot").version
-except pkg_resources.DistributionNotFound:
+    __version__ = importlib.metadata.version("riberry-robot")
+except importlib.metadata.PackageNotFoundError:
     print("riberry-robot is not installed")
