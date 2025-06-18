@@ -4,6 +4,9 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
+User=%I
+Group=%I
+Environment="HOME=/home/%I"
 EnvironmentFile=-/etc/opt/riberry/riberry.user
 Environment="LOG_LEVEL=DEBUG"
 Type=simple
@@ -11,7 +14,6 @@ ExecStart=/usr/local/bin/run_display_information.sh
 Restart=always
 RestartSec=10
 SyslogIdentifier=%n
-User=%I
 
 [Install]
 WantedBy=multi-user.target

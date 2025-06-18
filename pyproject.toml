@@ -26,7 +26,7 @@ dependencies = [
     "colorama",
     "GitPython",
     "filelock",
-    "i2c-for-esp32",
+    "i2c-for-esp32>=0.4.4",
     "platformio",
     "pybsc",
     "pyserialtransfer==2.1.6",
