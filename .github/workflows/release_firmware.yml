@@ -132,10 +132,10 @@ jobs:
         if: github.event_name != 'pull_request' # Execute not in case of pull_request
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-artifacts
+          name: firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}
           path: |
-            firmware/atom_s3_i2c_display/.pio/build/**/*.bin
-            firmware/atom_s3_i2c_display/.pio/build/**/*.elf
+            firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+            firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
 
   ##########################################################
   # Job 2: Create release (one time), expose "upload_url"
@@ -149,6 +149,7 @@ jobs:
     outputs:
       # We'll publish the upload_url so the next job can see it
       upload_url: ${{ steps.set_release_url.outputs.upload_url }}
+      tag_name: ${{ steps.short_sha.outputs.short_sha }}
 
     steps:
       - name: Checkout code
@@ -195,32 +196,54 @@ jobs:
           echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
 
   ######################################################
-  # Job 3: Upload all firmware to release
+  # Job 3: Use the same matrix to upload each firmware
   ######################################################
   upload:
     needs: [build, release]
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' # Execute not in case of pull_request
     runs-on: ubuntu-latest
+
+    # Reuse the same matrix to avoid enumerating all combos by hand
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [m5stack-atoms3, m5stack-basic]
+        rotation: [0, 1, 2, 3]
+        grove: [0, 1]
+        exclude:
+          - board: m5stack-basic
+            grove: 1
+
     steps:
-      - name: Download all artifacts
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: firmware-artifacts
           path: all_firmwares
 
-      - name: List files for debugging
-        run: ls -R all_firmwares
+      - name: Debug directory structure
+        run: |
+          ls -R all_firmwares
 
-      - name: Upload all assets to release
-        uses: AButler/upload-release-assets@v3.0
+      - name: Upload to release (.bin file)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: 'all_firmwares/**/*.bin; all_firmwares/**/*.elf'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ needs.release.outputs.tag_name }}
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+          asset_name: ${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+          asset_content_type: application/octet-stream
 
-  ####################################################################
-  # Job 4: Deploy all .bin files to gh-pages for the web flasher
-  ####################################################################
+      - name: Upload to release (.elf file)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
+          asset_name: ${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
+          asset_content_type: application/octet-stream
+
   deploy-to-pages:
     needs: [build, release]
     if: github.event_name != 'pull_request'
@@ -238,16 +261,20 @@ jobs:
       - name: Download all firmware artifacts
         uses: actions/download-artifact@v4
         with:
-          name: firmware-artifacts
           path: artifacts_to_deploy
 
       - name: Organize and deploy files
         run: |
           TAG_NAME="${{ needs.release.outputs.tag_name }}"
           DEPLOY_DIR="firmware/$TAG_NAME"
+
+          echo "Deploying firmware for release: $TAG_NAME"
           mkdir -p "$DEPLOY_DIR"
 
           find artifacts_to_deploy/ -name "*.bin" -exec mv {} "$DEPLOY_DIR/" \;
+
+          echo "Files to be deployed:"
+          ls -l "$DEPLOY_DIR"
 
           git lfs track "*.bin"
 
