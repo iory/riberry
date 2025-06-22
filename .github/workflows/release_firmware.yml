@@ -263,26 +263,29 @@ jobs:
         with:
           path: artifacts_to_deploy
 
-      - name: Organize and deploy files
+      - name: Organize and deploy latest files
         run: |
-          TAG_NAME="${{ needs.release.outputs.tag_name }}"
-          DEPLOY_DIR="firmware/$TAG_NAME"
+          echo "Removing old firmware to save space..."
+          rm -rf firmware
 
-          echo "Deploying firmware for release: $TAG_NAME"
+          DEPLOY_DIR="firmware/latest"
+
+          echo "Deploying latest firmware to $DEPLOY_DIR"
           mkdir -p "$DEPLOY_DIR"
 
           find artifacts_to_deploy/ -name "*.bin" -exec mv {} "$DEPLOY_DIR/" \;
 
           echo "Files to be deployed:"
-          ls -l "$DEPLOY_DIR"
+          ls -lR "$DEPLOY_DIR"
 
           git lfs track "*.bin"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
+          git add firmware/
           if [ -n "$(git status --porcelain)" ]; then
-            git commit -m "Deploy firmware for release $TAG_NAME"
+            TAG_NAME="${{ needs.release.outputs.tag_name }}"
+            git commit -m "Deploy latest firmware (from release $TAG_NAME)"
             git push
           else
             echo "No new firmware to deploy."
