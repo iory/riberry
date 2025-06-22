@@ -149,6 +149,7 @@ jobs:
     outputs:
       # We'll publish the upload_url so the next job can see it
       upload_url: ${{ steps.set_release_url.outputs.upload_url }}
+      tag_name: ${{ steps.short_sha.outputs.short_sha }}
 
     steps:
       - name: Checkout code
@@ -242,3 +243,47 @@ jobs:
           asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
           asset_name: ${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
           asset_content_type: application/octet-stream
+
+  deploy-to-pages:
+    needs: [build, release]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: 'gh-pages'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts_to_deploy
+
+      - name: Organize and deploy files
+        run: |
+          TAG_NAME="${{ needs.release.outputs.tag_name }}"
+          DEPLOY_DIR="firmware/$TAG_NAME"
+
+          echo "Deploying firmware for release: $TAG_NAME"
+          mkdir -p "$DEPLOY_DIR"
+
+          find artifacts_to_deploy/ -name "*.bin" -exec mv {} "$DEPLOY_DIR/" \;
+
+          echo "Files to be deployed:"
+          ls -l "$DEPLOY_DIR"
+
+          git lfs track "*.bin"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Deploy firmware for release $TAG_NAME"
+            git push
+          else
+            echo "No new firmware to deploy."
+          fi
