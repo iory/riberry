@@ -132,10 +132,10 @@ jobs:
         if: github.event_name != 'pull_request' # Execute not in case of pull_request
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-artifacts
+          name: firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}
           path: |
-            firmware/atom_s3_i2c_display/.pio/build/**/*.bin
-            firmware/atom_s3_i2c_display/.pio/build/**/*.elf
+            firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+            firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
 
   ##########################################################
   # Job 2: Create release (one time), expose "upload_url"
@@ -195,68 +195,50 @@ jobs:
           echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_OUTPUT
 
   ######################################################
-  # Job 3: Upload all firmware to release
+  # Job 3: Use the same matrix to upload each firmware
   ######################################################
   upload:
     needs: [build, release]
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' # Execute not in case of pull_request
     runs-on: ubuntu-latest
+
+    # Reuse the same matrix to avoid enumerating all combos by hand
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [m5stack-atoms3, m5stack-basic]
+        rotation: [0, 1, 2, 3]
+        grove: [0, 1]
+        exclude:
+          - board: m5stack-basic
+            grove: 1
+
     steps:
-      - name: Download all artifacts
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: firmware-artifacts
           path: all_firmwares
 
-      - name: List files for debugging
-        run: ls -R all_firmwares
-
-      - name: Upload all assets to release
-        uses: AButler/upload-release-assets@v3.0
-        with:
-          files: 'all_firmwares/**/*.bin; all_firmwares/**/*.elf'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ needs.release.outputs.tag_name }}
-
-  ####################################################################
-  # Job 4: Deploy all .bin files to gh-pages for the web flasher
-  ####################################################################
-  deploy-to-pages:
-    needs: [build, release]
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout gh-pages branch
-        uses: actions/checkout@v4
-        with:
-          ref: 'gh-pages'
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download all firmware artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: firmware-artifacts
-          path: artifacts_to_deploy
-
-      - name: Organize and deploy files
+      - name: Debug directory structure
         run: |
-          TAG_NAME="${{ needs.release.outputs.tag_name }}"
-          DEPLOY_DIR="firmware/$TAG_NAME"
-          mkdir -p "$DEPLOY_DIR"
+          ls -R all_firmwares
 
-          find artifacts_to_deploy/ -name "*.bin" -exec mv {} "$DEPLOY_DIR/" \;
+      - name: Upload to release (.bin file)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+          asset_name: ${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
+          asset_content_type: application/octet-stream
 
-          git lfs track "*.bin"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          if [ -n "$(git status --porcelain)" ]; then
-            git commit -m "Deploy firmware for release $TAG_NAME"
-            git push
-          else
-            echo "No new firmware to deploy."
-          fi
+      - name: Upload to release (.elf file)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
+          asset_name: ${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
+          asset_content_type: application/octet-stream
