@@ -25,6 +25,7 @@ class ChatbotNode:
         rospy.loginfo(f"Generated response: {system_output}")
         self.pub.publish(system_output)
 
+
 if __name__ == '__main__':
     rospy.init_node('chatbot_node')
     node = ChatbotNode()

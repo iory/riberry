@@ -9,12 +9,15 @@ from riberry.com.uart_base import UARTBase
 class Role(Enum):
     Main = "Main"
     Secondary = "Secondary"
+
+
 # Define aliases
 Role._value2member_map_["Second"] = Role.Secondary
 
 
 def is_valid_role(role_string):
     return role_string in Role._value2member_map_
+
 
 def print_throttle(interval, *args, **kwargs):
     current_time = time.time()
@@ -23,6 +26,7 @@ def print_throttle(interval, *args, **kwargs):
     if current_time - print_throttle.last_print_time >= interval:
         print(*args, **kwargs)
         print_throttle.last_print_time = current_time
+
 
 # com is both USB and I2C
 def get_role(com):
@@ -50,6 +54,7 @@ def get_role(com):
         time.sleep(0.1)
     return None
 
+
 def find_USB_pairing_devices(usb_ports, baudrate=115200):
     ret = []
     ports = usb_ports
@@ -68,6 +73,7 @@ def find_USB_pairing_devices(usb_ports, baudrate=115200):
             return ret
     return ret
 
+
 def find_I2C_pairing_devices(device, bus):
     ret = []
     try:
@@ -81,9 +87,11 @@ def find_I2C_pairing_devices(device, bus):
         return ret
     return ret
 
+
 def pairing_info_to_packet(pairing_info):
     packet = [PacketType.SET_IP_REQUEST] + list(map(int, pairing_info.split('.')))
     return packet
+
 
 def packet_to_pairing_info(packet):
     pairing_info = '.'.join(map(str, list(packet)))

@@ -52,6 +52,7 @@ def is_connecting(interface="wlan0", timeout=10):
         print(f"Timeout after {timeout}s, not connected")
         return False
 
+
 def get_nm_connection_status():
     try:
         result = subprocess.run(
@@ -78,6 +79,7 @@ def get_nm_connection_status():
         print(f"Unexpected error: {e}")
         return None
 
+
 def is_nm_ready(timeout=10):
     for _ in range(timeout):
         result = subprocess.run(
@@ -89,6 +91,7 @@ def is_nm_ready(timeout=10):
         print("Waiting for NetworkManager to become ready...")
         time.sleep(1)
     return False
+
 
 def exists_interface(interface):
     result = subprocess.run(
@@ -102,6 +105,7 @@ def exists_interface(interface):
         return True
     print(f"Waiting for interface {interface} to appear...")
     return False
+
 
 def is_wifi_connected(interface="wlan0", timeout=10):
     while not exists_interface(interface):
@@ -155,12 +159,14 @@ def identify_device():
     except FileNotFoundError:
         return "Unknown Device"
 
+
 def get_mac_address(interface='wlan0'):
     try:
         mac_address = Path(f"/sys/class/net/{interface}/address").read_text().strip()
         return mac_address.replace(":", "") if mac_address else None
     except FileNotFoundError:
         return None
+
 
 def stop_wifi_connect():
     global wifi_connect_process
@@ -169,6 +175,7 @@ def stop_wifi_connect():
         wifi_connect_process.wait()
         print("WiFi Connect stopped.")
     wifi_connect_process = None
+
 
 def start_wifi_connect(model, mac_address):
     global wifi_connect_process
@@ -182,6 +189,7 @@ def start_wifi_connect(model, mac_address):
         print("WiFi Connect started successfully.")
     except Exception as e:
         print(f"Failed to start wifi-connect: {e}")
+
 
 while not is_nm_ready():
     print("NetworkManager not ready. Waiting...")

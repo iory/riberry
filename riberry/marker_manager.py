@@ -32,7 +32,7 @@ class MarkerManager:
         rospy.Subscriber(
             "tag_detections", AprilTagDetectionArray,
             callback=self.apriltag_cb, queue_size=1)
-        self.tfl = TransformListener(use_tf2=False) # Need 0.5[s] wait to initialize
+        self.tfl = TransformListener(use_tf2=False)  # Need 0.5[s] wait to initialize
         self.markers = []
         self.marker_msg = None
 
@@ -116,7 +116,7 @@ class MarkerManager:
         # Average multiple angle vectors to reduce the noise
         # of the servo motor's potentiometer
         # This may cause the delay before playing motion
-        positions = [] # x, y, z
+        positions = []  # x, y, z
         quaternions = []  # x, y, z, w
         for _ in range(average_num):
             current_marker = self.marker_msg.detections[0]

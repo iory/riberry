@@ -21,6 +21,7 @@ def find_broken_symlinks(directory):
                     broken_links.append(filepath)
     return broken_links
 
+
 def remove_broken_symlinks(broken_links, dry_run=False):
     if not broken_links:
         print("No broken symbolic links found.")
@@ -35,6 +36,7 @@ def remove_broken_symlinks(broken_links, dry_run=False):
                 print(f"Removed: {link}")
             except OSError as e:
                 print(f"Failed to remove: {link} ({e})")
+
 
 def is_regular_file(filename):
     return not filename.endswith("~") and not filename.startswith(".")

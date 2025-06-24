@@ -63,7 +63,7 @@ def update_firmware(com, lcd_rotation=1, use_grove=0, firmware_path=None):
 
             print(f"Uploading {i}/{total} bytes... Estimated time remaining: {estimated_time_remaining:.2f} seconds (Completion time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(estimated_completion_time))})")
 
-            chunk = firmware_data[i:i+chunk_size]
+            chunk = firmware_data[i:i + chunk_size]
             send_data = list(chunk)
             com.write(send_data, raw=True)
             time.sleep(0.03)

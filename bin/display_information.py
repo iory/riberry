@@ -251,7 +251,7 @@ class DisplayInformation:
         img = squared_padding_image(img, 128)
         quality = 75
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
-        result, jpg_img = cv2.imencode(".jpg", img, encode_param)
+        _result, jpg_img = cv2.imencode(".jpg", img, encode_param)
         jpg_size = len(jpg_img)
 
         header = []
@@ -301,7 +301,7 @@ class DisplayInformation:
                 charging = battery_reader.get_is_charging()
                 battery = battery_reader.get_filtered_percentage()
                 if battery is None:
-                    battery_str += "{prefix}: None"
+                    battery_str += f"{prefix}: None"
                 else:
                     if battery <= 20:
                         battery_str += f"{prefix}: {Fore.RED}{int(battery)}%{Fore.RESET}"

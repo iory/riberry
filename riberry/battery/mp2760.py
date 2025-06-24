@@ -14,6 +14,7 @@ logging.basicConfig(level=LOG_LEVEL)
 logging.getLogger("filelock").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
+
 class ChargeState(Enum):
     NO_CHARGE = 0
     TRICKLE_CHARGE = 1

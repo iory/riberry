@@ -36,7 +36,7 @@ class KeywordToAction:
             "keyword_extraction/candidates", KeywordCandidates, self.keyword_cb)
         self.threshold = 0.65
         rospy.wait_for_service('keyword_extraction/register_contexts')
-        self.register_contexts= rospy.ServiceProxy(
+        self.register_contexts = rospy.ServiceProxy(
         'keyword_extraction/register_contexts', RegisterContexts)
 
         # Control robot

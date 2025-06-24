@@ -2,10 +2,9 @@
 
 
 from i2c_for_esp32 import WirePacker
+from riberry.i2c_base import I2C
 import rospy
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
-
-from riberry.i2c_base import I2C
 
 if __name__ == "__main__":
     rospy.init_node("speak_to_light")
