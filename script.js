@@ -9,6 +9,8 @@ const deviceSelect = document.getElementById('deviceSelect');
 const logDiv = document.getElementById('log');
 const lcdPreview = document.getElementById('lcdPreview');
 const lcdImage = document.getElementById('lcdImage');
+const firmwareStatus = document.getElementById('firmwareStatus');
+const firmwareStatusText = document.getElementById('firmwareStatusText');
 
 let selectedFirmware = null;
 let selectedDevice = 'atoms3';
@@ -36,7 +38,7 @@ function updateInstallButton() {
         oldButton.remove();
     }
 
-    const container = document.querySelector('.flex.items-center.justify-center');
+    const container = document.getElementById('installButtonContainer');
 
     if (selectedFirmware) {
         // Create new button
@@ -46,22 +48,20 @@ function updateInstallButton() {
 
         const activateButton = document.createElement('button');
         activateButton.slot = 'activate';
-        activateButton.className = 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500';
+        activateButton.className = 'bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 mx-auto';
         activateButton.textContent = 'Flash Firmware';
 
         newButton.appendChild(activateButton);
         container.appendChild(newButton);
 
+        // Hide firmware status message when firmware is selected
+        firmwareStatus.classList.add('hidden');
+
         log(`Install button updated for: ${selectedFirmware}`, 'success');
     } else {
-        // Display disabled button
-        const disabledButton = document.createElement('button');
-        disabledButton.id = 'installButton';
-        disabledButton.className = 'bg-gray-600 text-gray-400 font-bold py-2 px-4 rounded-md cursor-not-allowed';
-        disabledButton.textContent = 'Please select firmware';
-        disabledButton.disabled = true;
-
-        container.appendChild(disabledButton);
+        // Show firmware status message when no firmware is selected
+        firmwareStatus.classList.remove('hidden');
+        firmwareStatusText.textContent = 'Please select firmware';
     }
 }
 

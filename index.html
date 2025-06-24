@@ -42,8 +42,8 @@
                     </div>
                     <div id="lcdPreview" class="hidden">
                         <label class="block text-sm font-medium text-gray-300 mb-2">LCD Configuration Preview</label>
-                        <div class="bg-gray-800 rounded-lg p-4 border border-gray-600">
-                            <img id="lcdImage" src="" alt="LCD Configuration" class="w-full max-w-md mx-auto rounded-lg shadow-lg">
+                        <div class="bg-gray-800 rounded-lg p-4 border border-gray-600 text-center">
+                            <img id="lcdImage" src="" alt="LCD Configuration" class="max-w-md mx-auto rounded-lg shadow-lg">
                         </div>
                     </div>
                 </div>
@@ -60,12 +60,19 @@
                     3. Release the button<br>
                     4. Click "Flash Firmware"
                 </p>
-                <div class="flex items-center justify-center">
-                    <esp-web-install-button id="installButton" style="display: none;">
-                        <button slot="activate" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500">
+                <div id="installButtonContainer" class="flex items-center justify-center w-full">
+                    <esp-web-install-button id="installButton" style="display: none;" class="w-full flex justify-center">
+                        <button slot="activate" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 mx-auto">
                             Flash Firmware
                         </button>
                     </esp-web-install-button>
+                </div>
+            </section>
+
+            <!-- Firmware Status -->
+            <section id="firmwareStatus" class="bg-gray-900/50 p-4 rounded-lg border border-gray-700 hidden">
+                <div class="text-center">
+                    <p id="firmwareStatusText" class="text-gray-400 font-medium">Please select firmware</p>
                 </div>
             </section>
 
