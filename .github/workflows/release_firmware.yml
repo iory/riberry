@@ -282,11 +282,25 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout gh-pages branch
+      - name: Checkout gh-pages branch with full history
         uses: actions/checkout@v4
         with:
           ref: 'gh-pages'
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install git-filter-repo
+        run: pip install git-filter-repo
+
+      - name: Remove old firmware commits from Git history
+        run: |
+          echo "Removing all commits related to the 'firmware/' directory from history..."
+          git filter-repo --path firmware --invert-paths --force
 
       - name: Download all firmware artifacts
         uses: actions/download-artifact@v4
@@ -295,7 +309,7 @@ jobs:
 
       - name: Organize and deploy latest files
         run: |
-          echo "Removing old firmware to save space..."
+          echo "Removing old firmware from working directory to ensure a clean state..."
           rm -rf firmware
 
           DEPLOY_DIR="firmware/latest"
@@ -308,37 +322,17 @@ jobs:
           echo "Files to be deployed:"
           ls -lR "$DEPLOY_DIR"
 
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Check if there are previous firmware deployment commits and squash them
-          if git log --oneline | grep -q "Deploy latest firmware"; then
-            echo "Found previous firmware deployment commits. Squashing them to save space."
-            # Find the hash of the first non-firmware commit (or root if none exists)
-
-            FIRST_NON_FIRMWARE=$(git rev-list --max-parents=0 HEAD)
-            LAST_NON_FIRMWARE=$(git log --grep="Deploy latest firmware" --invert-grep --format="%H" -n 1)
-
-            if [ -n "$LAST_NON_FIRMWARE" ]; then
-              echo "Squashing all firmware commits since $LAST_NON_FIRMWARE"
-              # Soft reset to the last non-firmware commit
-              git reset --soft "$LAST_NON_FIRMWARE"
-            else
-              echo "No non-firmware commits found, using root commit"
-              git reset --soft "$FIRST_NON_FIRMWARE"
-            fi
-          fi
-
-          # Always add the firmware directory
           git add firmware/
 
           if [ -n "$(git status --porcelain)" ]; then
             TAG_NAME="${{ needs.release.outputs.tag_name }}"
 
-            # Commit the new firmware files
-            echo "Deploying latest firmware files"
+            echo "Committing latest firmware files..."
             git commit -m "Deploy latest firmware (from release $TAG_NAME)"
+            echo "Pushing changes to gh-pages..."
             git push --force
           else
             echo "No new firmware to deploy."
