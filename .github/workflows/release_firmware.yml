@@ -308,7 +308,6 @@ jobs:
           echo "Files to be deployed:"
           ls -lR "$DEPLOY_DIR"
 
-          git lfs track "*.bin"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
