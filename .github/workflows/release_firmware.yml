@@ -124,9 +124,13 @@ jobs:
           BUILD_DIR="firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}"
           OUTPUT_NAME="${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin"
           OUTPUT_ELF_NAME="${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf"
+          BOOTLOADER_NAME="${{ matrix.board }}-bootloader.bin"
+          PARTITIONS_NAME="${{ matrix.board }}-partitions.bin"
 
           mv "$BUILD_DIR/firmware.bin" "$BUILD_DIR/$OUTPUT_NAME"
           mv "$BUILD_DIR/firmware.elf" "$BUILD_DIR/$OUTPUT_ELF_NAME"
+          cp "$BUILD_DIR/bootloader.bin" "$BUILD_DIR/$BOOTLOADER_NAME"
+          cp "$BUILD_DIR/partitions.bin" "$BUILD_DIR/$PARTITIONS_NAME"
 
       - name: Upload artifacts (.bin and .elf)
         if: github.event_name != 'pull_request' # Execute not in case of pull_request
@@ -136,6 +140,8 @@ jobs:
           path: |
             firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.bin
             firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
+            firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-bootloader.bin
+            firmware/atom_s3_i2c_display/.pio/build/${{ matrix.board }}/${{ matrix.board }}-partitions.bin
 
   ##########################################################
   # Job 2: Create release (one time), expose "upload_url"
@@ -242,6 +248,26 @@ jobs:
           upload_url: ${{ needs.release.outputs.upload_url }}
           asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
           asset_name: ${{ matrix.board }}-lcd${{ matrix.rotation }}-grove${{ matrix.grove }}.elf
+          asset_content_type: application/octet-stream
+
+      - name: Upload to release (bootloader.bin)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-bootloader.bin
+          asset_name: ${{ matrix.board }}-bootloader.bin
+          asset_content_type: application/octet-stream
+
+      - name: Upload to release (partitions.bin)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: all_firmwares/firmware-${{ matrix.board }}-rot${{ matrix.rotation }}-grove${{ matrix.grove }}/${{ matrix.board }}-partitions.bin
+          asset_name: ${{ matrix.board }}-partitions.bin
           asset_content_type: application/octet-stream
 
   deploy-to-pages:
