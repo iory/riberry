@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/riberry/">
+    <title>Riberry Firmware Flash Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans-jp flex items-center justify-center min-h-screen">
+
+    <div class="container bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-2xl border border-gray-700">
+        <header class="mb-6 text-center">
+            <h1 class="text-2xl sm:text-3xl font-bold text-white">Riberry Firmware Flash Tool</h1>
+            <p class="mt-2 text-gray-400">
+                A tool for flashing firmware to <a href="https://github.com/iory/riberry" class="text-blue-400 hover:text-blue-300 underline" target="_blank">Riberry</a> devices.<br>
+                <strong>Note:</strong> Works only with Google Chrome or Microsoft Edge.
+            </p>
+        </header>
+
+        <div class="space-y-6">
+            <!-- Firmware Selection -->
+            <section class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                <h2 class="text-lg font-semibold text-white mb-3">1. Firmware Selection</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="deviceSelect" class="block text-sm font-medium text-gray-300 mb-1">Device Type</label>
+                        <select id="deviceSelect" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="atoms3">M5Stack ATOM S3</option>
+                            <option value="basic">M5Stack Basic</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="firmwareSelect" class="block text-sm font-medium text-gray-300 mb-1">Latest Build Firmware Variation</label>
+                        <select id="firmwareSelect" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+                    <div id="lcdPreview" class="hidden">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">LCD Configuration Preview</label>
+                        <div class="bg-gray-800 rounded-lg p-4 border border-gray-600">
+                            <img id="lcdImage" src="" alt="LCD Configuration" class="w-full max-w-md mx-auto rounded-lg shadow-lg">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Connection and Flashing -->
+            <section class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                <h2 class="text-lg font-semibold text-white mb-3">2. Device Connection and Flashing</h2>
+                <p class="text-sm text-gray-400 mb-4">
+                    Connect your device to your PC.<br>
+                    <strong>Download Mode Procedure:</strong><br>
+                    1. Turn off your device<br>
+                    2. Connect USB cable while holding the button<br>
+                    3. Release the button<br>
+                    4. Click "Flash Firmware"
+                </p>
+                <div class="flex items-center justify-center">
+                    <esp-web-install-button id="installButton" style="display: none;">
+                        <button slot="activate" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500">
+                            Flash Firmware
+                        </button>
+                    </esp-web-install-button>
+                </div>
+            </section>
+
+            <!-- Log Area -->
+            <section class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                <h2 class="text-lg font-semibold text-white mb-2">Log</h2>
+                <div id="log" class="bg-black h-48 rounded-md p-3 overflow-y-auto text-sm font-mono whitespace-pre-wrap"></div>
+            </section>
+        </div>
+    </div>
+
+    <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
