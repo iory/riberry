@@ -312,11 +312,35 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are previous firmware deployment commits and squash them
+          if git log --oneline | grep -q "Deploy latest firmware"; then
+            echo "Found previous firmware deployment commits. Squashing them to save space."
+            # Find the hash of the first non-firmware commit (or root if none exists)
+
+            FIRST_NON_FIRMWARE=$(git rev-list --max-parents=0 HEAD)
+            LAST_NON_FIRMWARE=$(git log --grep="Deploy latest firmware" --invert-grep --format="%H" -n 1)
+
+            if [ -n "$LAST_NON_FIRMWARE" ]; then
+              echo "Squashing all firmware commits since $LAST_NON_FIRMWARE"
+              # Soft reset to the last non-firmware commit
+              git reset --soft "$LAST_NON_FIRMWARE"
+            else
+              echo "No non-firmware commits found, using root commit"
+              git reset --soft "$FIRST_NON_FIRMWARE"
+            fi
+          fi
+
+          # Always add the firmware directory
           git add firmware/
+
           if [ -n "$(git status --porcelain)" ]; then
             TAG_NAME="${{ needs.release.outputs.tag_name }}"
+
+            # Commit the new firmware files
+            echo "Deploying latest firmware files"
             git commit -m "Deploy latest firmware (from release $TAG_NAME)"
-            git push
+            git push --force
           else
             echo "No new firmware to deploy."
           fi
