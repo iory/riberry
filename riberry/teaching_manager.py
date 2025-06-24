@@ -91,8 +91,8 @@ class TeachingManager:
                     self.marker_manager.add_marker(self.start_time)
                 rospy.sleep(0.1)
             json_data = {}
-            json_data['motion'] = self.motion_manager.get_motion()+\
-                self.motion_manager.get_actions()+\
+            json_data['motion'] = self.motion_manager.get_motion() +\
+                self.motion_manager.get_actions() +\
                 self.marker_manager.get_markers()
             f.write(json.dumps(json_data, indent=4, separators=(",", ": ")))
             rospy.loginfo(f'Finish saving motion to {record_filepath}')
@@ -157,7 +157,7 @@ class TeachingManager:
             # Move motion trajectory
             moved_motion, message = self.motion_manager.move_motion(
                 recorded_motion, current_marker_average_coords, first_marker_coords)
-            rospy.loginfo("Note that if you record marker with servo_off" +\
+            rospy.loginfo("Note that if you record marker with servo_off" +
                           " you should start playing with servo_off")
             if moved_motion is False:
                 return message

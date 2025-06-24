@@ -30,14 +30,14 @@ class SpeechToText:
         self.sub_audio = rospy.Subscriber("audio", AudioData, self.audio_cb)
 
         # Get audio info
-        _audio_info = rospy.wait_for_message('audio_info', AudioInfo)
-        self.sample_rate = _audio_info.sample_rate
-        if _audio_info.sample_rate not in [8000, 16000, 32000, 48000]:
+        audio_info = rospy.wait_for_message('audio_info', AudioInfo)
+        self.sample_rate = audio_info.sample_rate
+        if audio_info.sample_rate not in [8000, 16000, 32000, 48000]:
             rospy.logerr('sampling rate must be 8000 or 16000 or 32000 or 48000')
             return
-        if _audio_info.sample_format == 'S16LE':
+        if audio_info.sample_format == 'S16LE':
             self.sample_width = 2
-        elif _audio_info.sample_format == 'S32LE':
+        elif audio_info.sample_format == 'S32LE':
             self.sample_width = 4
         else:
             rospy.logerr('audio format must be [S16LE, S32LE]')

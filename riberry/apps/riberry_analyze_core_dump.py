@@ -35,5 +35,6 @@ def main():
 
     read_core_dump(com, elf_path=args.elf_path)
 
+
 if __name__ == "__main__":
     main()

@@ -13,8 +13,10 @@ upload_flags = env.get("UPLOAD_FLAGS", [])
 print(f"upload_port: {upload_port}")
 print(f"upload_flags: {upload_flags}")
 
+
 def is_scp_upload():
     return "scp" in upload_port.lower()
+
 
 if is_scp_upload():
     scp_host = upload_port.replace("scp:", "")

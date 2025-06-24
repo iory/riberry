@@ -125,7 +125,7 @@ class EmbeddingCache:
         sentences = []
         for keyword in contexts.keys():
             sentences += contexts[keyword]
-        embeddings = self.get_embeddings([prompt]+sentences)
+        embeddings = self.get_embeddings([prompt] + sentences)
         prompt_embedding = embeddings[0]
 
         # Calculate similarities and organize results by keyword
@@ -136,7 +136,7 @@ class EmbeddingCache:
         for keyword in contexts.keys():
             if self.debug is True:
                 print(f"  Keyword: {keyword}")
-            sentence_embeddings = embeddings[index:index+len(contexts[keyword])]
+            sentence_embeddings = embeddings[index:index + len(contexts[keyword])]
             index += len(contexts[keyword])
             similarity_dict = {}
             for sentence, sentence_embedding in zip(contexts[keyword], sentence_embeddings):

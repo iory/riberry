@@ -232,7 +232,7 @@ class MotionManager:
         first_av = list(motion[0]['joint_states'].values())
         diff_av = first_av - self.ri.angle_vector()
         max_diff_angle = max(map(abs, diff_av))
-        first_time = max_diff_angle / (np.pi/4)
+        first_time = max_diff_angle / (np.pi / 4)
         print(f"Move to the initial position in {first_time} seconds")
         self.ri.angle_vector(first_av, first_time)
         self.ri.wait_interpolation()
@@ -341,7 +341,7 @@ class MotionManager:
             # Overwrite moved_motion
             for joint_name in joint_states.keys():
                 joint_states[joint_name] = getattr(robot, joint_name).joint_angle()
-        rospy.loginfo(f"failure indices: {failure_indices}" +\
+        rospy.loginfo(f"failure indices: {failure_indices}" +
                       f" in {len(moved_motion)} trajectories")
         for j in sorted(failure_indices, reverse=True):
             del moved_motion[j]

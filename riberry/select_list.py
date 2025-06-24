@@ -74,7 +74,7 @@ class SelectList:
             display_options = self.options[:max_num]
             highlight_idx = self.idx
         else:
-            display_options = self.options[self.idx-max_num+1:self.idx+1]
+            display_options = self.options[self.idx - max_num + 1:self.idx + 1]
             highlight_idx = max_num - 1
 
         for i, item in enumerate(display_options):

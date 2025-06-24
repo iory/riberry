@@ -4,10 +4,9 @@
 from filelock import FileLock
 from filelock import Timeout
 from i2c_for_esp32 import WirePacker
+from riberry.i2c_base import I2C
 import rospy
 from std_msgs.msg import ColorRGBA
-
-from riberry.i2c_base import I2C
 
 if __name__ == "__main__":
     rospy.init_node("change_atom_echo_led_color")
@@ -47,7 +46,6 @@ if __name__ == "__main__":
                     lock.release()
                 except Timeout as e:
                     rospy.logerr(str(e))
-
 
     sub = rospy.Subscriber("color_rgb", ColorRGBA, queue_size=1, callback=callback)
     rospy.loginfo('Change Atom echo led color node start.')

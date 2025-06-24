@@ -21,6 +21,7 @@ def _download_elf_file(temp_file, device_name, riberry_firmware_version, lcd_rot
     except Exception as e:
         print(f"Failed to download firmware: {e}")
 
+
 def download_elf_file(temp_file, com, riberry_firmware_version, lcd_rotation, use_grove):
     from riberry.platformio.device_to_mcu import get_device_to_mcu
     device_name = get_device_to_mcu(com.device_type)
@@ -128,6 +129,7 @@ def read_core_dump(com, elf_path=None, retry_count=5,
         print(clickable_url)
         print(f"If not clickable, use this URL:\n{issue_url}")
 
+
 def generate_github_source_url(addr2line_output, riberry_firmware_version, repo_owner="iory", repo_name="riberry"):
     pattern = r"at (.+):(\d+)$"
     match = re.search(pattern, addr2line_output)
@@ -165,6 +167,7 @@ def extract_core_dump_info_from_text(text):
             extracted_info[key] = None
     return extracted_info
 
+
 def extract_device_info(text):
     try:
         info = extract_core_dump_info_from_text(text)
@@ -192,6 +195,7 @@ def run_addr2line(elf_path, pc):
     except FileNotFoundError:
         print("Error: addr2line tool not found in PATH")
         return ""
+
 
 def analyze_core_dump(text):
     try:

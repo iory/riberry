@@ -42,7 +42,6 @@ MODE_TYPE_MAPPING = {
 }
 
 
-
 def mode_type_to_string(mode_type):
     try:
         return MODE_TYPE_MAPPING.get(mode_type)

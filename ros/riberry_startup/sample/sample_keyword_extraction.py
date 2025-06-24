@@ -18,6 +18,7 @@ def load_context_json():
             return None
     return contexts
 
+
 def calculate_similarity(embedding_cache, prompt, context):
     candidates = embedding_cache.calc_candidates(prompt, contexts)
     keywords = []
@@ -25,11 +26,12 @@ def calculate_similarity(embedding_cache, prompt, context):
     for keyword in candidates.keys():
         similarity_dict = candidates[keyword]
         # Use most similar sentence score
-        best_sentence, max_similarity = max(
+        _best_sentence, max_similarity = max(
             similarity_dict.items(), key=lambda x: x[1])
         keywords += [keyword]
         similarities.append(max_similarity)
     return keywords, similarities
+
 
 def extract_keyword(keywords, similarities):
     max_index = similarities.index(max(similarities))
@@ -37,6 +39,7 @@ def extract_keyword(keywords, similarities):
     highest_similarity_value = similarities[max_index]
     print(f"Extracted keyword: {highest_similarity_keyword}")
     print(f"similarity: {highest_similarity_value}")
+
 
 if __name__ == '__main__':
     embedding_cache = EmbeddingCache(debug=True)

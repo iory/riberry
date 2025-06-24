@@ -74,7 +74,7 @@ class SpeechToKeyword:
         for keyword in candidates.keys():
             similarity_dict = candidates[keyword]
             # Select the highest similarity score among all phrases for this keyword
-            best_sentence, max_similarity = max(
+            _best_sentence, max_similarity = max(
                 similarity_dict.items(), key=lambda x: x[1])
             keywords += [keyword]
             similarities.append(max_similarity)

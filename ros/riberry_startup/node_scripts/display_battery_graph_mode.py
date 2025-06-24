@@ -40,8 +40,8 @@ class DisplayBatteryGraphMode(Mode):
                 self.send_data()
 
     def battery_cb(self, msg):
-        for i in range(self.display_duration-1):
-            self.battery_percentages[i] = self.battery_percentages[i+1]
+        for i in range(self.display_duration - 1):
+            self.battery_percentages[i] = self.battery_percentages[i + 1]
         self.battery_percentages[-1] = msg.data
 
     def status_cb(self, msg):
@@ -64,9 +64,9 @@ class DisplayBatteryGraphMode(Mode):
         sent_str += f'{self.charge_status},{self.charge_current},{self.display_duration},'
         for i in range(self.display_bins):
             percentage = self.battery_percentages[
-                int((i+1)*self.display_duration/self.display_bins)-1]
+                int((i + 1) * self.display_duration / self.display_bins) - 1]
             sent_str += f'{percentage}'
-            if i != self.display_bins-1:
+            if i != self.display_bins - 1:
                 sent_str += ','
         self.write(sent_str)
 

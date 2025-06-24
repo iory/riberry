@@ -7,6 +7,7 @@ def send_wifi_connect_command(command, socket_path='\0wifi_connect'):
     client.send(command.encode())
     client.close()
 
+
 def get_wifi_connect_status(socket_path='\0wifi_connect'):
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 

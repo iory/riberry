@@ -31,6 +31,7 @@ class PacketType(IntEnum):
     FIRMWARE_VERSION_REQUEST = 0xFD
     FIRMWARE_UPDATE_MODE = 0xFF
 
+
 class ComBase:
 
     def __init__(self, device_name):
@@ -66,7 +67,7 @@ class ComBase:
                 return 'm5stack-LLM'
             if platform.system() == 'Linux':
                 return 'Linux'
-            elif platform.system()== 'Darwin':
+            elif platform.system() == 'Darwin':
                 return 'Darwin'
             return "Unknown Device"
         except FileNotFoundError:
