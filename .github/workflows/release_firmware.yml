@@ -252,6 +252,8 @@ jobs:
 
       - name: Upload to release (bootloader.bin)
         uses: actions/upload-release-asset@v1
+        # another matrix job might upload this file, so we allow it to fail
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -262,6 +264,8 @@ jobs:
 
       - name: Upload to release (partitions.bin)
         uses: actions/upload-release-asset@v1
+        # another matrix job might upload this file, so we allow it to fail
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
