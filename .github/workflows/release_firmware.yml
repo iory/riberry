@@ -332,8 +332,12 @@ jobs:
 
             echo "Committing latest firmware files..."
             git commit -m "Deploy latest firmware (from release $TAG_NAME)"
+
+            echo "Re-configuring remote URL for push..."
+            git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
             echo "Pushing changes to gh-pages..."
-            git push --force
+            git push --force origin gh-pages
           else
             echo "No new firmware to deploy."
           fi
