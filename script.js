@@ -78,6 +78,7 @@ function generateManifestUrl(firmwareName) {
     const bootloaderUrl = `${rawBaseUrl}${bootloaderFile}`;
     const partitionsUrl = `${rawBaseUrl}${partitionsFile}`;
     const firmwareUrl = `${rawBaseUrl}${firmwareName}`;
+    const bootAppUrl = 'https://raw.githubusercontent.com/iory/riberry/gh-pages/boot/boot_app0.bin';
 
     // Set chip family and device name based on device type
     const chipFamily = selectedDevice === 'basic' ? 'ESP32' : 'ESP32-S3';
@@ -100,6 +101,10 @@ function generateManifestUrl(firmwareName) {
                 {
                     path: partitionsUrl,
                     offset: 0x8000
+                },
+                {
+                    path: bootAppUrl,
+                    offset: 0xe000
                 },
                 {
                     path: firmwareUrl,
