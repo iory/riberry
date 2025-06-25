@@ -116,13 +116,13 @@ class MP2760BatteryMonitor(threading.Thread):
             time.sleep(1.0)
         self.limit_charge_current(400)
         logger.info(
-            "[MP2760BatteryMonitor] Charge current limit: " +
-            f"{self.read_charge_current_limit()}[mA]"
+            "[MP2760BatteryMonitor] Charge current limit: %s[mA]",
+            self.read_charge_current_limit()
         )
         self.limit_input_current(500)
         logger.info(
-            "[MP2760BatteryMonitor] Input current limit: " +
-            f"{self.read_input_current_limit()}[mA]"
+            "[MP2760BatteryMonitor] Input current limit: %s[mA]",
+            self.read_input_current_limit()
         )
         self.lock = threading.Lock()
         self.running = True
@@ -143,7 +143,7 @@ class MP2760BatteryMonitor(threading.Thread):
             logger.info("[MP2760BatteryMonitor] found.")
             return True
         except OSError as e:
-            logger.error(f"[MP2760BatteryMonitor] {e}. Device not found")
+            logger.error("[MP2760BatteryMonitor] %s. Device not found", e)
             return False
 
     def is_outlier(self, current, history, threshold):
@@ -161,13 +161,12 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             word = self.bus.read_word_data(self.device_address, 0x0E)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error reading from I2C: {e}")
+            logger.error("[Battery Monitor] Error reading from I2C: %s", e)
             return
         current_bit = (word >> 7) & 1
         if current_bit == set_bit:
             logger.info(
-                "[Battery Monitor] 7bit is already set to the desired value. "
-                + "No action needed."
+                "[Battery Monitor] 7bit is already set to the desired value. No action needed."
             )
             return True
         if set_bit:
@@ -179,7 +178,7 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             self.bus.write_word_data(self.device_address, 0x0E, set_adc_word)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error writing I2C: {e}")
+            logger.error("[Battery Monitor] Error writing I2C: %s", e)
             return
         return True
 
@@ -187,13 +186,12 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             word = self.bus.read_word_data(self.device_address, 0x0D)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error reading from I2C: {e}")
+            logger.error("[Battery Monitor] Error reading from I2C: %s", e)
             return
         current_bit = (word >> 9) & 1
         if current_bit == 0:
             logger.info(
-                "[Battery Monitor] 9bit is already set to the desired value. "
-                + "No action needed."
+                "[Battery Monitor] 9bit is already set to the desired value. No action needed."
             )
             return True
         logger.info("[Battery Monitor] Disable NTC protection")
@@ -201,7 +199,7 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             self.bus.write_word_data(self.device_address, 0x0D, set_word)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error writing I2C: {e}")
+            logger.error("[Battery Monitor] Error writing I2C: %s", e)
             return
         return True
 
@@ -209,7 +207,7 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             word = self.bus.read_word_data(self.device_address, 0x12)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error reading from I2C: {e}")
+            logger.error("[Battery Monitor] Error reading from I2C: %s", e)
             return
         if set_bit is True:
             logger.info("[Battery Monitor] Safety timer is enabled.")
@@ -220,7 +218,7 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             self.bus.write_word_data(self.device_address, 0x12, set_word)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error writing I2C: {e}")
+            logger.error("[Battery Monitor] Error writing I2C: %s", e)
             return
         return True
 
@@ -243,7 +241,7 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             self.bus.write_word_data(self.device_address, 0x14, set_word)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error writing I2C: {e}")
+            logger.error("[Battery Monitor] Error writing I2C: %s", e)
             return
         return True
 
@@ -266,7 +264,7 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             self.bus.write_word_data(self.device_address, 0x08, set_word)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error writing I2C: {e}")
+            logger.error("[Battery Monitor] Error writing I2C: %s", e)
             return
         return True
 
@@ -276,14 +274,14 @@ class MP2760BatteryMonitor(threading.Thread):
             logger.info("[Battery Monitor] Successfully wrote 0x0A74 to register 0x10.")
             return True
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error writing to register 0x10: {e}")
+            logger.error("[Battery Monitor] Error writing to register 0x10: %s", e)
             return False
 
     def read_charge_current_limit(self):  # unit: [mA]
         try:
             bits = self.bus.read_word_data(self.device_address, 0x14)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error reading from I2C: {e}")
+            logger.error("[Battery Monitor] Error reading from I2C: %s", e)
             return
         current = 0
         current += ((bits & 0x2000) >> 13) * 6400
@@ -300,7 +298,7 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             bits = self.bus.read_word_data(self.device_address, 0x08)
         except Exception as e:
-            logger.error(f"[Battery Monitor] Error reading from I2C: {e}")
+            logger.error("[Battery Monitor] Error reading from I2C: %s", e)
             return
         current = 0
         current += ((bits & 0x0040) >> 6) * 3200
@@ -327,7 +325,7 @@ class MP2760BatteryMonitor(threading.Thread):
         try:
             value = self.bus.read_word_data(self.device_address, register)
         except Exception as e:
-            logger.error(f"[Battery Monitor] {e}")
+            logger.error("[Battery Monitor] %s", e)
             return None
         return value
 
@@ -510,14 +508,14 @@ class MP2760BatteryMonitor(threading.Thread):
                     self.battery_charge_current,
                 ) = self.read_sensor_data()
                 if self.input_voltage:
-                    logger.info(f"Input Voltage: {self.input_voltage:.2f} V")
+                    logger.info("Input Voltage: %.2f V", self.input_voltage)
                 if self.system_voltage:
-                    logger.info(f"System Voltage: {self.system_voltage:.2f} V")
+                    logger.info("System Voltage: %.2f V", self.system_voltage)
                 if self.battery_voltage:
-                    logger.info(f"Battery Voltage: {self.battery_voltage:.2f} V")
-                logger.info(f"Battery charge Current: {self.battery_charge_current:.2f} mA")
+                    logger.info("Battery Voltage: %.2f V", self.battery_voltage)
+                logger.info("Battery charge Current: %.2f mA", self.battery_charge_current)
                 if self.junction_temperature:
-                    logger.info(f"Junction Temperature: {self.junction_temperature:.2f}")
+                    logger.info("Junction Temperature: %.2f", self.junction_temperature)
                 if percentage is None or is_charging is None:
                     time.sleep(0.2)
                     continue
@@ -526,8 +524,8 @@ class MP2760BatteryMonitor(threading.Thread):
                         percentage, self.percentage_history, self.percentage_threshold
                     ):
                         logger.warning(
-                            f"Percentage outlier detected: {percentage:.2f}, "
-                            + f"history: {self.percentage_history}"
+                            "Percentage outlier detected: %.2f, history: %s",
+                            percentage, self.percentage_history
                         )
                     else:
                         self.filtered_percentage = (
@@ -542,9 +540,9 @@ class MP2760BatteryMonitor(threading.Thread):
                         self.charging_history.pop(0)
 
                 if self.debug:
-                    logger.debug(f"RAW Percentage: {percentage:.2f}")
-                    logger.debug(f"Filtered Percentage: {self.filtered_percentage:.2f}")
-                    logger.debug(f"Charge Status: {self.charge_status}")
+                    logger.debug("RAW Percentage: %.2f", percentage)
+                    logger.debug("Filtered Percentage: %.2f", self.filtered_percentage)
+                    logger.debug("Charge Status: %s", self.charge_status)
                 time.sleep(0.2)
         finally:
             self.bus.close()
