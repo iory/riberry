@@ -28,6 +28,8 @@ You can use the dry-run option to see which scripts will be installed without ac
 
 Please write the programs found under the [firmware](https://github.com/iory/riberry/tree/main/firmware) section into the atom s3 and atom echo to display the IP and capture audio.
 
+You can also flash firmware directly from your web browser via USB connection at: https://iory.github.io/riberry/
+
 
 ### Atom S3 Display
 

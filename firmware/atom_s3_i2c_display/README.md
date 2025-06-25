@@ -25,6 +25,10 @@ pip3 install platformio -U
 
 ### Compile and write firmware to atom s3
 
+You can flash firmware directly from your web browser via USB connection at: https://iory.github.io/riberry/
+
+Alternatively, you can compile and upload using PlatformIO:
+
 ```
 pio run -t upload
 ```
