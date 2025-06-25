@@ -241,7 +241,8 @@ function updateLcdPreview(firmwareName) {
 
     const lcdNumber = extractLcdNumber(firmwareName);
     if (lcdNumber !== null) {
-        const imagePath = `./imgs/atoms3-lcd${lcdNumber}.png`;
+        const imagePrefix = selectedDevice === 'basic' ? 'm5stack-basic-lcd' : 'm5stack-atoms3-lcd';
+        const imagePath = `./imgs/${imagePrefix}${lcdNumber}.png`;
         lcdImage.src = imagePath;
         lcdImage.alt = `LCD${lcdNumber} Configuration`;
         lcdPreview.classList.remove('hidden');
