@@ -1,4 +1,15 @@
 <!-- Mainly copied from ros_speech_recognition/launch/speech_recognition.launch -->
+<!--
+  For using speech recognition and text-to-speech.
+
+  <include file="$(find riberry_startup)/launch/module_llm_speech_to_text.launch" >
+    <arg name="filtered_audio_topic" value="input_audio" />
+  </include>
+
+  <include file="$(find riberry_startup)/launch/sound_play.launch" >
+    <arg name="device" value="plughw:0,1" />
+  </include>
+-->
 
 <launch>
   <arg name="audio_topic" default="audio" />
