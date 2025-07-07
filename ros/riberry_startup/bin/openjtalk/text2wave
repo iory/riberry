@@ -1,111 +1,95 @@
-#!/usr/bin/env python3
-# -*- coding:utf-8 -*-
+#!/bin/bash
 
-import argparse
-import os
-import shutil
-import sys
-import warnings
-import hashlib
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -eval|--evaluate)
+      EVAL_ARG="$2"
+      shift 2
+      ;;
+    -o|--output)
+      OUTPUT_ARG="$2"
+      shift 2
+      ;;
+    *)
+      TEXT_FILE_ARG="$1"
+      shift
+      ;;
+  esac
+done
 
+if [[ -z "$EVAL_ARG" || -z "$OUTPUT_ARG" || -z "$TEXT_FILE_ARG" ]]; then
+  echo "Usage: $0 -eval (lang) -o <output.wav> <input.txt>" >&2
+  exit 1
+fi
 
-def get_cache_dir():
-    """Return cache dir.
+if [[ ! -f "$TEXT_FILE_ARG" ]]; then
+    echo "Error: Input file not found: $TEXT_FILE_ARG" >&2
+    exit 1
+fi
 
-    Returns
-    -------
-    cache_dir : str
-        cache directory.
-    """
-    ros_home = os.getenv('ROS_HOME', os.path.expanduser('~/.ros'))
-    pkg_ros_home = os.path.join(ros_home, 'gtts')
-    default_cache_dir = os.path.join(pkg_ros_home, 'cache')
-    cache_dir = os.environ.get(
-        'ROS_GOOGLE_TEXTTOSPEECH_CACHE_DIR',
-        default_cache_dir)
-    if not os.path.exists(cache_dir):
-        os.makedirs(cache_dir)
-    return cache_dir
+# Extract language from --evaluate argument (e.g., (ja) -> ja)
+lang=$(echo "$EVAL_ARG" | sed 's/[()]//g')
+if [[ "$lang" != "ja" ]]; then
+  lang="en"
+fi
 
+# Read the first line of the input text file
+speech_text=$(head -n 1 "$TEXT_FILE_ARG")
 
-def checksum_md5(filename, blocksize=8192):
-    """Calculate md5sum.
+# --- Cache processing ---
 
-    Parameters
-    ----------
-    filename : str or pathlib.Path
-        input filename.
-    blocksize : int
-        MD5 has 128-byte digest blocks (default: 8192 is 128x64).
-    Returns
-    -------
-    md5 : str
-        calculated md5sum.
-    """
-    filename = str(filename)
-    hash_factory = hashlib.md5()
-    with open(filename, 'rb') as f:
-        for chunk in iter(lambda: f.read(blocksize), b''):
-            hash_factory.update(chunk)
-    return hash_factory.hexdigest()
+# Define and create cache directory
+CACHE_DIR="${ROS_HOME:-$HOME/.ros}/gtts/cache"
+mkdir -p "$CACHE_DIR"
 
-
-def convert_to_str(x):
-    if isinstance(x, str):
-        pass
-    elif isinstance(x, bytes):
-        x = x.decode('utf-8')
-    else:
-        raise ValueError(
-            'Invalid input x type: {}'
-            .format(type(x)))
-    return x
+# Calculate MD5 checksum of the input text file
+# Use md5sum (Linux) or md5 (macOS)
+if command -v md5sum &> /dev/null; then
+    md5=$(md5sum "$TEXT_FILE_ARG" | awk '{print $1}')
+else
+    md5=$(md5 -q "$TEXT_FILE_ARG")
+fi
 
 
-def request_synthesis(
-        sentence, output_path, lang='en'):
-    import pyopenjtalk
-    import numpy as np
-    from scipy.io import wavfile
-    sentence = convert_to_str(sentence)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        x, sr = pyopenjtalk.tts(sentence)
-        wavfile.write(str(output_path), sr, x.astype(np.int16))
+# Build cache file path
+CACHE_FILENAME="$CACHE_DIR/${md5}--${lang}.wav"
+
+# Check if cached version exists
+if [[ -f "$CACHE_FILENAME" ]]; then
+  echo "[Text2Wave] Using cached sound file ($CACHE_FILENAME) for $speech_text"
+  cp "$CACHE_FILENAME" "$OUTPUT_ARG"
+  exit 0
+fi
+
+echo "[Text2Wave] Requesting speech synthesis: $speech_text"
+
+# Build JSON payload
+# Use printf to safely create JSON string
+json_payload=$(printf '{"text": "%s", "lang": "%s"}' "$speech_text" "$lang")
+
+# Call speech synthesis API and save output wav file
+# Use --fail to ensure script exits with error if server returns error (4xx or 5xx)
+curl -X POST "http://localhost:8000/synthesize" \
+     -H "Content-Type: application/json" \
+     -d "$json_payload" \
+     --silent \
+     --fail \
+     -o "$OUTPUT_ARG"
+
+# Check if curl command succeeded and output file was created
+if [[ $? -ne 0 || ! -s "$OUTPUT_ARG" ]]; then
+    echo "[Text2Wave] Error: Speech synthesis from server failed." >&2
+    # Clean up empty output file
+    rm -f "$OUTPUT_ARG"
+    exit 1
+fi
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='')
-    parser.add_argument('-eval', '--evaluate')
-    parser.add_argument('-o', '--output')
-    parser.add_argument('text')
-    args = parser.parse_args()
+# --- Update cache ---
+TEXT_CACHE_FILENAME="${CACHE_FILENAME%.wav}.txt"
+echo "[Text2Wave] Cache saved to: $CACHE_FILENAME"
+cp "$TEXT_FILE_ARG" "$TEXT_CACHE_FILENAME"
+cp "$OUTPUT_ARG" "$CACHE_FILENAME"
 
-    with open(args.text, 'rb') as f:
-        speech_text = f.readline()
-
-    lang = args.evaluate.lstrip('(').rstrip(')')
-    if lang not in ['ja', 'en']:
-        lang = 'en'
-    cache_enabled = True
-    if cache_enabled:
-        cache_dir = get_cache_dir()
-        md5 = checksum_md5(args.text)
-        cache_filename = os.path.join(
-            cache_dir,
-            '--'.join([md5, lang])
-            + '.wav')
-        if os.path.exists(cache_filename):
-            print('[Text2Wave] Using cached sound file ({}) for {}'
-                  .format(cache_filename, speech_text.decode('utf-8')))
-            shutil.copy(cache_filename, args.output)
-            sys.exit(0)
-
-    request_synthesis(speech_text,
-                      args.output,
-                      lang)
-    if cache_enabled:
-        text_cache_filename = os.path.splitext(cache_filename)[0] + '.txt'
-        print('[Text2Wave] Cache saved to {}'.format(cache_filename))
-        shutil.copy(args.text, text_cache_filename)
-        shutil.copy(args.output, cache_filename)
+echo "[Text2Wave] Speech synthesis completed. Output: $OUTPUT_ARG"
+exit 0

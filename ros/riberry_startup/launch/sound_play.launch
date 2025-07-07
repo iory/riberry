@@ -8,6 +8,10 @@
   <arg name="namespace" default="" />
 
   <group if="$(eval len(arg('namespace')) > 0)" ns="$(arg namespace)" >
+    <node name="openjtalk_tts_server"
+          pkg="riberry_startup" type="openjtalk_tts_server.py" >
+    </node>
+
     <node name="sound_play_jp"
           pkg="sound_play" type="soundplay_node.py"
           respawn="$(arg sound_play_respawn)"
@@ -48,6 +52,10 @@
   </group>
 
   <group unless="$(eval len(arg('namespace')) > 0)">
+    <node name="openjtalk_tts_server"
+          pkg="riberry_startup" type="openjtalk_tts_server.py" >
+    </node>
+
     <node name="sound_play_jp"
           pkg="sound_play" type="soundplay_node.py"
           respawn="$(arg sound_play_respawn)"
