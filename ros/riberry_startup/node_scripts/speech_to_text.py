@@ -4,15 +4,16 @@
 # https://github.com/jsk-ros-pkg/jsk_3rdparty/blob/master/respeaker_ros/scripts/speech_to_text.py
 
 
-import rospy
+import sys
 
 try:
     import speech_recognition as SR
 except ImportError as e:
-    raise ImportError(str(e) + '\nplease try "pip install speechrecognition"')
-
+    print('\x1b[31m' + str(e) + '\nplease try "pip install speechrecognition"' + '\x1b[39m')
+    sys.exit(1)
 from audio_common_msgs.msg import AudioData
 from audio_common_msgs.msg import AudioInfo
+import rospy
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 
 
