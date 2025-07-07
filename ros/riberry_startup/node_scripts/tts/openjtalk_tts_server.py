@@ -31,10 +31,10 @@ def get_cache_dir():
         cache directory.
     """
     ros_home = os.getenv('ROS_HOME', os.path.expanduser('~/.ros'))
-    pkg_ros_home = os.path.join(ros_home, 'gtts')
+    pkg_ros_home = os.path.join(ros_home, 'openjtalk')
     default_cache_dir = os.path.join(pkg_ros_home, 'cache')
     cache_dir = os.environ.get(
-        'ROS_GOOGLE_TEXTTOSPEECH_CACHE_DIR',
+        'ROS_OPENJTALK_CACHE_DIR',
         default_cache_dir)
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
