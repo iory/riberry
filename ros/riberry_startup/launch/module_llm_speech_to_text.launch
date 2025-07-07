@@ -2,6 +2,7 @@
 
 <launch>
   <arg name="audio_topic" default="audio" />
+  <arg name="filtered_audio_topic" default="audio" />
   <arg name="audio_info_topic" default="audio_info" />
 
   <!-- audio capture from microphone -->
@@ -24,7 +25,7 @@
     <rosparam>
       aggressiveness: 1
     </rosparam>
-    <remap from="audio_data" to="$(arg audio_topic)" />
+    <remap from="audio_data" to="$(arg filtered_audio_topic)" />
     <remap from="audio_info" to="$(arg audio_info_topic)" />
   </node>
 
