@@ -30,7 +30,7 @@ class WebRTCVADROS:
         self._silence_wait_time = rospy.get_param('~silence_wait_time', 0.5)
         self._vad = webrtcvad.Vad(int(aggressiveness))
 
-        self._pub_is_speech = rospy.Publisher('~is_speeching', Bool, queue_size=1)
+        self._pub_is_speech = rospy.Publisher('~is_speaking', Bool, queue_size=1)
         self._pub_speech_audio = rospy.Publisher('~speech_audio', AudioData, queue_size=1)
         self._pub_speech_audio_info = rospy.Publisher('~speech_audio_info', AudioInfo, queue_size=1, latch=True)
 
