@@ -18,6 +18,8 @@
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
 
+  <exec_depend>python-is-python3</exec_depend>
+  <exec_depend>actionlib</exec_depend>
   <exec_depend>flac</exec_depend>
   <exec_depend>audio_capture</exec_depend>
   <exec_depend>audio_common_msgs</exec_depend>
