@@ -212,7 +212,8 @@ def main(dry_run=False, enable_oneshot=False):
             "./systemd/oneshot", "/etc/systemd/system", dry_run=dry_run
         )
 
-    if identify_device() == "Radxa Zero":
+    device = identify_device()
+    if device == "Radxa Zero":
         copy_files("./boot", "/boot", dry_run=dry_run)
         create_symlinks('./bin/radxa-zero', bin_target_dir, dry_run=dry_run)
         execute_dtc_command(
@@ -233,6 +234,8 @@ def main(dry_run=False, enable_oneshot=False):
         added_symlinks += create_symlinks(
             "./systemd/radxa-zero", "/etc/systemd/system", dry_run=dry_run
         )
+    elif device == 'Raspberry Pi':
+        copy_files('./overlays/raspberry-pi', '/boot/firmware', dry_run=dry_run)
     packages_to_install = [
         'wireless-tools',  # for iwgetid command
     ]
