@@ -167,12 +167,62 @@ def install_apt_packages(packages, dry_run=False):
             print("Error: 'apt' command not found. This script assumes a Debian-based system (like Ubuntu, Raspberry Pi OS).")
 
 
+def setup_riberry_venv(username, dry_run=False):
+    """Setup Python virtual environment for Ubuntu 24.04+"""
+    venv_path = f"/home/{username}/.riberry_venv"
+
+    # Check Ubuntu version
+    try:
+        with open("/etc/os-release") as f:
+            os_release = f.read()
+        if "VERSION_ID" not in os_release:
+            return False
+
+        version_line = next(line for line in os_release.split('\n') if line.startswith('VERSION_ID='))
+        version_id = version_line.split('=')[1].strip('"')
+        version_major = int(version_id.split('.')[0])
+
+        if version_major < 24:
+            return False
+
+    except (FileNotFoundError, ValueError, IndexError):
+        return False
+
+    print(f"Ubuntu {version_id} detected. Setting up Python virtual environment...")
+
+    if dry_run:
+        print(f"[Dry Run] Would create virtual environment at {venv_path}")
+        print("[Dry Run] Would install riberry package in editable mode")
+        return True
+
+    # Create virtual environment if it doesn't exist
+    if not os.path.exists(venv_path):
+        print(f"Creating virtual environment at {venv_path}...")
+        subprocess.run([sys.executable, "-m", "venv", venv_path], check=True)
+        print("Virtual environment created.")
+
+    # Install riberry package in the virtual environment
+    pip_path = os.path.join(venv_path, "bin", "pip")
+    if os.path.exists(pip_path):
+        print("Installing riberry package in virtual environment...")
+        riberry_path = os.path.dirname(os.path.abspath(__file__))
+        subprocess.run([pip_path, "install", "-e", riberry_path], check=True)
+        print("Riberry package installed in virtual environment.")
+    else:
+        print(f"Warning: pip not found at {pip_path}")
+
+    return True
+
+
 def main(dry_run=False, enable_oneshot=False):
     if dry_run is False and os.geteuid() != 0:
         print("This script must be run as root.")
         sys.exit(1)
 
     username = os.getenv("SUDO_USER") or getpass.getuser()
+
+    # Setup virtual environment for Ubuntu 24.04+
+    is_ubuntu_24_plus = setup_riberry_venv(username, dry_run=dry_run)
 
     bin_source_dir = "./bin"
     systemd_source_dir = "./systemd"
@@ -239,6 +289,11 @@ def main(dry_run=False, enable_oneshot=False):
     packages_to_install = [
         'wireless-tools',  # for iwgetid command
     ]
+
+    # Add python3-venv for Ubuntu 24.04+
+    if is_ubuntu_24_plus:
+        packages_to_install.append('python3-venv')
+
     if packages_to_install:
         install_apt_packages(packages_to_install, dry_run=dry_run)
 
