@@ -18,6 +18,40 @@ sudo ./install.py
 sudo reboot
 ```
 
+#### Ubuntu 24.04 and later
+
+For Ubuntu 24.04 and later versions, the installation script automatically sets up a Python virtual environment at `~/.riberry_venv`. Simply run:
+
+```bash
+sudo ./install.py
+sudo reboot
+```
+
+The installation script will:
+- Detect Ubuntu 24.04+
+- Install python3-venv package
+- Create a virtual environment at `~/.riberry_venv`
+- Install the riberry package with all dependencies
+
+If you prefer to set up the environment manually:
+
+```bash
+# Create virtual environment
+python3 -m venv ~/.riberry_venv
+
+# Activate the virtual environment
+source ~/.riberry_venv/bin/activate
+
+# Install riberry package in development mode (this will install all dependencies)
+pip install -e .
+
+# Run the installation script
+sudo ./install.py
+sudo reboot
+```
+
+The systemd service scripts will automatically detect Ubuntu 24.04+ and use the virtual environment.
+
 You can use the dry-run option to see which scripts will be installed without actually installing them:
 
 ```

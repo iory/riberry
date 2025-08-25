@@ -6,14 +6,11 @@ if [ -f /etc/os-release ]; then
     . /etc/os-release
     VERSION_MAJOR=$(echo "$VERSION_ID" | cut -d'.' -f1)
     if [ "$VERSION_MAJOR" -ge 24 ]; then
-        export PYENV_ROOT="$HOME/.python3_venv"
-        export PATH="$PYENV_ROOT/bin:$PATH"
-
-        if command -v pyenv 1>/dev/null 2>&1; then
-            eval "$(pyenv init -)"
+        export RIBERRY_VENV="$HOME/.riberry_venv"
+        if [ -d "$RIBERRY_VENV" ]; then
+            export PATH="$RIBERRY_VENV/bin:$PATH"
+            PYTHON_EXECUTABLE="python3"
         fi
-        echo $PATH
-        PYTHON_EXECUTABLE="python3"
     fi
 fi
 
