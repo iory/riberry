@@ -105,6 +105,7 @@ class TeachingMode(Mode):
         self.playing = False
         self.new_motion_name = None
         self.speed = rospy.get_param('~speed', 1.0)
+        self.play_list = None
         self.load_play_list()
 
         # ROS callbacks
@@ -206,11 +207,15 @@ class TeachingMode(Mode):
         self.virtual_button_pub.publish(Int32(data=tap_num))
 
     def load_play_list(self):
+        idx = 0
+        if self.play_list is not None:
+            idx = self.play_list.get_index()
         self.play_list = SelectList()
         self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
         self.json_dir = get_cache_dir()
         for file in get_teaching_files(self.json_dir):
             self.play_list.add_option(file)
+        self.play_list.set_index(idx)
 
     def record_srv(self, req):
         if self.mode != "TeachingMode":
