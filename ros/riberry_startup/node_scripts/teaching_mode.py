@@ -210,12 +210,14 @@ class TeachingMode(Mode):
         idx = 0
         if self.play_list is not None:
             idx = self.play_list.get_index()
+        self.play_list_updated = False
         self.play_list = SelectList()
         self.play_list.set_extract_pattern(r"teaching_(.*?)\.json")
         self.json_dir = get_cache_dir()
         for file in get_teaching_files(self.json_dir):
             self.play_list.add_option(file)
         self.play_list.set_index(idx)
+        self.play_list_updated = True
 
     def record_srv(self, req):
         if self.mode != "TeachingMode":
@@ -500,6 +502,8 @@ class TeachingMode(Mode):
             sent_str += '2tap: finish\n\n'
             sent_str += '3tap: free'
         elif self.state == State.PLAY_LIST_SELECT:
+            if not self.play_list_updated:
+                return
             sent_str += "Play file\n"
             if len(self.play_list.options) <= 0:
                 sent_str += '\nNo motion\n'\
