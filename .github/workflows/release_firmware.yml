@@ -25,6 +25,8 @@ jobs:
             env_option: "-e secondary"
           - project_dir: firmware/esp_now_pairing
             env_option: "-e esp_now_init_deinit"
+          - project_dir: firmware/atomic_robot_tools
+            env_option: ""
 
     steps:
       - name: Checkout code
