@@ -79,6 +79,7 @@ class TeachingManager:
         self.marker_manager.set_markers([])
         with open(record_filepath, mode='w') as f:
             rospy.loginfo(f'Start saving motion to {record_filepath}')
+            rate = rospy.Rate(10)
             while not rospy.is_shutdown():
                 # Finish recording
                 if self.motion_manager.is_stopped():
@@ -89,7 +90,7 @@ class TeachingManager:
                 # If self.add_motion() is already called
                 if self.start_time is not None:
                     self.marker_manager.add_marker(self.start_time)
-                rospy.sleep(0.1)
+                rate.sleep()
             json_data = {}
             json_data['motion'] = self.motion_manager.get_motion() +\
                 self.motion_manager.get_actions() +\

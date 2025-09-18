@@ -111,7 +111,7 @@ class MotionManager:
         # of the servo motor's potentiometer
         # This may cause the recorded motion to become temporally sparse.
         avs = []
-        for _ in range(5):
+        for _ in range(1):  # 5 -> 1 makes no motion difference.
             avs.append(self.ri.angle_vector())
         av_average = np.mean(avs, axis=0)
         for j, a in zip(self.joint_names, av_average):
