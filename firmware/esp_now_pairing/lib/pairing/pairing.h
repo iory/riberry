@@ -17,6 +17,8 @@ struct PairingData {
 
 class Pairing : public ExecutionTimer {
 public:
+    // The Wi-Fi channel for ESP-NOW (1-14).
+    // To avoid interference, channels should be at least 3 apart.
     Pairing(const int channel = 1);
 
     bool setupESPNOW();
