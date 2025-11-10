@@ -44,6 +44,7 @@ battery_readers = []
 
 # Global variable for ROS availability and additional message
 ros_available = False
+ros_version = None  # Will be set to 1 or 2
 ros_additional_message = None
 atom_s3_mode = "DisplayInformationMode"
 atom_s3_selected_modes = atom_s3_mode
@@ -57,6 +58,235 @@ stop_event = threading.Event()
 
 
 def try_init_ros():
+    global ros_available
+    global ros_version
+    global ros_additional_message
+    global ros_display_image_flag
+    global ros_display_image
+    global battery_readers
+    global atom_s3_mode
+    global atom_s3_selected_modes
+    global button_count
+    global pairing_info
+
+    # Try ROS2 first, then fallback to ROS1
+    try:
+        import rclpy  # noqa: F401
+        ros_version = 2
+        print("ROS2 detected, using ROS2 interface")
+        try_init_ros2()
+    except ImportError:
+        try:
+            import rospy  # noqa: F401
+            ros_version = 1
+            print("ROS1 detected, using ROS1 interface")
+            try_init_ros1()
+        except ImportError as e:
+            print(f"Neither ROS1 nor ROS2 is available ({e}). Retrying...")
+            time.sleep(5)
+
+
+def try_init_ros2():
+    global ros_available
+    global ros_additional_message
+    global ros_display_image_flag
+    global ros_display_image
+    global battery_readers
+    global atom_s3_mode
+    global atom_s3_selected_modes
+    global button_count
+    global pairing_info
+
+    import rclpy
+    from rclpy.node import Node
+    from rclpy.qos import HistoryPolicy
+    from rclpy.qos import QoSProfile
+    from rclpy.qos import ReliabilityPolicy
+    from sensor_msgs.msg import Image
+    from std_msgs.msg import Float32
+    from std_msgs.msg import Int32
+    from std_msgs.msg import String
+    from std_msgs.msg import UInt32
+
+    ros_display_image_param = None
+    prev_ros_display_image_param = None
+    prev_pairing_info = None
+    battery_junction_temperature = None
+    input_voltage = None
+    system_voltage = None
+    charge_status = None
+    battery_charge_current = None
+    status_and_fault = None
+    status_and_fault_string = None
+    battery_percentage = None
+
+    while not stop_event.is_set():
+        try:
+            rclpy.init()
+            node = Node('display_information')
+
+            # QoS profile for subscribers
+            qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE, history=HistoryPolicy.KEEP_LAST)
+
+            def ros_callback(msg):
+                global ros_additional_message
+                ros_additional_message = msg.data
+
+            def ros_image_callback(msg):
+                from cv_bridge import CvBridge
+                global ros_display_image
+                bridge = CvBridge()
+                ros_display_image = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+
+            def force_mode_callback(msg):
+                global atom_s3_forced_mode
+                atom_s3_forced_mode = msg.data
+
+            # Create subscribers
+            node.create_subscription(String, 'atom_s3_additional_info', ros_callback, qos)
+            node.create_subscription(String, 'atom_s3_force_mode', force_mode_callback, qos)
+
+            # Create publishers
+            mode_pub = node.create_publisher(String, 'atom_s3_mode', qos)
+            selected_modes_pub = node.create_publisher(String, 'atom_s3_selected_modes', qos)
+            button_pub = node.create_publisher(Int32, 'atom_s3_button_state', qos)
+            pairing_info_pub = node.create_publisher(String, 'pairing_information', qos)
+
+            battery_pub = None
+            battery_temperature_pub = None
+            input_voltage_pub = None
+            system_voltage_pub = None
+            battery_charge_current_pub = None
+            charge_status_pub = None
+            charge_status_string_pub = None
+            status_and_fault_pub = None
+            status_and_fault_string_pub = None
+            pisugar_battery_pub = None
+
+            for battery_reader in battery_readers:
+                if isinstance(battery_reader, MP2760BatteryMonitor):
+                    battery_pub = node.create_publisher(Float32, 'battery/remaining_battery', qos)
+                    battery_temperature_pub = node.create_publisher(Float32, 'battery/junction_temperature', qos)
+                    input_voltage_pub = node.create_publisher(Float32, 'battery/input_voltage', qos)
+                    system_voltage_pub = node.create_publisher(Float32, 'battery/system_voltage', qos)
+                    battery_charge_current_pub = node.create_publisher(Float32, 'battery/battery_charge_current', qos)
+                    charge_status_pub = node.create_publisher(Int32, 'battery/charge_status', qos)
+                    charge_status_string_pub = node.create_publisher(String, 'battery/charge_status_string', qos)
+                    status_and_fault_pub = node.create_publisher(UInt32, 'battery/status_and_fault', qos)
+                    status_and_fault_string_pub = node.create_publisher(String, 'battery/status_and_fault_string', qos)
+                elif isinstance(battery_reader, PisugarBatteryReader):
+                    pisugar_battery_pub = node.create_publisher(Float32, 'battery/pisugar/remaining_battery', qos)
+
+            ros_available = True
+            rate = node.create_rate(10)
+            sub = None
+
+            while rclpy.ok() and not stop_event.is_set():
+                for battery_reader in battery_readers:
+                    if isinstance(battery_reader, MP2760BatteryMonitor):
+                        battery_junction_temperature = battery_reader.junction_temperature
+                        input_voltage = battery_reader.input_voltage
+                        system_voltage = battery_reader.system_voltage
+                        charge_status = battery_reader.charge_status
+                        battery_charge_current = battery_reader.battery_charge_current
+                        status_and_fault = battery_reader.status_and_fault
+                        status_and_fault_string = battery_reader.status_and_fault_string
+                        battery_percentage = battery_reader.get_filtered_percentage()
+                    elif isinstance(battery_reader, PisugarBatteryReader):
+                        if pisugar_battery_pub:
+                            msg = Float32()
+                            msg.data = battery_reader.get_filtered_percentage()
+                            pisugar_battery_pub.publish(msg)
+
+                msg = String()
+                msg.data = atom_s3_mode
+                mode_pub.publish(msg)
+                msg.data = atom_s3_selected_modes
+                selected_modes_pub.publish(msg)
+                button_msg = Int32()
+                button_msg.data = button_count
+                button_pub.publish(button_msg)
+                button_count = 0
+
+                if pairing_info is not None and pairing_info != prev_pairing_info:
+                    msg = String()
+                    msg.data = pairing_info
+                    pairing_info_pub.publish(msg)
+                prev_pairing_info = pairing_info
+
+                # ROS2 doesn't have global parameters like ROS1, using node parameters
+                if node.has_parameter('display_image'):
+                    ros_display_image_param = node.get_parameter('display_image').value
+                else:
+                    ros_display_image_param = None
+
+                if battery_percentage is not None and battery_pub:
+                    msg = Float32()
+                    msg.data = battery_percentage
+                    battery_pub.publish(msg)
+                if input_voltage is not None and input_voltage_pub:
+                    msg = Float32()
+                    msg.data = input_voltage
+                    input_voltage_pub.publish(msg)
+                if system_voltage is not None and system_voltage_pub:
+                    msg = Float32()
+                    msg.data = system_voltage
+                    system_voltage_pub.publish(msg)
+                if charge_status is not None and charge_status_pub and charge_status_string_pub:
+                    msg_int = Int32()
+                    msg_int.data = int(charge_status.value)
+                    charge_status_pub.publish(msg_int)
+                    msg_str = String()
+                    msg_str.data = str(charge_status)
+                    charge_status_string_pub.publish(msg_str)
+                if battery_charge_current is not None and battery_charge_current_pub:
+                    msg = Float32()
+                    msg.data = battery_charge_current
+                    battery_charge_current_pub.publish(msg)
+                if battery_junction_temperature is not None and battery_temperature_pub:
+                    msg = Float32()
+                    msg.data = battery_junction_temperature
+                    battery_temperature_pub.publish(msg)
+                if status_and_fault is not None and status_and_fault_pub:
+                    msg = UInt32()
+                    msg.data = status_and_fault
+                    status_and_fault_pub.publish(msg)
+                if status_and_fault_string is not None and status_and_fault_string_pub:
+                    msg = String()
+                    msg.data = status_and_fault_string
+                    status_and_fault_string_pub.publish(msg)
+
+                if prev_ros_display_image_param != ros_display_image_param:
+                    ros_display_image_flag = False
+                    if sub is not None:
+                        node.destroy_subscription(sub)
+                        sub = None
+                    if ros_display_image_param:
+                        node.get_logger().info(f"Start subscribe {ros_display_image_param} for display")
+                        ros_display_image_flag = True
+                        sub = node.create_subscription(Image, ros_display_image_param, ros_image_callback, qos)
+                prev_ros_display_image_param = ros_display_image_param
+
+                rclpy.spin_once(node, timeout_sec=0.1)
+
+            if not rclpy.ok():
+                break
+        except ImportError as e:
+            print(f"ROS2 is not available ({e}). Retrying...")
+            time.sleep(5)
+        except Exception as e:
+            print(f"ROS2 error ({e}). Retrying...")
+            time.sleep(5)
+        finally:
+            ros_available = False
+            ros_additional_message = None
+            if 'node' in locals():
+                node.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+
+
+def try_init_ros1():
     global ros_available
     global ros_additional_message
     global ros_display_image_flag
@@ -225,10 +455,10 @@ def try_init_ros():
             if rospy.is_shutdown():
                 break
         except ImportError as e:
-            print(f"ROS is not available ({e}). Retrying...")
+            print(f"ROS1 is not available ({e}). Retrying...")
             time.sleep(5)  # Wait before retrying
         except rospy.ROSInterruptException as e:
-            print(f"ROS interrupted ({e}). Retrying...")
+            print(f"ROS1 interrupted ({e}). Retrying...")
             time.sleep(5)  # Wait before retrying
         finally:
             ros_available = False
@@ -281,6 +511,7 @@ class DisplayInformation:
 
     def display_information(self):
         global ros_available
+        global ros_version
         global ros_additional_message
         global battery_readers
 
@@ -288,7 +519,14 @@ class DisplayInformation:
         if ip is None:
             ip = "no connection"
         ip_str = f"{socket.gethostname()}:\n{Fore.YELLOW}{ip}{Fore.RESET}"
-        master_str = "ROS_MASTER:\n" + Fore.RED + f"{get_ros_master_ip()}" + Fore.RESET
+
+        # Display ROS_MASTER_URI for ROS1 or ROS_DOMAIN_ID for ROS2
+        if ros_version == 2:
+            domain_id = os.environ.get('ROS_DOMAIN_ID', '0')
+            master_str = "ROS_DOMAIN_ID:\n" + Fore.RED + f"{domain_id}" + Fore.RESET
+        else:
+            master_str = "ROS_MASTER:\n" + Fore.RED + f"{get_ros_master_ip()}" + Fore.RESET
+
         battery_str = ""
         if battery_readers:
             for i, battery_reader in enumerate(battery_readers):
@@ -445,8 +683,13 @@ class DisplayInformation:
                             print("pairing is not done")
                         else:
                             pairing_info = new_pairing_info
-                # Send string without header to display current ROS_MASTER_URI on monitor
-                if 'ROS_MASTER_URI' in os.environ:
+                # Send string without header to display current ROS_MASTER_URI (ROS1) or ROS_DOMAIN_ID (ROS2) on monitor
+                if ros_version == 2:
+                    domain_id = os.environ.get('ROS_DOMAIN_ID', '0')
+                    sent_str = [chr(PacketType.TEXT)]
+                    sent_str += f"ROS_DOMAIN_ID: {domain_id}"
+                    self.com.write(sent_str)
+                elif 'ROS_MASTER_URI' in os.environ:
                     ros_master_uri = os.environ['ROS_MASTER_URI']
                     sent_str = [chr(PacketType.TEXT)]
                     sent_str += ros_master_uri.replace("http://", "").replace(":11311", "")
