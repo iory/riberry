@@ -532,7 +532,7 @@ class DisplayInformation:
         # Display ROS_MASTER_URI for ROS1 or ROS_DOMAIN_ID for ROS2
         if ros_version == 2:
             domain_id = os.environ.get('ROS_DOMAIN_ID', '0')
-            master_str = "ROS_DOMAIN_ID:\n" + Fore.RED + f"{domain_id}" + Fore.RESET
+            master_str = "DOMAIN_ID: " + Fore.RED + f"{domain_id}" + Fore.RESET
         else:
             master_str = "ROS_MASTER:\n" + Fore.RED + f"{get_ros_master_ip()}" + Fore.RESET
 
@@ -696,7 +696,7 @@ class DisplayInformation:
                 if ros_version == 2:
                     domain_id = os.environ.get('ROS_DOMAIN_ID', '0')
                     sent_str = [chr(PacketType.TEXT)]
-                    sent_str += f"ROS_DOMAIN_ID: {domain_id}"
+                    sent_str += f"DOMAIN_ID: {domain_id}"
                     self.com.write(sent_str)
                 elif 'ROS_MASTER_URI' in os.environ:
                     ros_master_uri = os.environ['ROS_MASTER_URI']
