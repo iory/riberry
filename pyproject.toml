@@ -33,6 +33,11 @@ dependencies = [
     "smbus2",
 ]
 
+[project.optional-dependencies]
+ros2 = [
+    "lark",  # Required for ROS2 message parsing
+]
+
 [project.urls]
 "Homepage" = "https://github.com/iory/riberry"
 "Repository" = "https://github.com/iory/riberry"

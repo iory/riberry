@@ -58,6 +58,29 @@ You can use the dry-run option to see which scripts will be installed without ac
 ./install.py --dry-run
 ```
 
+#### ROS2 Support
+
+The display_information service supports both ROS1 and ROS2. The service will automatically detect which ROS version is available and use the appropriate interface.
+
+For ROS2 environments, you need to install additional dependencies:
+
+**For system Python (Ubuntu 22.04 and earlier):**
+```bash
+sudo apt install python3-lark
+```
+
+**For virtual environment (Ubuntu 24.04 and later):**
+```bash
+source ~/.riberry_venv/bin/activate
+pip install -e ".[ros2]"
+# or manually:
+# pip install lark
+```
+
+**Configuration:**
+- ROS1: Set `RIBERRY_ROS_MASTER_IP` in `/etc/opt/riberry/riberry.user` to specify the ROS master
+- ROS2: Set `ROS_DOMAIN_ID` in `/etc/opt/riberry/riberry.user` to specify the DDS domain (default: 0)
+
 ### For atom s3 and atom echo
 
 Please write the programs found under the [firmware](https://github.com/iory/riberry/tree/main/firmware) section into the atom s3 and atom echo to display the IP and capture audio.
