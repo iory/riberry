@@ -122,7 +122,8 @@ def try_init_ros2():
 
     while not stop_event.is_set():
         try:
-            rclpy.init()
+            if not rclpy.ok():
+                rclpy.init()
             node = Node('display_information')
 
             # QoS profile for subscribers
@@ -269,14 +270,18 @@ def try_init_ros2():
 
                 rclpy.spin_once(node, timeout_sec=0.1)
 
-            if not rclpy.ok():
+            if not rclpy.ok() or stop_event.is_set():
                 break
         except ImportError as e:
             print(f"ROS2 is not available ({e}). Retrying...")
             time.sleep(5)
+            if stop_event.is_set():
+                break
         except Exception as e:
             print(f"ROS2 error ({e}). Retrying...")
             time.sleep(5)
+            if stop_event.is_set():
+                break
         finally:
             ros_available = False
             ros_additional_message = None
@@ -452,14 +457,18 @@ def try_init_ros1():
                         )
                 prev_ros_display_image_param = ros_display_image_param
                 rate.sleep()
-            if rospy.is_shutdown():
+            if rospy.is_shutdown() or stop_event.is_set():
                 break
         except ImportError as e:
             print(f"ROS1 is not available ({e}). Retrying...")
             time.sleep(5)  # Wait before retrying
+            if stop_event.is_set():
+                break
         except rospy.ROSInterruptException as e:
             print(f"ROS1 interrupted ({e}). Retrying...")
             time.sleep(5)  # Wait before retrying
+            if stop_event.is_set():
+                break
         finally:
             ros_available = False
             ros_additional_message = None
