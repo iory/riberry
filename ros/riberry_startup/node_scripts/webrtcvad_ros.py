@@ -51,7 +51,16 @@ class WebRTCVADROS:
         elif self._audio_info.sample_format == 'S32LE':
             audio_data = np.array(np.frombuffer(msg.data, dtype=np.int32) >> 16,
                                   dtype=np.int16)
-        is_speech = self._vad.is_speech(audio_data.tobytes(), self._audio_info.sample_rate)
+
+        frame_duration_ms = 10
+        frame_len = int(self._audio_info.sample_rate * frame_duration_ms / 1000)
+        is_speech = False
+        for i in range(0, len(audio_data), frame_len):
+            chunk = audio_data[i : i + frame_len]
+            if len(chunk) == frame_len:
+                if self._vad.is_speech(chunk.tobytes(), self._audio_info.sample_rate):
+                    is_speech = True
+                    break
         self._pub_is_speech.publish(Bool(is_speech))
 
         current_time = rospy.Time.now()
