@@ -1,0 +1,42 @@
+<!-- Mainly copied from ros_speech_recognition/launch/speech_recognition.launch -->
+
+<launch>
+  <arg name="audio_topic" default="audio" />
+  <arg name="filtered_audio_topic" default="audio" />
+  <arg name="audio_info_topic" default="audio_info" />
+  <arg name="device" default="" />
+
+  <!-- audio capture from microphone -->
+  <node name="audio_capture" pkg="audio_capture" type="audio_capture"
+        respawn="true">
+    <remap from="audio" to="$(arg audio_topic)" />
+    <rosparam subst_value="true">
+      format: wave
+      channels: 1
+      depth: 16
+      sample_rate: 16000
+      sample_format: S16LE
+    </rosparam>
+    <param name="device" value="$(arg device)" />
+  </node>
+
+  <node name="webrtcvad_ros"
+        pkg="riberry_startup" type="webrtcvad_ros.py"
+        output="screen" >
+    <rosparam>
+      aggressiveness: 1
+    </rosparam>
+    <remap from="audio_data" to="$(arg filtered_audio_topic)" />
+    <remap from="audio_info" to="$(arg audio_info_topic)" />
+  </node>
+
+  <node name="speech_to_text_google"
+        pkg="riberry_startup" type="speech_to_text.py"
+        respawn="true"
+        output="screen">
+    <remap from="audio" to="webrtcvad_ros/speech_audio"  />
+    <remap from="audio_info" to="$(arg audio_info_topic)" />
+    <remap from="speech_to_text" to="speech_to_text"  />
+  </node>
+
+</launch>
