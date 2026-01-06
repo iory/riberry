@@ -28,6 +28,22 @@ def parse_ip(route_get_output):
         return tokens[tokens.index("src") + 1]
 
 
+def get_ip_from_interface(interface_name):
+    try:
+        output = subprocess.check_output(
+            ["ip", "-4", "-o", "addr", "show", interface_name],
+            stderr=subprocess.DEVNULL
+        ).decode()
+
+        tokens = output.split()
+        if "inet" in tokens:
+            ip_cidr = tokens[tokens.index("inet") + 1]
+            return ip_cidr.split('/')[0]
+    except (subprocess.CalledProcessError, ValueError, IndexError):
+        return None
+    return None
+
+
 def get_ros_ip():
     try:
         route_get = subprocess.check_output(
