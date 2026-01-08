@@ -142,6 +142,8 @@ if __name__ == "__main__":
 
     # loop
     try:
+        if default_select is not None:
+            mux_client(default_select)
         before = default_select
         update_trigger(conditions, wait=wait)
         looprate = rospy.Rate(freq)
