@@ -54,6 +54,7 @@ class SpeechToText:
             rospy.loginfo(f"Waiting for result {len(data.get_raw_data())}")
             result = self.recognizer.recognize_google(
                 data, language=self.language)
+            rospy.loginfo(f"Recognized: {result}")
             msg = SpeechRecognitionCandidates(
                 transcript=[result],
                 confidence=[1.0],
