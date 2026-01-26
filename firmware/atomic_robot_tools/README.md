@@ -39,3 +39,17 @@ pio run -t upload -e dynamixel_safe_test
     rostopic pub /motor_command  std_msgs/String "data: 'Stop'"
     rostopic pub /motor_command  std_msgs/String "data: 'Reverse'"
     ```
+
+## Control Dynamixel motor via WiFi
+
+1. Burn firmware to device
+
+```
+pio run -e wifi_dynamixel_controller -t upload
+```
+
+2. Run rosserial (rosserial_python is unstable)
+
+```
+rosrun rosserial_server socket_node
+```
