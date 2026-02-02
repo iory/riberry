@@ -21,7 +21,7 @@ def check_ping(target_ip):
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
         return True
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         return False
 
 
