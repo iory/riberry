@@ -14,19 +14,19 @@ def parse_ip(route_get_output):
         return tokens[tokens.index("src") + 1]
 
 
-def get_ros_ip():
+def get_ros_ip(target_ip="8.8.8.8"):
     try:
         route_get = subprocess.check_output(
-            ["ip", "-o", "route", "get", "8.8.8.8"], stderr=subprocess.DEVNULL
+            ["ip", "-o", "route", "get", target_ip], stderr=subprocess.DEVNULL
         ).decode()
         return parse_ip(route_get)
     except subprocess.CalledProcessError:
         return None
 
 
-def wait_and_get_ros_ip(retry=300):
+def wait_and_get_ros_ip(retry=300, target_ip="8.8.8.8"):
     for _ in range(retry):
-        ros_ip = get_ros_ip()
+        ros_ip = get_ros_ip(target_ip)
         if ros_ip:
             return ros_ip
         time.sleep(1)
@@ -34,7 +34,8 @@ def wait_and_get_ros_ip(retry=300):
 
 
 def get_roshost(retry=None, ros_master_ip=None):
-    ros_ip = wait_and_get_ros_ip(retry or 300)
+    target_ip = ros_master_ip if ros_master_ip else "8.8.8.8"
+    ros_ip = wait_and_get_ros_ip(retry or 300, target_ip=target_ip)
     ros_script = ""
     if ros_ip:
         ros_script += f"ROS_IP={ros_ip}"
