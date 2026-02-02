@@ -14,20 +14,7 @@ def parse_ip(route_get_output):
         return tokens[tokens.index("src") + 1]
 
 
-def check_ping(target_ip):
-    try:
-        subprocess.check_call(
-            ["ping", "-c", "1", "-W", "1", target_ip],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        return True
-    except subprocess.CalledProcessError:
-        return False
-
-
 def get_ros_ip(target_ip="8.8.8.8"):
-    if not check_ping(target_ip):
-        return None
     try:
         route_get = subprocess.check_output(
             ["ip", "-o", "route", "get", target_ip], stderr=subprocess.DEVNULL
