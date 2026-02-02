@@ -5,7 +5,6 @@ import socket
 import subprocess
 import time
 
-
 # Default target IP for route lookup when ros_master_ip is not specified
 DEFAULT_TARGET_IP = "8.8.8.8"
 
