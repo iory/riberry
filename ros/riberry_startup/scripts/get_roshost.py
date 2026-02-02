@@ -26,8 +26,6 @@ def check_ping(target_ip):
 
 
 def get_ros_ip(target_ip="8.8.8.8"):
-    if not check_ping(target_ip):
-        return None
     try:
         route_get = subprocess.check_output(
             ["ip", "-o", "route", "get", target_ip], stderr=subprocess.DEVNULL
