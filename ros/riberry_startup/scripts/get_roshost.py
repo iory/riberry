@@ -5,6 +5,9 @@ import socket
 import subprocess
 import time
 
+# Default target IP for route lookup when ros_master_ip is not specified
+DEFAULT_TARGET_IP = "8.8.8.8"
+
 
 def parse_ip(route_get_output):
     tokens = route_get_output.split()
@@ -14,27 +17,43 @@ def parse_ip(route_get_output):
         return tokens[tokens.index("src") + 1]
 
 
-def get_ros_ip():
+def check_ping(target_ip):
+    try:
+        subprocess.check_call(
+            ["ping", "-c", "1", "-W", "1", target_ip],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        return True
+    except (subprocess.CalledProcessError, OSError):
+        return False
+
+
+def get_ros_ip(target_ip=None, require_ping=False):
+    target_ip = target_ip or DEFAULT_TARGET_IP
+    if require_ping and not check_ping(target_ip):
+        return None
     try:
         route_get = subprocess.check_output(
-            ["ip", "-o", "route", "get", "8.8.8.8"], stderr=subprocess.DEVNULL
+            ["ip", "-o", "route", "get", target_ip], stderr=subprocess.DEVNULL
         ).decode()
         return parse_ip(route_get)
     except subprocess.CalledProcessError:
         return None
 
 
-def wait_and_get_ros_ip(retry=300):
+def wait_and_get_ros_ip(retry=300, target_ip=None, require_ping=False):
+    target_ip = target_ip or DEFAULT_TARGET_IP
     for _ in range(retry):
-        ros_ip = get_ros_ip()
+        ros_ip = get_ros_ip(target_ip, require_ping=require_ping)
         if ros_ip:
             return ros_ip
         time.sleep(1)
     return None
 
 
-def get_roshost(retry=None, ros_master_ip=None):
-    ros_ip = wait_and_get_ros_ip(retry or 300)
+def get_roshost(retry=None, ros_master_ip=None, require_ping=False):
+    target_ip = ros_master_ip if ros_master_ip else DEFAULT_TARGET_IP
+    ros_ip = wait_and_get_ros_ip(retry or 300, target_ip=target_ip, require_ping=require_ping)
     ros_script = ""
     if ros_ip:
         ros_script += f"ROS_IP={ros_ip}"
@@ -50,7 +69,10 @@ if __name__ == "__main__":
     parser.add_argument(
         '-', '--rossetmaster', type=str, nargs='?', const=None,
         help='IP address to display (default: 8.8.8.8)')
+    parser.add_argument(
+        '--require-ping', action='store_true',
+        help='Require ping check to succeed before determining ROS_IP (useful for Tailscale/VPN scenarios)')
     args = parser.parse_args()
 
-    roshost = get_roshost(ros_master_ip=args.rossetmaster)
+    roshost = get_roshost(ros_master_ip=args.rossetmaster, require_ping=args.require_ping)
     print(roshost)
