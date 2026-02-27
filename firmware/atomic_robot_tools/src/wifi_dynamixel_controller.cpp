@@ -50,6 +50,7 @@ unsigned long lastPublishTime = 0;
 const unsigned long PUBLISH_INTERVAL = 200;  // データ送信: 0.2秒 (5Hz)
 
 String currentCmdText = "Wait";  // 現在のコマンド名を記憶
+int motorState = 0;
 
 // --- Functions ---
 
@@ -117,10 +118,17 @@ void messageCb(const std_msgs::String& msg) {
 
     if (cmd == "Forward") {
         controlMotor(500, "Forward");
+        motorState = 1;
     } else if (cmd == "Stop") {
         controlMotor(0, "Stop");
+        if (motorState == 1) {
+            motorState = 2;
+        } else {
+            motorState = 0;
+        }
     } else if (cmd == "Reverse") {
         controlMotor(-800, "Reverse");
+        motorState = 3;
     } else {
         controlMotor(0, "Unknown");
     }
@@ -191,11 +199,38 @@ void loop() {
     // 3. 正常接続時
     nh.spinOnce();  // ここで controlMotor が呼ばれるが、画面更新はされない
 
+    if (M5.BtnA.wasReleased()) {
+        lastCommandTime = millis();
+        switch (motorState) {
+            case 0:
+                controlMotor(500, "Forward");
+                motorState = 1;
+                break;
+            case 1:
+                controlMotor(0, "Stop");
+                motorState = 2;
+                break;
+            case 2:
+                controlMotor(-800, "Reverse");
+                motorState = 3;
+                break;
+            case 3:
+                controlMotor(0, "Stop");
+                motorState = 0;
+                break;
+        }
+    }
+
     // 安全装置チェック
     bool isSafeStop = (millis() - lastCommandTime > SAFETY_TIMEOUT);
     if (isSafeStop) {
         dxl.setGoalCurrent(DXL_ID, 0, UNIT_MILLI_AMPERE);
         currentCmdText = "(No Command)";
+        if (motorState == 1) {
+            motorState = 2;
+        } else if (motorState == 3) {
+            motorState = 0;
+        }
     }
 
     // --- データ送信処理 (5Hz) ---
