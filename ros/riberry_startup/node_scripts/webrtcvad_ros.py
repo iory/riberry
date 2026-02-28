@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Mainly copied from https://github.com/jsk-ros-pkg/jsk_3rdparty/blob/master/webrtcvad_ros/node_scripts/webrtcvad_ros.py
 
