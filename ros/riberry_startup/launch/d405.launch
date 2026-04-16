@@ -2,15 +2,20 @@
   <arg name="high_resolution" default="false" />
   <arg name="enable_color" default="true" />
   <arg name="enable_depth" default="true" />
-  <arg name="color_fps" default="15" />
-  <arg name="depth_fps" default="15" />
-  <arg name="exposure" default="10000" />
+  <arg name="color_fps" default="5" />
+  <arg name="depth_fps" default="5" />
+  <!-- <arg name="exposure" default="10000" /> -->
+  <arg name="exposure" default="30000" />
+
+  <arg name="tf_prefix" default="$(eval (optenv('ROS_NAMESPACE') + '_camera') if optenv('ROS_NAMESPACE') else 'camera')" />
 
   <!-- D405 -->
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="enable_color" value="$(arg enable_color)" />
     <arg name="enable_depth" value="$(arg enable_depth)" />
-    <arg name="align_depth" value="$(arg enable_depth)" />
+    <!-- Setting align_depth to false will drastically reduce CPU utilization. -->
+    <!-- Caution: Requires both a stereo camera (e.g., D405) AND identical sizes for RGB and Depth images. -->
+    <arg name="align_depth" value="false" />
     <arg name="enable_infra" value="false" />
     <arg name="color_fps" value="$(arg color_fps)" />
     <arg name="depth_fps" value="$(arg depth_fps)" />
@@ -19,15 +24,55 @@
     <arg name="color_height" value="720" if="$(arg high_resolution)" />
     <arg name="depth_width" value="1280" if="$(arg high_resolution)" />
     <arg name="depth_height" value="720" if="$(arg high_resolution)" />
+    <!-- Medium resolution -->
+    <arg name="color_width" value="848" unless="$(arg high_resolution)" />
+    <arg name="color_height" value="480" unless="$(arg high_resolution)" />
+    <arg name="depth_width" value="848" unless="$(arg high_resolution)" />
+    <arg name="depth_height" value="480" unless="$(arg high_resolution)" />
     <!-- Low resolution -->
-    <arg name="color_width" value="424" unless="$(arg high_resolution)" />
-    <arg name="color_height" value="240" unless="$(arg high_resolution)" />
-    <arg name="depth_width" value="480" unless="$(arg high_resolution)" />
-    <arg name="depth_height" value="270" unless="$(arg high_resolution)" />
+    <!-- <arg name="color_width" value="480" unless="$(arg high_resolution)" /> -->
+    <!-- <arg name="color_height" value="270" unless="$(arg high_resolution)" /> -->
+    <!-- <arg name="depth_width" value="480" unless="$(arg high_resolution)" /> -->
+    <!-- <arg name="depth_height" value="270" unless="$(arg high_resolution)" /> -->
+
+    <arg name="initial_reset" value="true" />
+    <arg name="tf_prefix" value="$(arg tf_prefix)" />
   </include>
 
   <rosparam subst_value="true">
-    /camera/stereo_module/exposure: $(arg exposure)
+    camera/stereo_module/exposure: $(arg exposure)
   </rosparam>
+
+  <!-- Lowering CPU usage -->
+  <group ns="camera/color/image_raw">
+    <rosparam param="disable_pub_plugins">
+      - 'image_transport/compressedDepth'
+      - 'image_transport/theora'
+    </rosparam>
+  </group>
+  <group ns="camera/aligned_depth_to_color/image_raw">
+    <rosparam param="disable_pub_plugins">
+      - 'image_transport/compressed'
+      - 'image_transport/theora'
+    </rosparam>
+    <group ns="compressedDepth">
+      <rosparam>
+        png_level: 1 <!-- Default 9 -->
+        depth_quantization: 100.0 <!-- Default 100 -->
+      </rosparam>
+    </group>
+  </group>
+  <group ns="camera/depth/image_rect_raw">
+    <rosparam param="disable_pub_plugins">
+      - 'image_transport/compressed'
+      - 'image_transport/theora'
+    </rosparam>
+    <group ns="compressedDepth">
+      <rosparam>
+        png_level: 1 <!-- Default 9 -->
+        depth_quantization: 100.0 <!-- Default 100 -->
+      </rosparam>
+    </group>
+  </group>
 
 </launch>
